@@ -173,6 +173,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
 @keyframes coachp{50%{outline-color:transparent}}
 .finger{position:fixed;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;background:rgba(255,255,255,.85);box-shadow:0 0 0 6px rgba(255,255,255,.25);z-index:4;pointer-events:none;animation:fingerMove 2.2s ease-in-out infinite}
 @keyframes fingerMove{0%{left:28%;top:34%;opacity:0}15%{opacity:1}70%{left:72%;top:34%;opacity:1}100%{left:72%;top:34%;opacity:0}}
+.abort{background:#5a1d18;color:#ffb0a8}.abort[data-armed="true"]{background:var(--signal);color:#fff}
 .ghostTag{position:fixed;left:0;top:0;transform:translate(-50%,-100%);pointer-events:none;font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.03em;padding:4px 9px;border-radius:8px;background:rgba(10,14,22,.88);border:1px solid var(--line);color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
 .ghostTag[data-bad="true"]{color:#ffb0a8;border-color:#ff6b5e}
 .loading{position:fixed;inset:0;display:grid;place-items:center;font-family:var(--display);font-size:20px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);pointer-events:none}
@@ -215,6 +216,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
         <button class="btn" id="cam">Draufsicht</button>
         <button class="btn" id="pa" disabled>Durchsage</button>
         <button class="btn" id="undo" disabled>Zurück</button>
+        <button class="btn abort" id="abort" hidden>Abbruch</button>
         <button class="btn" id="more" aria-expanded="false" aria-controls="visRow">Optionen</button>
         <button class="primary" id="main">Einlass öffnen</button>
       </div>
@@ -457,7 +459,7 @@ const gsx=new Float32Array(MAXA),gsy=new Float32Array(MAXA),gcn=new Uint16Array(
 const cnt=new Int32Array(N),start=new Int32Array(N+1),fillp=new Int32Array(N),order=new Int32Array(MAXA),D=new Float32Array(N);
 const gAcc=new Float32Array(N),gLoad=new Float32Array(N),gT=new Float32Array(N);
 let seed=12345;function rng(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}
-const S0={moshAcc:0,pitsTotal:0,tr:0,t:0,spawned:0,hurt:0,left:0,pulled:0,tips:0,peak:0,maxPeak:0,maxP:0,active:0,egressStart:0,egressT:0,fieldTimer:0,spawnAcc:0,dirty:false,rr:0,tick:0,calm:0,calmCd:0,pullAcc:0,paUsed:0,mapDirty:false,showStart:0,allInT:0,settled:0,surge:0,surgeIn:20,surges:0,hype:0,dangerT:0,evI:0,storm:false};
+const S0={moshAcc:0,pitsTotal:0,tr:0,t:0,spawned:0,hurt:0,left:0,pulled:0,tips:0,peak:0,maxPeak:0,maxP:0,active:0,egressStart:0,egressT:0,fieldTimer:0,spawnAcc:0,dirty:false,rr:0,tick:0,calm:0,calmCd:0,pullAcc:0,paUsed:0,mapDirty:false,showStart:0,allInT:0,settled:0,surge:0,surgeIn:20,surges:0,hype:0,dangerT:0,evI:0,storm:false,aborted:false,abortHurt:0,abortHot:0,showEndT:0};
 const maxD=new Float32Array(N),injLog=[]; // für die Auswertung: höchste Dichte je Zelle, Orte der Verletzungen
 const S=Object.assign({phase:'plan',target:5000},S0);
 let onPhase=null,onEvent=null;
@@ -479,7 +481,7 @@ function chooseExit(i,dyn){
   ex[i]=best;
 }
 function startEgress(){
-  S.egressStart=S.t;zonesOpen();computeGeoExits();
+  S.egressStart=S.t;S.showEndT=S.t;zonesOpen();computeGeoExits();
   for(let g=0;g<groupCount();g++)recomputeGroup(g,D);
   for(let i=0;i<nA;i++)if(st[i]===1)chooseExit(i,false);
   setPhase('egress');
@@ -1217,7 +1219,7 @@ const nf=new Intl.NumberFormat('de-DE');
 const HINTS={
   plan:'Umschließe Bereiche mit Wellenbrechern und setze Zählschleusen als Zugang: So entstehen Zonen. Tippe auf das Zonen-Etikett, um festzulegen, wie viele hinein dürfen.',
   ingress:'Einlass läuft, Flutlicht an. Das Konzert beginnt, wenn alle ihren Platz gefunden haben. Ist eine Zone voll, schließen ihre Zählschleusen.',
-  show:'Konzert läuft, jetzt können Moshpits entstehen. Druck im Publikum? „Durchsage“ unterbricht die Show und beruhigt die Menge.',
+  show:'Das Konzert läuft bis zum Ende. Druck im Publikum? „Durchsage“ beruhigt die Menge. Nur wenn es zu gefährlich wird: „Abbruch“.',
   egress:'Räumung läuft. Notausgänge werden nur genutzt, wenn man sie aus der Nähe sieht.',
   done:'Runde beendet.'};
 const PNAME={plan:'Planung',ingress:'Einlass',show:'Konzert',egress:'Räumung',done:'Ende'};
@@ -1227,8 +1229,8 @@ function updateStats(now,force){
   $('sTime').textContent=fmtT(S.t);$('sCount').textContent=nf.format(S.active);
   const pk=$('sPeak');pk.innerHTML=fmtD(S.peak)+'<small> P/m²</small>';pk.className='v'+(S.peak>=5.5?' crit':S.peak>=4?' warn':'');
   $('sHurt').textContent=nf.format(S.hurt);
-  if(LV&&S.phase==='show'&&CFG.showLen){$('main').textContent='Konzert läuft · '+fmtT(Math.max(0,CFG.showLen-(S.t-S.showStart)))}
-  if(LV&&S.phase==='ingress'){$('main').textContent='Einlass läuft'}
+  if(S.phase==='show'&&CFG.showLen){$('main').textContent='Konzert läuft · noch '+fmtT(Math.max(0,CFG.showLen-(S.t-S.showStart)))}
+  if(S.phase==='ingress'){$('main').textContent='Einlass läuft'}
   if(S.phase==='ingress'){const ph=$('phase');ph.textContent=S.spawned>=S.target?'Gleich los · '+Math.min(99,Math.floor(S.settled/SHOW_READY*100))+' %':PNAME.ingress}
   const pc=$('pen');if(ZONES.length){pc.hidden=false;const full=ZONES.filter(z=>z.closed).length;
     pc.textContent=S.phase==='plan'?ZONES.length+(ZONES.length===1?' Zone':' Zonen'):'Zonen '+ZONES.length+(full?' · '+full+' voll':'');pc.dataset.closed=full>0}else pc.hidden=true;
@@ -1243,7 +1245,8 @@ onPhase=p=>{
   const ph=$('phase');ph.textContent=PNAME[p];ph.dataset.p=p;$('hint').textContent=HINTS[p];
   const m=$('main');m.disabled=p==='egress';
   m.textContent=p==='plan'?'Einlass öffnen':p==='egress'?'Räumung läuft':p==='done'?'Neue Runde':'Konzert beenden';
-  if(LV&&(p==='ingress'||p==='show'))m.disabled=true;
+  if(p==='ingress'||p==='show')m.disabled=true;
+  $('abort').hidden=!(p==='ingress'||p==='show');$('abort').dataset.armed=false;$('abort').textContent='Abbruch';
   $('visRow').hidden=p!=='plan'||!!LV;$('more').hidden=p!=='plan'||!!LV;$('undo').hidden=p!=='plan';$('pa').hidden=p==='plan';if(typeof updateUndo==='function')updateUndo();
   ledMode=p==='egress'||p==='done'?'egress':p==='plan'?'plan':'show';
   if(p==='plan'){rebuildBarriers();rebuildStructures();updatePlanInfo()}else if(p==='ingress')rebuildStructures();
@@ -1254,9 +1257,14 @@ onPhase=p=>{
 };
 $('main').addEventListener('click',()=>{const p=S.phase;
   if(p==='plan'){S.target=LV?LV.visitors:+$('visitors').value;savePlanAuto();startIngress()}
-  else if(p==='ingress'||p==='show')startEgress();
+
   else if(p==='done')resetRound()});
 $('again').addEventListener('click',resetRound);
+let abortTimer=0;
+$('abort').addEventListener('click',e=>{const b=e.currentTarget;if(!(S.phase==='ingress'||S.phase==='show'))return;
+  if(b.dataset.armed!=='true'){b.dataset.armed=true;b.textContent='Wirklich?';clearTimeout(abortTimer);abortTimer=setTimeout(()=>{b.dataset.armed=false;b.textContent='Abbruch'},3000);return}
+  clearTimeout(abortTimer);S.aborted=true;S.abortHurt=S.hurt;S.abortHot=hot.length;startEgress();sfx('calm');buzz([40,40,40]);
+  toast('Konzert abgebrochen','Durchsage: Die Show ist beendet, bitte ruhig zu den Ausgängen gehen.')});
 $('clear').addEventListener('click',()=>{resetRound();pushUndo(snapshot());buildMap(false);mapChanged(true);resetRound()});
 $('pa').addEventListener('click',()=>{if(announce())flash('Durchsage über die PA: Show unterbrochen, Publikum tritt zurück.')});
 $('lanes').addEventListener('input',e=>{const old=CFG.lanes;CFG.lanes=+e.target.value;if(planCost()>BUDGET){CFG.lanes=old;e.target.value=old;noMoney()}
@@ -1462,7 +1470,7 @@ function startLevel(i){
 }
 function startFree(){
   LV=null;LVi=-1;started=true;BUDGET=60000;CFG.mosh=+document.querySelector('[data-mosh][aria-pressed="true"]').dataset.mosh;CFG.lanes=+$('lanes').value;
-  CFG.showLen=0;CFG.events=[{t:60,type:'headliner'}];
+  CFG.showLen=150;CFG.events=[{t:60,type:'headliner'}];
   resetRound();const sv=fromHash()||store.get('free',null);if(sv)loadPlan(sv);else{buildMap(true);mapChanged(true);resetRound()}
   undoStack.length=0;updateUndo();applyTools(ALL_TOOLS);$('goals').hidden=true;closeMenu();
 }
@@ -1503,8 +1511,9 @@ $('share').addEventListener('click',async()=>{const url=location.origin+location
 // ---------- Score & Auswertung ----------
 function roundResult(){
   const hurt=S.hurt,egress=S.egressT,left=Math.max(0,BUDGET-planCost());
-  const safety=Math.round(600*Math.max(0,1-hurt/50)),ev=Math.round(250*Math.min(1,Math.max(0,(270-egress)/180))),bud=Math.round(150*left/BUDGET);
-  return{hurt,egress,score:safety+ev+bud,safety,ev,bud,frontZone:ZONES.some(z=>z.front&&z.locks.length)}}
+  const played=!S.aborted?1:S.showStart&&CFG.showLen?Math.min(1,Math.max(0,(S.showEndT-S.showStart)/CFG.showLen)):0;
+  const safety=Math.round(550*Math.max(0,1-hurt/50)),show=Math.round(100*played),ev=Math.round(200*Math.min(1,Math.max(0,(270-egress)/180))),bud=Math.round(150*left/BUDGET);
+  return{hurt,egress,played,score:safety+show+ev+bud,safety,show,ev,bud,frontZone:ZONES.some(z=>z.front&&z.locks.length)}}
 const REG_FRONT=(x,y)=>y<=STAGE_ROW+3;
 function regionName(c){const x=c%W,y=(c/W)|0;
   for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const xx=x+dx,yy=y+dy;if(xx>=0&&yy>=0&&xx<W&&yy<H&&tile[yy*W+xx]===7)return'an den Zählschleusen'}
@@ -1540,8 +1549,9 @@ function drawResultMap(){const cv=$('rMap'),g=cv.getContext('2d'),img=g.createIm
   g.imageSmoothingEnabled=false;g.clearRect(0,0,cv.width,cv.height);g.drawImage(sc,0,0,cv.width,cv.height);
   const k=cv.width/W;for(const e of injLog){const x=(e.c%W+0.5)*k,y=(((e.c/W)|0)+0.5)*k;g.fillStyle='#fff';g.beginPath();g.arc(x,y,1.9,0,6.3);g.fill();g.strokeStyle='#ff3b30';g.lineWidth=1;g.stroke()}}
 function showResult(){
-  const r=roundResult(),[v,t]=verdict(r);$('rTitle').textContent=S.storm?'Gewitter: '+v:v;$('rText').textContent=t;
-  $('rScore').textContent=nf.format(r.score);$('rBreak').textContent=`Sicherheit ${r.safety} · Räumung ${r.ev} · Budget ${r.bud}`;
+  const r=roundResult(),[v,t]=verdict(r);$('rTitle').textContent=S.storm?'Gewitter: '+v:S.aborted?'Abgebrochen: '+v:v;
+  $('rText').textContent=t+(S.aborted?(S.abortHot||S.abortHurt>=10?' Der Abbruch war richtig: Es war bereits gefährlich.':' Der Abbruch kam ohne akute Gefahr und hat '+Math.round((1-r.played)*100)+' % der Show gekostet.'):'');
+  $('rScore').textContent=nf.format(r.score);$('rBreak').textContent=`Sicherheit ${r.safety} · Show ${r.show} · Räumung ${r.ev} · Budget ${r.bud}`;
   $('rHurt').textContent=nf.format(S.hurt);$('rTime').textContent=fmtT(S.egressT);$('rPeak').textContent=fmtD(S.maxPeak)+' P/m²';
   $('rPulled').textContent=nf.format(S.pulled);$('rTips2').textContent=nf.format(S.tips);$('rCost').textContent=nf.format(planCost())+' €';$('rPits').textContent=nf.format(S.pitsTotal);
   const ul=$('rTips');ul.textContent='';for(const tx of analyzeRound()){const li=document.createElement('li');li.textContent=tx;ul.appendChild(li)}
@@ -1556,7 +1566,7 @@ function verdict(r){
   if(S.hurt===0)return['Sauber geplant','Niemand ist im Gedränge gestürzt.'];
   if(S.hurt<=8)return['Fast geschafft','Ein paar Menschen sind gestürzt. Die Karte zeigt, wo.'];
   if(S.hurt<=25)return['Rettungsdienst im Einsatz','Mehrere Menschen sind im Gedränge gestürzt. Wo hat sich der Druck aufgebaut?'];
-  return['Abbruch durch die Behörde','So hätte die Veranstaltung nicht stattfinden dürfen.'+(S.tips?' Umgekippte Hamburger Gitter haben die Lage verschärft.':'')]}
+  return['Zu viele Verletzte',(S.aborted?'Die Lage war außer Kontrolle.':'So hätte das Konzert nicht weiterlaufen dürfen. Wird es so gefährlich, ist „Abbruch“ die richtige Entscheidung.')+(S.tips?' Umgekippte Hamburger Gitter haben die Lage verschärft.':'')]}
 
 // ---------- Gefahrenstellen: rote Kreise, Pfeile am Rand ----------
 const hotRing=new THREE.InstancedMesh(new THREE.RingGeometry(2.4,3.2,48),new THREE.MeshBasicMaterial({color:0xff3b30,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false,fog:false}),3);
