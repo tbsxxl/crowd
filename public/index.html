@@ -211,6 +211,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
         <button class="tool" data-tool="erase" aria-pressed="false"><span class="sw erase"></span>Radieren<small>erstattet</small></button>
       </div>
       <div class="row">
+        <button class="btn" id="flow" aria-pressed="true">Wege: rein</button>
         <button class="btn" id="heat" aria-pressed="false">Dichte</button>
         <button class="btn" id="speed">1×</button>
         <button class="btn" id="cam">Draufsicht</button>
@@ -231,6 +232,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
         </label>
         <div class="seg"><span>Moshpits</span><div class="opts" role="group" aria-label="Moshpits">
           <button data-mosh="0" aria-pressed="false">Keine</button><button data-mosh="1" aria-pressed="true">Wenige</button><button data-mosh="2" aria-pressed="false">Viele</button></div></div>
+        <div class="seg"><span>Ort</span><div class="opts"><button data-map="wiese" aria-pressed="true">Wiese</button><button data-map="steg" aria-pressed="false">Laufsteg</button><button data-map="stadt" aria-pressed="false">Stadt</button><button data-map="strand" aria-pressed="false">Strand</button></div></div>
         <div class="seg"><span>Plan</span><div class="opts" id="slots"><button data-slot="1">Platz 1</button><button data-slot="2">Platz 2</button><button data-slot="3">Platz 3</button><button id="share">Link</button></div></div>
         <p class="legal" id="legal"></p>
       </div>
@@ -298,34 +300,62 @@ let BUDGET=60000;const COST={gitter:15,wave:120,lock:350,tower:3000,sani:5000,ga
 const CFG={lanes:4,mosh:1,showLen:0,events:[]}; // showLen: Konzertdauer in s (0 = von Hand beenden), events: [{t,type}] ab Konzertbeginn
 const SHOW_READY=0.95,SHOW_WAIT_MAX=150,MOSH_DELAY=10; // Anteil am Platz, max. Wartezeit nach Einlassende (s), erste Moshpits frühestens nach x s Konzert // Einlass-Spuren je Eingang, Moshpits 0 keine / 1 wenig / 2 viel
 // Kacheln: 0 frei,1 Bau,2 Hamburger Gitter,3 Notausgang zu,4 Bühne,5 Notausgang offen,6 Ein-/Ausgang,
-// 7 Zählschleuse,8 Gitter umgekippt,9 Barrier/Wellenbrecher,10 Bühnengraben,11 Hochstand,12 Sanitätsposten,13 Podest,14 Delay-Mast,15 Ordner
+// 7 Zählschleuse,8 Gitter umgekippt,9 Barrier/Wellenbrecher,10 Bühnengraben,11 Hochstand,12 Sanitätsposten,13 Podest,14 Delay-Mast,15 Ordner,16 Wasser
 const tile=new Uint8Array(N),fixed=new Uint8Array(N);
-const BLKP=new Uint8Array(16);[1,2,3,4,9,10,11,12,13,14,15].forEach(t=>BLKP[t]=1);
-const BLKF=new Uint8Array(16);BLKF.set(BLKP);
+const BLKP=new Uint8Array(17);[1,2,3,4,9,10,11,12,13,14,15,16].forEach(t=>BLKP[t]=1);
+const BLKF=new Uint8Array(17);BLKF.set(BLKP);
 const blk=t=>BLKP[t]===1;      // für Wegberechnung (Schleuse gilt als passierbar)
 const wall=t=>BLKF[t]===1;     // physisch
 const wallC=c=>BLKF[tile[c]]===1||lockShut[c]===1; // physisch je Zelle (geschlossene Schleuse blockiert)
 let gates=[],exits=[],towers=[],sanis=[],ordner=[],tipped=[];
 const MASTS=[{x:14,y:60},{x:44,y:60}],SCREENS=[{x0:2,x1:13,y0:16,y1:24,cx:7.5},{x0:46,x1:57,y0:16,y1:24,cx:52.5}];
 const STAGE_ROW=13;
+// Orte: gleiche Grundform (Bühne oben, Eingänge unten), eigenes Gelände
+const ALL_GATES=[{s:'L',x0:0,y0:26,x1:0,y1:35},{s:'R',x0:W-1,y0:26,x1:W-1,y1:35},{s:'L',x0:0,y0:68,x1:0,y1:77},{s:'R',x0:W-1,y0:68,x1:W-1,y1:77},{s:'B',x0:27,y0:H-1,x1:32,y1:H-1}];
+const MAPS={
+  wiese:{name:'Festivalwiese',ground:'meadow',foodtrucks:true,wc:true,podest:true,exits:[{x0:7,x1:12},{x0:47,x1:52}],gates:[0,1,2,3,4]},
+  steg:{name:'Laufsteg & B-Stage',ground:'meadow',foodtrucks:true,wc:true,podest:true,runway:true,exits:[{x0:7,x1:12},{x0:47,x1:52}],gates:[0,1,2,3,4]},
+  stadt:{name:'Stadtplatz',ground:'plaza',exits:[{x0:7,x1:12},{x0:47,x1:52}],gates:[0,1,2,3,4],
+    blocks:[[1,38,11,58],[48,38,58,58],[15,80,24,97],[35,80,44,97]]},
+  strand:{name:'Strand',ground:'sand',wc:true,water:true,bar:[53,40,58,47],exits:[{x0:20,x1:25},{x0:47,x1:52}],gates:[1,3,4]}};
+let MAP='wiese',MAPDEF=MAPS.wiese;
+const isWater=(x,y)=>MAPDEF.water&&y>=28&&x<3+(y-28)*0.13;
+const fob=new Uint8Array(N); // Bühnenbarriere (vorn und am Laufsteg)
+let stageCand=[];            // Zellen direkt an der Bühnenbarriere mit Blickrichtung
+const nearStage=c=>TGEO[0][c]<=3;
+const stageAdj=new Uint8Array(N); // direkt an der Bühnenbarriere (Security im Graben erreicht sie)
 function rect(x0,y0,x1,y1,t,fx){for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){tile[y*W+x]=t;if(fx)fixed[y*W+x]=1}}
+function setMap(id){MAP=MAPS[id]?id:'wiese';MAPDEF=MAPS[MAP]}
 function buildMap(example){
-  tile.fill(0);fixed.fill(0);towers=[];sanis=[];ordner=[];tipped=[];
+  const M=MAPDEF;
+  tile.fill(0);fixed.fill(0);fob.fill(0);towers=[];sanis=[];ordner=[];tipped=[];
   rect(0,0,W-1,0,1,1);rect(0,H-1,W-1,H-1,1,1);rect(0,0,0,H-1,1,1);rect(W-1,0,W-1,H-1,1,1);
   rect(16,0,43,9,4,1);                         // Bühne
   rect(16,10,43,11,10,1);                      // Bühnengraben
   rect(15,10,15,12,9,1);rect(44,10,44,12,9,1);rect(15,12,44,12,9,1); // Front-of-Stage-Barrier mit seitlichem Rücklauf
+  for(let x=15;x<=44;x++)fob[12*W+x]=1;
+  if(M.runway){ // Laufsteg in die Menge mit runder B-Stage, ringsum Barriere
+    const bx=30,by=34,ri=4.5,ro=5.7;
+    for(let y=12;y<=40;y++)for(let x=20;x<=40;x++){const d=Math.hypot(x+0.5-bx,y+0.5-by);
+      if((x===27||x===32)&&y<=30||d>ri&&d<=ro){tile[y*W+x]=9;fixed[y*W+x]=1;fob[y*W+x]=1}}
+    for(let y=10;y<=40;y++)for(let x=20;x<=40;x++){const d=Math.hypot(x+0.5-bx,y+0.5-by);
+      if(x>=28&&x<=31&&y<=30||d<=ri){tile[y*W+x]=4;fixed[y*W+x]=1;fob[y*W+x]=0}}}
   rect(27,48,32,53,9,1);rect(28,49,31,52,1,1); // FOH-Insel mit stabiler Absperrung
-  rect(1,56,6,63,1,1);rect(53,56,58,63,1,1);   // Foodtrucks
-  rect(53,80,58,86,1,1);                       // WC
-  rect(2,38,8,43,13,1);                        // Rollstuhlpodest
+  if(M.foodtrucks){rect(1,56,6,63,1,1);rect(53,56,58,63,1,1)}   // Foodtrucks
+  if(M.wc)rect(53,80,58,86,1,1);                                // WC
+  if(M.podest)rect(2,38,8,43,13,1);                             // Rollstuhlpodest
+  if(M.bar)rect(M.bar[0],M.bar[1],M.bar[2],M.bar[3],1,1);       // Strandbar
+  for(const b of M.blocks||[])rect(b[0],b[1],b[2],b[3],1,1);    // Häuserblöcke
+  if(M.water)for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(isWater(x,y)){tile[y*W+x]=16;fixed[y*W+x]=1}
   for(const m of MASTS)rect(m.x,m.y,m.x+1,m.y+1,14,1); // Delay-Masten mit Lautsprechern und Bildschirm
-  exits=[{x0:7,x1:12},{x0:47,x1:52}];
+  exits=M.exits.map(e=>({...e}));
   for(const e of exits)rect(e.x0,H-1,e.x1,H-1,6,1);
-  gates=[{s:'L',x0:0,y0:26,x1:0,y1:35},{s:'R',x0:W-1,y0:26,x1:W-1,y1:35},
-         {s:'L',x0:0,y0:68,x1:0,y1:77},{s:'R',x0:W-1,y0:68,x1:W-1,y1:77},
-         {s:'B',x0:27,y0:H-1,x1:32,y1:H-1}];
+  gates=M.gates.map(i=>({...ALL_GATES[i]}));
   for(const g of gates){setGate(g,false);rect(g.x0,g.y0,g.x1,g.y1,tile[g.y0*W+g.x0],1)}
+  // Plätze direkt an der Bühnenbarriere (Ziel der Fans), mit Blick zur Barriere
+  stageCand=[];for(let c=0;c<N;c++){if(blk(tile[c]))continue;const x=c%W,y=(c/W)|0;
+    for(let q=0;q<4;q++){const nx=x+NB[q][0],ny=y+NB[q][1];if(nx<0||ny<0||nx>=W||ny>=H)continue;if(fob[ny*W+nx]){stageCand.push([c,NB[q][0],NB[q][1]]);break}}}
+  stageAdj.fill(0);for(const [c] of stageCand)stageAdj[c]=1;
   if(example){rect(19,24,26,24,2);rect(33,24,40,24,2);} // Beispiel: Hamburger Gitter als Wellenbrecher (keine gute Idee)
 }
 function setGate(g,open){g.open=open;for(let y=g.y0;y<=g.y1;y++)for(let x=g.x0;x<=g.x1;x++)tile[y*W+x]=open?5:3}
@@ -388,14 +418,14 @@ const FL=[],GX=[],GY=[],GEO=[];for(let g=0;g<NGMAX;g++){FL.push(new Float32Array
 function recomputeGroup(g,dens){const G=groupGoals(g);dijkstra(G.cells,FL[g],dens);buildDir(FL[g],GX[g],GY[g],G.dirs)}
 function computeGeoExits(){for(let g=0;g<groupCount();g++)dijkstra(groupGoals(g).cells,GEO[g],null)}
 const geo=new Float32Array(N),fld=new Float32Array(N),dirX=new Float32Array(N),dirY=new Float32Array(N);
-function stageGoals(){const cells=[],dirs=new Map();for(let x=16;x<=43;x++){const c=STAGE_ROW*W+x;if(!blk(tile[c])){cells.push(c);dirs.set(c,[0,-1])}}return{cells,dirs}}
+function stageGoals(){const cells=[],dirs=new Map();for(const [c,dx,dy] of stageCand)if(!blk(tile[c])){cells.push(c);dirs.set(c,[dx,dy])}return{cells,dirs}}
 // Ziele: 0 Bühne, 1 an Wellenbrechern/Gittern anlehnen, 2 vor den Videowänden, 3 an den Delay-Masten
 const TG=4,TGEO=[geo],TFLD=[fld],TDX=[dirX],TDY=[dirY],tAvail=[1,0,0,0];
 for(let k=1;k<TG;k++){TGEO.push(new Float32Array(N));TFLD.push(new Float32Array(N));TDX.push(new Float32Array(N));TDY.push(new Float32Array(N))}
 function targetGoals(k){
   if(k===0)return stageGoals();const cells=[],dirs=new Map();
   if(k===1){for(let y=STAGE_ROW+1;y<H-1;y++)for(let x=1;x<W-1;x++){const c=y*W+x;if(blk(tile[c]))continue;
-    for(let q=0;q<4;q++){const n=c+NB[q][1]*W+NB[q][0],t=tile[n];if((t===9||t===2)&&!(fixed[n]&&((n/W)|0)<=STAGE_ROW)){cells.push(c);break}}}}
+    for(let q=0;q<4;q++){const n=c+NB[q][1]*W+NB[q][0],t=tile[n];if((t===9||t===2)&&!fob[n]&&!(fixed[n]&&((n/W)|0)<=STAGE_ROW)){cells.push(c);break}}}}
   else if(k===2){for(const sc of SCREENS)for(let y=sc.y0;y<=sc.y1;y++)for(let x=sc.x0;x<=sc.x1;x++){const c=y*W+x;if(!blk(tile[c]))cells.push(c)}}
   else{for(const m of MASTS)for(let y=m.y-3;y<=m.y+4;y++)for(let x=m.x-3;x<=m.x+4;x++){const c=y*W+x;if(!blk(tile[c]))cells.push(c)}}
   return{cells,dirs};
@@ -421,7 +451,7 @@ function computeZones(){
         if(seen[n]||blk(tile[n])||tile[n]===7)continue;seen[n]=1;q.push(n)}}
     if(open||cells.length>free*0.6||cells.length<6)continue;
     const id=ZONES.length,lockSet=new Set(),ov=new Map();let sx=0,sy=0,front=false;
-    for(const c of cells){zoneId[c]=id;const cx=c%W,cy=(c/W)|0;sx+=cx+0.5;sy+=cy+0.5;if(cy===STAGE_ROW)front=true;
+    for(const c of cells){zoneId[c]=id;const cx=c%W,cy=(c/W)|0;sx+=cx+0.5;sy+=cy+0.5;if(stageAdj[c])front=true;
       const o=oldId[c];if(o>=0)ov.set(o,(ov.get(o)||0)+1);
       for(let k=0;k<4;k++){const nx=cx+NB[k][0],ny=cy+NB[k][1];if(nx<0||ny<0||nx>=W||ny>=H)continue;const n=ny*W+nx;if(tile[n]===7)lockSet.add(n)}}
     // Limit übernehmen, wenn die Zone aus einer früheren hervorgeht
@@ -582,7 +612,7 @@ function step(dt){
   if(P==='show'&&!calm&&CFG.mosh>0&&S.t-S.showStart>MOSH_DELAY){S.moshAcc+=dt;const iv=CFG.mosh===1?40:14,mx=CFG.mosh===1?1:3;
     if(S.moshAcc>iv*(0.6+rng()*0.8)&&pits.length<mx&&nA>200){S.moshAcc=0;
       for(let tries=0;tries<40;tries++){const i=(rng()*nA)|0;if(st[i]!==1)continue;const c=acell[i];
-        if(D[c]<2.2||D[c]>5||ord[c]||TGEO[0][c]>32||((c/W)|0)<STAGE_ROW+3)continue;
+        if(D[c]<2.2||D[c]>5||ord[c]||TGEO[0][c]>32||TGEO[0][c]<3)continue;
         pits.push({x:ax[i],y:ay[i],t:0,dur:14+rng()*10});S.pitsTotal++;emit('pit',pits[pits.length-1]);break}}}
   for(let k=pits.length-1;k>=0;k--){pits[k].t+=dt;if(pits[k].t>pits[k].dur||egress||calm)pits.splice(k,1)}
   gAcc.fill(0);S.pullAcc=Math.min(3,S.pullAcc+PULL_RATE*dt);
@@ -599,7 +629,7 @@ function step(dt){
   const pushFan=calm?0.12:S.surge>0?PUSH_FAN*(S.hype>0?1.2:1):FAN_IDLE,pushOut=calm?0.18:PUSH_OUT;let onWay=0;
   for(let i=0;i<nA;i++){
     const c=acell[i];
-    if(st[i]===2){injT[i]+=dt;const cy=(c/W)|0,lim=cy<=STAGE_ROW+2?MEDIC_PIT:medic[c]?MEDIC_SANI:MEDIC_T;if(injT[i]>lim){st[i]=0;S.dirty=true}continue}
+    if(st[i]===2){injT[i]+=dt;const cy=(c/W)|0,lim=TGEO[0][c]<=2?MEDIC_PIT:medic[c]?MEDIC_SANI:MEDIC_T;if(injT[i]>lim){st[i]=0;S.dirty=true}continue}
     if(st[i]!==1)continue;
     const x=ax[i],y=ay[i];
     if(blk(tile[c])){relocate(i,c);continue}
@@ -658,7 +688,7 @@ function step(dt){
     pr[i]+=(press-pr[i])*sm;if(pr[i]>maxP)maxP=pr[i];
     injT[i]+=dt;
     // Security im Graben zieht Bedrängte über die Barriere
-    if(cy===STAGE_ROW&&cx>=15&&cx<=44&&pr[i]>P_CRIT*0.8&&S.pullAcc>=1){S.pullAcc-=1;st[i]=0;S.pulled++;S.dirty=true;continue}
+    if(stageAdj[c]&&pr[i]>P_CRIT*0.8&&S.pullAcc>=1){S.pullAcc-=1;st[i]=0;S.pulled++;S.dirty=true;continue}
     const crit=tile[c]===8?P_CRIT*0.6:P_CRIT;
     if(pr[i]>crit&&injT[i]>8){crT[i]+=dt*(ord[c]?0.4:1)*(watch[c]?0.5:1);if(crT[i]>P_TIME&&rng()<dt*0.4){injure(i);continue}}else crT[i]=Math.max(0,crT[i]-dt);
     let nvx=vx[i]+fx*dt,nvy=vy[i]+fy*dt;const sp=Math.hypot(nvx,nvy);if(sp>VMAX){nvx*=VMAX/sp;nvy*=VMAX/sp}
@@ -710,12 +740,14 @@ function mergeBoxes(parts){
   g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setAttribute('aPart',new THREE.Float32BufferAttribute(aPart,1));
   g.setAttribute('aLimb',new THREE.Float32BufferAttribute(aLimb,1));g.setIndex(idx);return g;
 }
-function box(w,h,d,mat,x,y,z,shadow=true){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=shadow;m.receiveShadow=true;scene.add(m);return m}
+let addTo=null; // Ziel für box()/sign(): Szene oder eine Ortsgruppe
+const G={trucks:new THREE.Group(),wc:new THREE.Group(),podest:new THREE.Group(),cable:new THREE.Group(),map:new THREE.Group()};
+function box(w,h,d,mat,x,y,z,shadow=true){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=shadow;m.receiveShadow=true;(addTo||scene).add(m);return m}
 function signTex(text,fg,bg,w=512,h=128,font=78){return canvasTex(w,h,(g)=>{g.fillStyle=bg;g.fillRect(0,0,w,h);g.fillStyle=fg;
   g.font=`800 ${font}px "Barlow Condensed","Arial Narrow",sans-serif`;g.textAlign='center';g.textBaseline='middle';
   let f=font;while(g.measureText(text).width>w*0.92&&f>20){f-=4;g.font=`800 ${f}px "Barlow Condensed","Arial Narrow",sans-serif`}g.fillText(text,w/2,h/2+4)})}
 function sign(text,fg,bg,w,h,x,y,z,ry){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:signTex(text,fg,bg),side:THREE.DoubleSide,fog:true}));
-  m.position.set(x,y,z);m.rotation.y=ry||0;scene.add(m);return m}
+  m.position.set(x,y,z);m.rotation.y=ry||0;(addTo||scene).add(m);return m}
 const poolTex=canvasTex(128,128,(g,w,h)=>{const r=g.createRadialGradient(64,64,0,64,64,64);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(0.35,'rgba(255,255,255,.45)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,w,h)});
 
 // ---------- Licht ----------
@@ -723,10 +755,10 @@ const hemi=new THREE.HemisphereLight(0x5a6c96,0x20170f,0.55);scene.add(hemi);
 const moon=new THREE.DirectionalLight(0xa9bcff,0.55);moon.position.set(-30,90,140);moon.target.position.set(30,0,50);
 moon.castShadow=true;moon.shadow.mapSize.set(MOBILE?1024:2048,MOBILE?1024:2048);
 Object.assign(moon.shadow.camera,{left:-62,right:62,top:62,bottom:-62,near:10,far:300});moon.shadow.bias=-0.0008;moon.shadow.normalBias=0.02;
-scene.add(moon,moon.target);
+scene.add(moon,moon.target);for(const k in G)scene.add(G[k]);
 // Flutlicht: an vor dem Konzert und bei der Räumung, aus während der Show (dann übernimmt das Bühnenlicht)
 const floodLight=new THREE.DirectionalLight(0xfff6e8,0);floodLight.position.set(30,120,60);floodLight.target.position.set(30,0,50);scene.add(floodLight,floodLight.target);
-let flood=1;
+let flood=1,day=1;const SKY_N=new THREE.Color(0x5a6c96),SKY_D=new THREE.Color(0xdfe9f4),MOON_C=new THREE.Color(0xa9bcff),SUN_C=new THREE.Color(0xfff0d8),NIGHT_C=new THREE.Color(0x0a0e16),DAY_C=new THREE.Color(0xb8c5d1),CLR=new THREE.Color();
 
 // ---------- Boden & Stadt ----------
 const asphalt=canvasTex(256,256,(g,w,h)=>{g.fillStyle='#1d2026';g.fillRect(0,0,w,h);for(let i=0;i<5000;i++){const v=20+rnd()*30|0;g.fillStyle=`rgb(${v},${v+2},${v+6})`;g.fillRect(rnd()*w,rnd()*h,1.5,1.5)}},true);
@@ -764,14 +796,14 @@ function facade(seedv,warm){rs=seedv;const map=canvasTex(256,256,(g,w,h)=>{g.fil
   return new THREE.MeshLambertMaterial({map,emissiveMap:em,emissive:0xffffff,emissiveIntensity:0.95});}
 const facades=[facade(11,0.38),facade(23,0.22),facade(37,0.5)];
 const roofMat=new THREE.MeshLambertMaterial({color:0x3a3d44}),greenRoof=new THREE.MeshLambertMaterial({color:0x3f6b33});
-const roofBits=[];
+const roofBits=[],leftMeshes=[],leftSide=[],ZERO_M=new THREE.Matrix4().makeScale(0,0,0);
 function building(x0,z0,w,d,h){
   const g=new THREE.BoxGeometry(w,h,d);const uv=g.attributes.uv;
   const fw=[d,d,w,w,w,w],fh=[h,h,d,d,h,h];
   for(let f=0;f<6;f++)for(let k=0;k<4;k++){const i=f*4+k;uv.setXY(i,uv.getX(i)*fw[f]/12,uv.getY(i)*fh[f]/24)}
   const fm=facades[(rnd()*3)|0],rm=rnd()<0.3?greenRoof:roofMat;
-  const m=new THREE.Mesh(g,[fm,fm,rm,rm,fm,fm]);m.position.set(x0+w/2,h/2,z0+d/2);m.castShadow=true;m.receiveShadow=true;scene.add(m);
-  const nb=(rnd()*4)|0;for(let k=0;k<nb;k++)roofBits.push([x0+1.5+rnd()*(w-3),h,z0+1.5+rnd()*(d-3),1+rnd()*2.5,0.8+rnd()*1.6]);
+  const m=new THREE.Mesh(g,[fm,fm,rm,rm,fm,fm]);m.position.set(x0+w/2,h/2,z0+d/2);m.castShadow=true;m.receiveShadow=true;scene.add(m);if(x0<-10)leftMeshes.push(m);
+  const nb=(rnd()*4)|0;for(let k=0;k<nb;k++)roofBits.push([x0+1.5+rnd()*(w-3),h,z0+1.5+rnd()*(d-3),1+rnd()*2.5,0.8+rnd()*1.6,x0<-10]);
 }
 rs=7;
 const xs=[-85,-39,7,53,99,145],zs=[-85,-39,7,53,99,145,191];
@@ -786,7 +818,7 @@ for(const cx of xs)for(const cz of zs){
 {const pl=new THREE.InstancedMesh(new THREE.BoxGeometry(36,0.16,36),new THREE.MeshPhongMaterial({map:pave,shininess:5}),plinths.length);const o=new THREE.Object3D();
   plinths.forEach(([x,z],i)=>{o.position.set(x,0,z);o.updateMatrix();pl.setMatrixAt(i,o.matrix)});pl.receiveShadow=true;scene.add(pl)}
 {const rb=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshLambertMaterial({color:0x6b6e75}),roofBits.length);const o=new THREE.Object3D();
-  roofBits.forEach(([x,y,z,s,h],i)=>{o.position.set(x,y+h/2,z);o.scale.set(s,h,s*0.8);o.updateMatrix();rb.setMatrixAt(i,o.matrix)});rb.castShadow=true;scene.add(rb)}
+  roofBits.forEach(([x,y,z,s,h,left],i)=>{o.position.set(x,y+h/2,z);o.scale.set(s,h,s*0.8);o.updateMatrix();rb.setMatrixAt(i,o.matrix);if(left)leftSide.push({mesh:rb,i,m:o.matrix.clone()})});rb.castShadow=true;scene.add(rb)}
 
 // Straßenlaternen, Bäume, Lichtinseln
 const pools=[];// [x,z,r,color]
@@ -796,13 +828,14 @@ const pools=[];// [x,z,r,color]
   const o=new THREE.Object3D();
   lamps.forEach(([x,z,s],i)=>{o.position.set(x,3,z);o.rotation.set(0,0,0);o.updateMatrix();pole.setMatrixAt(i,o.matrix);
     const ox=Math.abs(s)===1?-s*0.9:0,oz=Math.abs(s)===2?-Math.sign(s)*0.9:0;o.position.set(x+ox,6,z+oz);o.rotation.y=Math.abs(s)===2?Math.PI/2:0;o.updateMatrix();head.setMatrixAt(i,o.matrix);
-    pools.push([x+ox*3,z+oz*3,7,0xffb25a,0.5])});
+    pools.push([x+ox*3,z+oz*3,7,0xffb25a,0.5,x<0?'left':null]);
+    if(x<0||(z>100&&x<14)){o.position.set(x,3,z);o.rotation.set(0,0,0);o.updateMatrix();leftSide.push({mesh:pole,i,m:o.matrix.clone()});head.getMatrixAt(i,o.matrix);leftSide.push({mesh:head,i,m:o.matrix.clone()})}});
   pole.castShadow=true;scene.add(pole,head);
   const trees=[];for(let z=2;z<=98;z+=16){trees.push([-3.5,z]);trees.push([63.5,z])}
   const trunk=new THREE.InstancedMesh(new THREE.BoxGeometry(0.35,2.2,0.35),new THREE.MeshLambertMaterial({color:0x4a3524}),trees.length);
   const crown=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshLambertMaterial({color:0x2f5a2a}),trees.length*3);
-  let k=0;trees.forEach(([x,z],i)=>{o.rotation.set(0,0,0);o.scale.set(1,1,1);o.position.set(x,1.1,z);o.updateMatrix();trunk.setMatrixAt(i,o.matrix);
-    for(let j=0;j<3;j++){const s=1.6+rnd()*1.2;o.position.set(x+(rnd()-0.5)*1.2,2.6+j*0.9,z+(rnd()-0.5)*1.2);o.scale.set(s,s*0.8,s);o.updateMatrix();crown.setMatrixAt(k++,o.matrix)}});
+  let k=0;trees.forEach(([x,z],i)=>{o.rotation.set(0,0,0);o.scale.set(1,1,1);o.position.set(x,1.1,z);o.updateMatrix();trunk.setMatrixAt(i,o.matrix);if(x<0)leftSide.push({mesh:trunk,i,m:o.matrix.clone()});
+    for(let j=0;j<3;j++){const s=1.6+rnd()*1.2;o.position.set(x+(rnd()-0.5)*1.2,2.6+j*0.9,z+(rnd()-0.5)*1.2);o.scale.set(s,s*0.8,s);o.updateMatrix();if(x<0)leftSide.push({mesh:crown,i:k,m:o.matrix.clone()});crown.setMatrixAt(k++,o.matrix)}});
   trunk.castShadow=crown.castShadow=true;scene.add(trunk,crown)}
 
 // Flutlichtmasten an den Ecken des Geländes
@@ -855,7 +888,7 @@ function aimBeams(t,egress){
   for(const b of spots){
     let tx,tz;
     if(egress){tx=b.x;tz=40+b.i*6}else{tx=30+Math.sin(t*0.6+b.i*1.7)*20;tz=26+Math.sin(t*0.45+b.i)*14}
-    if(b.eg!==egress){b.eg=egress;const c=egress?0xfff4e0:b.c;b.s.color.set(c);b.cone.material.uniforms.color.value.set(c);b.cone.material.uniforms.op.value=egress?0.12:0.32}
+    if(b.eg!==egress){b.eg=egress;const c=egress?0xfff4e0:b.c;b.s.color.set(c);b.cone.material.uniforms.color.value.set(c);b.op=egress?0.12:0.32}
     b.s.target.position.set(tx,0,tz);
     const from=b.s.position,ddx=tx-from.x,ddy=-from.y,ddz=tz-from.z,len=Math.hypot(ddx,ddy,ddz),dir=beamDir.set(ddx/len,ddy/len,ddz/len);
     const r=Math.tan(b.s.angle)*len;
@@ -872,18 +905,21 @@ pools.push([30,51,9,0x7a5cff,0.35]);
 function truck(cx,cz,side,body,stripe,title){
   box(5.6,3,7.6,new THREE.MeshLambertMaterial({color:body}),cx,1.75,cz);
   box(5.4,0.5,7.4,black,cx,0.25,cz,false);
-  const hatch=new THREE.Mesh(new THREE.PlaneGeometry(6,1.2),new THREE.MeshBasicMaterial({color:0xffd59a}));hatch.position.set(cx+side*2.81,1.9,cz);hatch.rotation.y=side*Math.PI/2;scene.add(hatch);
+  const hatch=new THREE.Mesh(new THREE.PlaneGeometry(6,1.2),new THREE.MeshBasicMaterial({color:0xffd59a}));hatch.position.set(cx+side*2.81,1.9,cz);hatch.rotation.y=side*Math.PI/2;addTo.add(hatch);
   const aw=canvasTex(256,64,(g,w,h)=>{for(let i=0;i<16;i++){g.fillStyle=i%2?'#f4f1ea':stripe;g.fillRect(i*16,0,16,h)}});
   const awn=new THREE.Mesh(new THREE.PlaneGeometry(7.2,1.6),new THREE.MeshLambertMaterial({map:aw,side:THREE.DoubleSide}));
-  awn.position.set(cx+side*3.4,2.85,cz);awn.rotation.set(0,side*Math.PI/2,0);awn.rotateX(-0.45);awn.castShadow=true;scene.add(awn);
+  awn.position.set(cx+side*3.4,2.85,cz);awn.rotation.set(0,side*Math.PI/2,0);awn.rotateX(-0.45);awn.castShadow=true;addTo.add(awn);
   sign(title,'#1b1a12','#f2c230',6,1,cx+side*2.82,3.55,cz,side*Math.PI/2);
-  pools.push([cx+side*5,cz,7,0xffb060,0.55]);
+  pools.push([cx+side*5,cz,7,0xffb060,0.55,'trucks']);
 }
+addTo=G.trucks;
 truck(4,60,1,0xe9e6df,'#2f6fd6','FISCHBRÖTCHEN');
 truck(56,60,-1,0x2a2d36,'#d63a2f','POMMES & BIER');
 // WC
+addTo=G.wc;
 for(let k=0;k<5;k++){const z=80.7+k*1.3;box(1.25,2.3,1.2,new THREE.MeshLambertMaterial({color:0x2f6fd6}),56,1.15,z);box(1.3,0.12,1.25,new THREE.MeshLambertMaterial({color:0xe8e8e8}),56,2.35,z)}
-sign('WC','#ffffff','#2f6fd6',2,1,55.2,3,83.4,-Math.PI/2);pools.push([53,83.5,5,0x8fd3ff,0.35]);
+sign('WC','#ffffff','#2f6fd6',2,1,55.2,3,83.4,-Math.PI/2);pools.push([53,83.5,5,0x8fd3ff,0.35,'wc']);
+addTo=null;
 
 // Bauzaun & Notausgänge
 const fenceTex=canvasTex(64,128,(g,w,h)=>{g.clearRect(0,0,w,h);g.strokeStyle='#cfd4da';g.lineWidth=2;g.strokeRect(2,2,w-4,h-4);g.lineWidth=1;
@@ -899,9 +935,9 @@ function gateSign(q){const cx=(q.x0+q.x1+1)/2,cz=(q.y0+q.y1+1)/2;
   for(const k of [-1,1]){box(0.12,2.8,0.12,metal,cx+dx+ex*k,1.4,cz+dz+ez*k,false)}
   gateSigns.push(sign('NOTAUSGANG','#ffffff','#0f9a4f',q.s==='B'?7:10.4,0.9,cx+dx,3.1,cz+dz,ry))}
 const exitSigns=[];
-function buildGates(){for(const q of gates)gateSign(q);
+function buildGates(){gateSigns.length=0;exitSigns.length=0;for(const q of gates)gateSign(q);
   for(const e of exits){const cx=(e.x0+e.x1+1)/2;for(const k of [-1,1])box(0.25,4.5,0.25,metal,cx+k*3.3,2.25,H-0.5);box(6.9,0.3,0.3,metal,cx,4.5,H-0.5);
-    exitSigns.push(sign('EIN- / AUSGANG','#ffffff','#0f9a4f',5.6,1,cx,3.9,H-0.6,Math.PI));pools.push([cx,H-3,7,0x3ddc84,0.45])}}
+    exitSigns.push(sign('EIN- / AUSGANG','#ffffff','#0f9a4f',5.6,1,cx,3.9,H-0.6,Math.PI))}}
 function rebuildFence(){
   const o=new THREE.Object3D();let n=0;const col=new THREE.Color();
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
@@ -963,22 +999,27 @@ function updateLocks(force){
 // Bühnengraben (Gummimatte), Kabelbrücke FOH → Bühne, Rollstuhlpodest, Einlass-Serpentinen
 {const mat=new THREE.Mesh(new THREE.PlaneGeometry(28,2),new THREE.MeshLambertMaterial({color:0x17181c}));mat.rotation.x=-Math.PI/2;mat.position.set(30,0.1,11);mat.receiveShadow=true;scene.add(mat);
  const kb=canvasTex(64,64,(g,w,h)=>{g.fillStyle='#1b1a12';g.fillRect(0,0,w,h);g.fillStyle='#f2c230';for(let i=-2;i<4;i++){g.beginPath();g.moveTo(i*24,h);g.lineTo(i*24+12,h);g.lineTo(i*24+12+h,0);g.lineTo(i*24+h,0);g.fill()}},true);kb.repeat.set(1,40);
- box(0.62,0.09,34.6,new THREE.MeshLambertMaterial({map:kb}),30.5,0.12,30.5,false);
- box(7,0.9,6,metal,5.5,0.45,41);box(7,0.06,0.06,truss,5.5,1.95,44);box(7,0.06,0.06,truss,5.5,1.95,38);box(0.06,0.06,6,truss,9,1.95,41);
+ addTo=G.cable;box(0.62,0.09,34.6,new THREE.MeshLambertMaterial({map:kb}),30.5,0.12,30.5,false);
+ addTo=G.podest;box(7,0.9,6,metal,5.5,0.45,41);box(7,0.06,0.06,truss,5.5,1.95,44);box(7,0.06,0.06,truss,5.5,1.95,38);box(0.06,0.06,6,truss,9,1.95,41);
  for(const [x,z] of [[2.05,38.05],[8.95,38.05],[2.05,43.95],[8.95,43.95],[5.5,43.95],[8.95,41]])box(0.06,1.05,0.06,truss,x,1.43,z,false);
- sign('BARRIEREFREIES PODEST','#ffffff','#2f6fd6',4.6,0.6,5.5,2.35,44.05,0);
- pools.push([5.5,41,6,0x8fd3ff,0.3]);
+ sign('BARRIEREFREIES PODEST','#ffffff','#2f6fd6',4.6,0.6,5.5,2.35,44.05,0);addTo=null;
+ pools.push([5.5,41,6,0x8fd3ff,0.3,'podest']);}
+function buildEntrances(){ // Einlass-Serpentinen und Einlass-Crew vor den Eingängen
  const posts=[],belts=[];
  for(const e of exits){const x0=e.x0-2,x1=e.x1+3;for(let r=0;r<5;r++){const z=101.2+r*1.3;for(let x=x0;x<=x1;x+=1.5){posts.push([x,z]);if(x+1.5<=x1&&!((r%2===0&&x+1.5>x1-1.5)||(r%2===1&&x<x0+1.5)))belts.push([x+0.75,z])}}
 }
  const pm=new THREE.InstancedMesh(new THREE.BoxGeometry(0.07,1,0.07),truss,posts.length),bm=new THREE.InstancedMesh(new THREE.BoxGeometry(1.5,0.06,0.02),new THREE.MeshLambertMaterial({color:0x2f6fd6}),belts.length);
  const o=new THREE.Object3D();posts.forEach(([x,z],i)=>{o.position.set(x,0.5,z);o.updateMatrix();pm.setMatrixAt(i,o.matrix)});belts.forEach(([x,z],i)=>{o.position.set(x,0.92,z);o.updateMatrix();bm.setMatrixAt(i,o.matrix)});
- pm.castShadow=true;scene.add(pm,bm);}
+ pm.castShadow=true;G.map.add(pm,bm);
+ const crew=[];for(const e of exits)crew.push({x:e.x0-0.6,z:H-1.6,yaw:Math.PI/2,shirt:0xf2c230},{x:e.x1+1.6,z:H-1.6,yaw:-Math.PI/2,shirt:0xf2c230});
+ G.map.add(staticCrowd(crew));}
 // Lichtinseln
 const poolMesh=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:poolTex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}),120);
 poolMesh.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(120*3),3);poolMesh.renderOrder=2;scene.add(poolMesh);
 function rebuildPools(){
-  const all=pools.slice();for(const o of towers)all.push([o.x+1,o.y+1,10,0xfff2d0,0.32]);for(const o of sanis)all.push([o.x+1.5,o.y+1.5,6,0xff8a80,0.35]);for(const q of gates)if(q.open){const cx=(q.x0+q.x1+1)/2,cz=(q.y0+q.y1+1)/2;all.push([cx+(q.s==='L'?2:q.s==='R'?-2:0),cz+(q.s==='B'?-2:0),q.s==='B'?8:11,0x3ddc84,0.6])}
+  const hideLeft=!!MAPDEF.water;
+  const all=pools.filter(p=>!p[5]||(p[5]==='left'?!hideLeft:G[p[5]]&&G[p[5]].visible));
+  for(const e of exits)all.push([(e.x0+e.x1+1)/2,H-3,7,0x3ddc84,0.45]);for(const o of towers)all.push([o.x+1,o.y+1,10,0xfff2d0,0.32]);for(const o of sanis)all.push([o.x+1.5,o.y+1.5,6,0xff8a80,0.35]);for(const q of gates)if(q.open){const cx=(q.x0+q.x1+1)/2,cz=(q.y0+q.y1+1)/2;all.push([cx+(q.s==='L'?2:q.s==='R'?-2:0),cz+(q.s==='B'?-2:0),q.s==='B'?8:11,0x3ddc84,0.6])}
   const o=new THREE.Object3D(),c=new THREE.Color();
   all.slice(0,120).forEach(([x,z,r,col,a],i)=>{o.position.set(x,0.16,z);o.rotation.set(-Math.PI/2,0,0);o.scale.set(r*2,r*2,1);o.updateMatrix();poolMesh.setMatrixAt(i,o.matrix);c.set(col).multiplyScalar(a);poolMesh.setColorAt(i,c)});
   poolMesh.count=Math.min(120,all.length);poolMesh.instanceMatrix.needsUpdate=true;poolMesh.instanceColor.needsUpdate=true;
@@ -1157,11 +1198,9 @@ function staticCrowd(list){
     pa.setXYZ(i,pt.r,pt.g,pt.b);sk.setXYZ(i,k.r,k.g,k.b);an.setXYZW(i,0,0,0,p.arm||0)});
   m.count=list.length;m.castShadow=true;m.frustumCulled=false;m.userData.own=true;return m;
 }
-{const crew=[];for(let x=17.5;x<43;x+=3)crew.push({x,z:11.3,yaw:0,shirt:0xf2c230});
-
- for(const [x,z] of [[3.2,40],[4.6,39.4],[6,40.4],[7.4,39.6],[4,42],[6.8,42.2]])crew.push({x,y:0.97,z,yaw:Math.PI,shirt:[0x4fb0c6,0xe8604c,0x7cc56b,0xa084d6,0xf0b23a,0xe57fb0][crew.length%6]});
- for(const e of exits)crew.push({x:e.x0-0.6,z:H-1.6,yaw:Math.PI/2,shirt:0xf2c230},{x:e.x1+1.6,z:H-1.6,yaw:-Math.PI/2,shirt:0xf2c230});
- scene.add(staticCrowd(crew));}
+{const crew=[];for(let x=17.5;x<43;x+=3)crew.push({x,z:11.3,yaw:0,shirt:0xf2c230});scene.add(staticCrowd(crew));
+ const pc=[];for(const [x,z] of [[3.2,40],[4.6,39.4],[6,40.4],[7.4,39.6],[4,42],[6.8,42.2]])pc.push({x,y:0.97,z,yaw:Math.PI,shirt:[0x4fb0c6,0xe8604c,0x7cc56b,0xa084d6,0xf0b23a,0xe57fb0][pc.length%6]});
+ G.podest.add(staticCrowd(pc));}
 const structGroup=new THREE.Group();scene.add(structGroup);
 const tentMat=new THREE.MeshLambertMaterial({color:0xf2f2ee}),redMat=new THREE.MeshBasicMaterial({color:0xd8261c}),lampMat=new THREE.MeshBasicMaterial({color:0xfff2d0});
 function gadd(m){m.userData.own=true;m.castShadow=true;m.receiveShadow=true;structGroup.add(m);return m}
@@ -1191,6 +1230,53 @@ function rebuildStructures(){
   if(crew.length)structGroup.add(staticCrowd(crew));
 }
 
+// ---------- Orte: Boden, Meer, Laufsteg, Häuserblöcke, Strandbar ----------
+const plazaTex=canvasTex(512,512,(g,w,h)=>{g.fillStyle='#9a9ea3';g.fillRect(0,0,w,h);
+  for(let i=0;i<4000;i++){const v=135+rnd()*40|0;g.fillStyle=`rgba(${v},${v+2},${v+5},.45)`;g.fillRect(rnd()*w,rnd()*h,2,2)}
+  g.strokeStyle='rgba(70,74,80,.55)';g.lineWidth=2;for(let i=0;i<=8;i++){g.beginPath();g.moveTo(i*64,0);g.lineTo(i*64,h);g.moveTo(0,i*64);g.lineTo(w,i*64);g.stroke()}
+  const lit=['#e8604c','#f0b23a','#4fb0c6','#ffffff','#e57fb0'];for(let i=0;i<500;i++){g.fillStyle=lit[(rnd()*lit.length)|0];g.globalAlpha=0.6;g.fillRect(rnd()*w,rnd()*h,2,2)}g.globalAlpha=1},true);
+plazaTex.repeat.set(W/16,H/16);
+const sandTex=canvasTex(512,512,(g,w,h)=>{g.fillStyle='#d9c393';g.fillRect(0,0,w,h);
+  for(let i=0;i<9000;i++){const v=rnd();g.fillStyle=v<0.5?`rgba(${200+rnd()*40|0},${175+rnd()*35|0},${120+rnd()*30|0},.6)`:`rgba(${160+rnd()*30|0},${135+rnd()*25|0},${95+rnd()*20|0},.35)`;g.fillRect(rnd()*w,rnd()*h,2,2)}
+  for(let i=0;i<60;i++){g.strokeStyle='rgba(150,125,85,.25)';g.lineWidth=3;g.beginPath();const x=rnd()*w,y=rnd()*h;g.arc(x,y,6+rnd()*14,0,3.14);g.stroke()}},true);
+sandTex.repeat.set(W/24,H/24);
+const meadowTex=ground.material.map;
+// Meer am Strand: links vom Gelände und als Bucht ins Feld
+const waterTex=canvasTex(256,256,(g,w,h)=>{g.fillStyle='#1b5f7d';g.fillRect(0,0,w,h);for(let i=0;i<220;i++){g.strokeStyle=`rgba(${140+rnd()*80|0},${200+rnd()*55|0},255,${0.15+rnd()*0.25})`;g.lineWidth=1+rnd()*2;
+  const x=rnd()*w,y=rnd()*h,l=10+rnd()*30;g.beginPath();g.moveTo(x,y);g.quadraticCurveTo(x+l/2,y-3,x+l,y);g.stroke()}},true);waterTex.repeat.set(30,30);
+const waterMesh=(()=>{const sh=new THREE.Shape();const pts=[[-300,-300],[-9,-300],[-9,28]];for(let y=28;y<=100;y+=2)pts.push([3+(y-28)*0.13,y]);pts.push([12.4,112],[12.4,400],[-300,400]);
+  sh.moveTo(pts[0][0],-pts[0][1]);for(const [x,y] of pts.slice(1))sh.lineTo(x,-y);
+  const m=new THREE.Mesh(new THREE.ShapeGeometry(sh),new THREE.MeshPhongMaterial({map:waterTex,color:0x8cc6de,shininess:40,specular:0x3a5a70,transparent:true,opacity:0.95}));
+  m.rotation.x=-Math.PI/2;m.position.y=0.16;m.receiveShadow=true;m.visible=false;scene.add(m);return m})();
+function cityBlock([x0,y0,x1,y1]){ // Häuserblock aus mehreren Gebäuden
+  const w=x1-x0+1,d=y1-y0+1,nx=Math.max(1,Math.round(w/9)),nz=Math.max(1,Math.round(d/10));
+  for(let i=0;i<nx;i++)for(let j=0;j<nz;j++){const bw=w/nx,bd=d/nz,h=10+rnd()*22,bx=x0+i*bw,bz=y0+j*bd;
+    const g=new THREE.BoxGeometry(bw-0.6,h,bd-0.6),uv=g.attributes.uv,fw=[bd,bd,bw,bw,bw,bw],fh=[h,h,bd,bd,h,h];
+    for(let f=0;f<6;f++)for(let k=0;k<4;k++){const q=f*4+k;uv.setXY(q,uv.getX(q)*fw[f]/12,uv.getY(q)*fh[f]/24)}
+    const fm=facades[(rnd()*3)|0],rm=rnd()<0.3?greenRoof:roofMat,m=new THREE.Mesh(g,[fm,fm,rm,rm,fm,fm]);
+    m.position.set(bx+bw/2,h/2,bz+bd/2);m.castShadow=m.receiveShadow=true;G.map.add(m)}}
+function beachBar([x0,y0,x1,y1]){const cx=(x0+x1+1)/2,cz=(y0+y1+1)/2,w=x1-x0+1,d=y1-y0+1;
+  box(w-0.6,2.6,d-0.6,new THREE.MeshLambertMaterial({color:0x8a5a33}),cx,1.3,cz);
+  const roof=new THREE.Mesh(new THREE.ConeGeometry(Math.max(w,d)*0.75,2.2,4),new THREE.MeshLambertMaterial({color:0x7d6234}));roof.rotation.y=Math.PI/4;roof.position.set(cx,3.7,cz);roof.castShadow=true;G.map.add(roof);
+  sign('BEACH BAR','#1b1a12','#ffd84a',4.6,0.9,x0-0.05,2.4,cz,-Math.PI/2);
+  for(const [px,pz] of [[x0+1,y0-1.5],[x1,y1+2],[x0+2,y1+3.5]]){box(0.35,6,0.35,new THREE.MeshLambertMaterial({color:0x7a5a3a}),px,3,pz);
+    for(let k=0;k<5;k++){const l=box(3,0.08,0.7,new THREE.MeshLambertMaterial({color:0x3f8a3a}),px,6,pz);l.rotation.set(0.35,k*1.26,0);l.translateX(1.3)}}}
+function buildRunway(){const neon=new THREE.MeshBasicMaterial({color:0x3dd6ff,toneMapped:false});
+  box(4,1.6,21,metal,30,0.8,20.5);box(0.12,0.06,21,neon,28.05,1.62,20.5,false);box(0.12,0.06,21,neon,31.95,1.62,20.5,false);
+  const disc=new THREE.Mesh(new THREE.CylinderGeometry(4.5,4.6,1.6,48),metal);disc.position.set(30,0.8,34);disc.castShadow=disc.receiveShadow=true;G.map.add(disc);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(4.4,0.08,6,64),new THREE.MeshBasicMaterial({color:0xff3db8,toneMapped:false}));ring.rotation.x=-Math.PI/2;ring.position.set(30,1.63,34);G.map.add(ring);
+  const top=new THREE.Mesh(new THREE.CircleGeometry(3.6,40),new THREE.MeshLambertMaterial({color:0x1d1f26}));top.rotation.x=-Math.PI/2;top.position.set(30,1.61,34);G.map.add(top)}
+let sceneMap=null;
+function setLeftSide(v){for(const e of leftSide){e.mesh.setMatrixAt(e.i,v?e.m:ZERO_M);e.mesh.instanceMatrix.needsUpdate=true}for(const m of leftMeshes)m.visible=v}
+function applyMapScene(){const M=MAPDEF;sceneMap=MAP;
+  G.trucks.visible=!!M.foodtrucks;G.wc.visible=!!M.wc;G.podest.visible=!!M.podest;G.cable.visible=!M.runway;
+  while(G.map.children.length){const c=G.map.children.pop();c.traverse(o=>{if(o.geometry)o.geometry.dispose()})}
+  addTo=G.map;buildGates();buildEntrances();if(M.runway)buildRunway();for(const b of M.blocks||[])cityBlock(b);if(M.bar)beachBar(M.bar);addTo=null;
+  waterMesh.visible=!!M.water;setLeftSide(!M.water);
+  ground.material.map=M.ground==='plaza'?plazaTex:M.ground==='sand'?sandTex:meadowTex;ground.material.color.set(M.ground==='plaza'?0x5c6066:M.ground==='sand'?0x7d6e52:0xffffff);ground.material.needsUpdate=true;
+  rebuildFence();rebuildTurnstiles();rebuildPools();zoneDrawn=-1;
+  document.querySelectorAll('[data-map]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.map===MAP))}
+
 // ---------- Kamera ----------
 const camPresets=[{tx:30,tz:56,dist:MOBILE?150:105,tilt:0.6,yaw:0},{tx:30,tz:50,dist:MOBILE?175:120,tilt:0.04,yaw:0}];
 const cam=Object.assign({},camPresets[0]);let camIdx=0;
@@ -1203,10 +1289,17 @@ function applyCam(){
 }
 
 // ---------- Post-Processing ----------
-let composer=null,bloom=null;
+let composer=null,bloom=null,gradePass=null;
 if(THREE.EffectComposer&&THREE.RenderPass&&THREE.UnrealBloomPass){
   try{composer=new THREE.EffectComposer(renderer);composer.addPass(new THREE.RenderPass(scene,camera));
-    bloom=new THREE.UnrealBloomPass(new THREE.Vector2(256,256),0.85,0.55,0.62);composer.addPass(bloom)}catch(e){composer=null}
+    bloom=new THREE.UnrealBloomPass(new THREE.Vector2(256,256),0.85,0.55,0.62);composer.addPass(bloom);
+    if(THREE.ShaderPass){gradePass=new THREE.ShaderPass({uniforms:{tDiffuse:{value:null},amt:{value:0},time:{value:0}},
+      vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+      fragmentShader:'uniform sampler2D tDiffuse;uniform float amt;uniform float time;varying vec2 vUv;float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233))+time)*43758.5453);}'+
+      'void main(){vec4 c=texture2D(tDiffuse,vUv);vec3 col=c.rgb;float l=dot(col,vec3(.299,.587,.114));'+
+      'vec3 g=mix(vec3(.01,.04,.07)+col*vec3(.88,1.0,1.15),col*vec3(1.15,.98,.82),smoothstep(.15,.75,l));col=mix(col,g,amt*.5);'+
+      'float v=smoothstep(.9,.3,length((vUv-.5)*vec2(1.1,1.)));col*=mix(1.,.6+.4*v,amt);col+=(h(vUv*vec2(1280.,720.))-.5)*.04*amt;gl_FragColor=vec4(col,c.a);}'});
+      composer.addPass(gradePass)}}catch(e){composer=null}
 }
 function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
   if(composer){composer.setPixelRatio&&composer.setPixelRatio(renderer.getPixelRatio());composer.setSize(w,h)}}
@@ -1247,7 +1340,7 @@ onPhase=p=>{
   m.textContent=p==='plan'?'Einlass öffnen':p==='egress'?'Räumung läuft':p==='done'?'Neue Runde':'Konzert beenden';
   if(p==='ingress'||p==='show')m.disabled=true;
   $('abort').hidden=!(p==='ingress'||p==='show');$('abort').dataset.armed=false;$('abort').textContent='Abbruch';
-  $('visRow').hidden=p!=='plan'||!!LV;$('more').hidden=p!=='plan'||!!LV;$('undo').hidden=p!=='plan';$('pa').hidden=p==='plan';if(typeof updateUndo==='function')updateUndo();
+  $('visRow').hidden=p!=='plan'||!!LV;$('more').hidden=p!=='plan'||!!LV;$('undo').hidden=p!=='plan';$('pa').hidden=p==='plan';$('flow').hidden=p!=='plan';$('heat').hidden=p==='plan';$('speed').hidden=p==='plan';if(typeof updateUndo==='function')updateUndo();
   ledMode=p==='egress'||p==='done'?'egress':p==='plan'?'plan':'show';
   if(p==='plan'){rebuildBarriers();rebuildStructures();updatePlanInfo()}else if(p==='ingress')rebuildStructures();
 
@@ -1289,7 +1382,7 @@ $('cam').addEventListener('click',e=>{camIdx=1-camIdx;Object.assign(cam,camPrese
 $('visitors').addEventListener('input',e=>{$('visOut').textContent=nf.format(+e.target.value)});
 let tool='view';
 
-function mapChanged(gatesToo){if(S.phase==='plan')queueSave();computeGeo();S.fieldTimer=0;rebuildBarriers();rebuildStructures();rebuildPools();updatePlanInfo();if(gatesToo){rebuildFence();gatesChanged()}}
+function mapChanged(gatesToo){if(S.phase==='plan')queueSave();flowDirty=true;computeGeo();S.fieldTimer=0;rebuildBarriers();rebuildStructures();rebuildPools();updatePlanInfo();if(gatesToo){rebuildFence();gatesChanged()}}
 const ray=new THREE.Raycaster(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),ndc=new THREE.Vector2(),hit=new THREE.Vector3();
 const LINE_TILE={bar:2,wave:9,lock:7},LINE_COST={bar:COST.gitter,wave:COST.wave,lock:COST.lock};
 function noMoney(){flash('Budget aufgebraucht. Radiere etwas weg oder nutze günstigere Teile.')}
@@ -1430,21 +1523,21 @@ const store={get(k,d){try{const v=localStorage.getItem('gp.'+k);return v===null?
 // ---------- Level ----------
 const ALL_TOOLS=['view','wave','bar','lock','ordner','tower','sani','gate','erase'];
 const LEVELS=[
-  {title:'Erste Schritte',desc:'2.500 Besucher, keine Moshpits. Lerne, wie Wellenbrecher den Druck vor der Bühne abfangen.',
+  {map:'wiese',title:'Erste Schritte',desc:'2.500 Besucher, keine Moshpits. Lerne, wie Wellenbrecher den Druck vor der Bühne abfangen.',
    visitors:2500,mosh:0,lanes:4,budget:20000,showLen:90,events:[],tools:['view','wave','bar','erase'],
    stars:[{hurt:6},{hurt:3},{hurt:1}]},
-  {title:'Front-Pen',desc:'4.000 Besucher. Grenze den Bereich vor der Bühne als Zone ab und lass nur so viele hinein, wie sicher ist.',
+  {map:'wiese',title:'Front-Pen',desc:'4.000 Besucher. Grenze den Bereich vor der Bühne als Zone ab und lass nur so viele hinein, wie sicher ist.',
    visitors:4000,mosh:1,lanes:4,budget:30000,showLen:120,events:[],tools:['view','wave','bar','lock','erase'],
    stars:[{hurt:12},{hurt:5},{hurt:3,frontZone:true}]},
-  {title:'Gewitter',desc:'4.500 Besucher. Mitten im Konzert zieht ein Gewitter auf und alle müssen schnell raus.',
+  {map:'strand',title:'Gewitter',desc:'Strandfestival, 4.500 Besucher. Mitten im Konzert zieht ein Gewitter auf und alle müssen schnell raus, auf einer Seite ist das Meer.',
    visitors:4500,mosh:1,lanes:4,budget:40000,showLen:150,events:[{t:75,type:'storm'}],tools:['view','wave','bar','lock','ordner','gate','erase'],
-   stars:[{hurt:15},{egress:150},{hurt:8,egress:105}]},
-  {title:'Headliner',desc:'5.000 Besucher, viele Moshpits. Wenn der Headliner kommt, rollen die Druckwellen doppelt so oft.',
+   stars:[{hurt:25},{egress:150},{hurt:12,egress:135}]},
+  {map:'steg',title:'Headliner',desc:'5.000 Besucher, viele Moshpits. Der Headliner spielt auf Laufsteg und B-Stage mitten in der Menge, die Druckwellen kommen jetzt von allen Seiten.',
    visitors:5000,mosh:2,lanes:4,budget:50000,showLen:150,events:[{t:30,type:'headliner'}],tools:ALL_TOOLS,
-   stars:[{hurt:40},{hurt:20},{hurt:8}]},
-  {title:'Ausverkauft',desc:'6.000 Besucher, Headliner und Moshpits. Alles, was du gelernt hast, auf einmal.',
-   visitors:6000,mosh:2,lanes:5,budget:60000,showLen:180,events:[{t:40,type:'headliner'},{t:120,type:'headliner'}],tools:ALL_TOOLS,
-   stars:[{hurt:60},{hurt:25},{hurt:10,score:700}]}
+   stars:[{hurt:50},{hurt:30},{hurt:15}]},
+  {map:'stadt',title:'Ausverkauft',desc:'Stadtplatz, 5.500 Besucher. Enge Gassen zwischen den Häuserblöcken, Headliner und Moshpits.',
+   visitors:5500,mosh:2,lanes:5,budget:60000,showLen:180,events:[{t:40,type:'headliner'},{t:120,type:'headliner'}],tools:ALL_TOOLS,
+   stars:[{hurt:90},{hurt:50},{hurt:25,score:650}]}
 ];
 let LV=null,LVi=-1;
 function starGoalText(g,short){const p=[];if(g.hurt!==undefined)p.push(g.hurt===0?'0 Verl.':'≤'+g.hurt+(short?'':' Verletzte'));
@@ -1454,14 +1547,14 @@ function starsHtml(n,best){let h='';for(let i=0;i<3;i++)h+=i<n?'★':'<span clas
 function renderMenu(){const box=$('levels');box.textContent='';const prog=store.get('prog',{});
   LEVELS.forEach((L,i)=>{const pr=prog[i]||{stars:0,best:0};const b=document.createElement('button');b.className='lvl';
     b.innerHTML=`<span class="n">${i+1}</span><b></b><span class="st">${starsHtml(pr.stars,pr.best)}</span><small></small>`;
-    b.querySelector('b').textContent=L.title;b.querySelector('small').textContent=L.desc;b.addEventListener('click',()=>startLevel(i));box.appendChild(b)});
+    b.querySelector('b').textContent=L.title;b.querySelector('small').textContent=MAPS[L.map].name+' · '+L.desc;b.addEventListener('click',()=>startLevel(i));box.appendChild(b)});
   $('menuClose').hidden=!started}
 let started=false;
 function openMenu(){renderMenu();$('menu').hidden=false}
 function closeMenu(){$('menu').hidden=true}
 function applyTools(list){document.querySelectorAll('.tool').forEach(b=>b.hidden=!list.includes(b.dataset.tool));if(!list.includes(tool))setTool('view')}
 function startLevel(i){
-  LVi=i;LV=LEVELS[i];started=true;BUDGET=LV.budget;CFG.mosh=LV.mosh;CFG.lanes=LV.lanes;CFG.showLen=LV.showLen;CFG.events=LV.events;
+  LVi=i;LV=LEVELS[i];started=true;BUDGET=LV.budget;setMap(LV.map);CFG.mosh=LV.mosh;CFG.lanes=LV.lanes;CFG.showLen=LV.showLen;CFG.events=LV.events;
   resetRound();loadPlan(store.get('lvl'+i,null));undoStack.length=0;updateUndo();applyTools(LV.tools);
   Object.assign(cam,camPresets[0]);camIdx=0;$('cam').textContent='Draufsicht';applyCam();
   $('goals').hidden=false;renderGoals();closeMenu();
@@ -1471,12 +1564,16 @@ function startLevel(i){
 function startFree(){
   LV=null;LVi=-1;started=true;BUDGET=60000;CFG.mosh=+document.querySelector('[data-mosh][aria-pressed="true"]').dataset.mosh;CFG.lanes=+$('lanes').value;
   CFG.showLen=150;CFG.events=[{t:60,type:'headliner'}];
-  resetRound();const sv=fromHash()||store.get('free',null);if(sv)loadPlan(sv);else{buildMap(true);mapChanged(true);resetRound()}
+  resetRound();const sv=fromHash()||store.get('free',null);if(sv)loadPlan(sv);else{buildMap(true);if(sceneMap!==MAP)applyMapScene();mapChanged(true);resetRound()}
   undoStack.length=0;updateUndo();applyTools(ALL_TOOLS);$('goals').hidden=true;closeMenu();
 }
 function renderGoals(){if(!LV){$('goals').hidden=true;return}
   $('goals').innerHTML='<span>Ziele:</span>'+LV.stars.map((g,i)=>`<span><b>${'★'.repeat(i+1)}</b> ${starGoalText(g,true)}</span>`).join('')}
-$('menuBtn').addEventListener('click',openMenu);$('menuClose').addEventListener('click',closeMenu);
+$('menuBtn').addEventListener('click',openMenu);
+document.querySelectorAll('[data-map]').forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.map;if(id===MAP||S.phase!=='plan'||LV)return;
+  const busy=towers.length||sanis.length||ordner.length||[...tile].some((t,i)=>!fixed[i]&&(t===2||t===7||t===9));
+  if(busy&&!confirm('Ort wechseln? Der aktuelle Plan wird verworfen.'))return;
+  setMap(id);buildMap(false);applyMapScene();mapChanged(true);resetRound();undoStack.length=0;updateUndo();savePlanAuto();flash('Ort: '+MAPS[id].name)}));$('menuClose').addEventListener('click',closeMenu);
 $('freeBtn').addEventListener('click',startFree);$('tutBtn').addEventListener('click',()=>{store.set('tut',false);startLevel(0);startCoach()});
 $('toMenu').addEventListener('click',()=>{$('result').hidden=true;openMenu()});
 $('next').addEventListener('click',()=>{$('result').hidden=true;if(LVi+1<LEVELS.length)startLevel(LVi+1);else openMenu()});
@@ -1485,14 +1582,16 @@ $('next').addEventListener('click',()=>{$('result').hidden=true;if(LVi+1<LEVELS.
 function planToObj(){const t=[];let i=0;
   while(i<N){const v0=tile[i],v=v0===8?2:v0;if(!fixed[i]&&(v===2||v===7||v===9)){let j=i;while(j+1<N&&!fixed[j+1]&&(tile[j+1]===8?2:tile[j+1])===v)j++;t.push(v,i,j-i+1);i=j+1}else i++}
   const zl=[];for(const z of ZONES)if(z.custom){let c=-1;for(let k=0;k<N;k++)if(zoneId[k]===z.id){c=k;break}if(c>=0)zl.push([c,z.limit])}
-  return{v:1,t,tw:towers.map(o=>[o.x,o.y]),sa:sanis.map(o=>[o.x,o.y]),or:ordner.map(o=>[o.x,o.y]),g:gates.map(g=>g.open?1:0),l:CFG.lanes,z:zl}}
+  return{v:1,m:MAP,t,tw:towers.map(o=>[o.x,o.y]),sa:sanis.map(o=>[o.x,o.y]),or:ordner.map(o=>[o.x,o.y]),g:gates.map(g=>g.open?1:0),l:CFG.lanes,z:zl}}
 function loadPlan(o){
+  const want=LV?LV.map:o&&o.m&&MAPS[o.m]?o.m:MAP;if(want!==MAP)setMap(want);
   buildMap(false);
   if(o&&o.v===1){for(let k=0;k+2<o.t.length;k+=3){const v=o.t[k],a=o.t[k+1],n=o.t[k+2];for(let c=a;c<a+n&&c<N;c++)if(!fixed[c]&&tile[c]===0)tile[c]=v}
     for(const [x,y] of o.tw||[])placeStruct('tower',x,y);for(const [x,y] of o.sa||[])placeStruct('sani',x,y);for(const [x,y] of o.or||[])placeOrdner(x,y);
     (o.g||[]).forEach((v,i)=>{if(gates[i])setGate(gates[i],!!v)});if(!LV&&o.l){CFG.lanes=o.l;$('lanes').value=o.l;$('lanesOut').textContent=o.l+' je Eingang'}}
   computeGeo();
   if(o&&o.z)for(const [c,lim] of o.z){const id=zoneId[c];if(id>=0){ZONES[id].limit=Math.min(lim,ZONES[id].area*ZONE_MAXD);ZONES[id].custom=true}}
+  if(sceneMap!==MAP)applyMapScene();
   rebuildFence();rebuildBarriers();rebuildStructures();rebuildPools();rebuildTurnstiles();updatePlanInfo();zoneDrawn=-1;
   if(planCost()>BUDGET){buildMap(false);computeGeo();rebuildFence();rebuildBarriers();rebuildStructures();rebuildPools();updatePlanInfo()} // Plan passt nicht ins Budget dieses Levels
 }
@@ -1514,10 +1613,10 @@ function roundResult(){
   const played=!S.aborted?1:S.showStart&&CFG.showLen?Math.min(1,Math.max(0,(S.showEndT-S.showStart)/CFG.showLen)):0;
   const safety=Math.round(550*Math.max(0,1-hurt/50)),show=Math.round(100*played),ev=Math.round(200*Math.min(1,Math.max(0,(270-egress)/180))),bud=Math.round(150*left/BUDGET);
   return{hurt,egress,played,score:safety+show+ev+bud,safety,show,ev,bud,frontZone:ZONES.some(z=>z.front&&z.locks.length)}}
-const REG_FRONT=(x,y)=>y<=STAGE_ROW+3;
 function regionName(c){const x=c%W,y=(c/W)|0;
   for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const xx=x+dx,yy=y+dy;if(xx>=0&&yy>=0&&xx<W&&yy<H&&tile[yy*W+xx]===7)return'an den Zählschleusen'}
-  if(y<=STAGE_ROW+3)return x<22?'links direkt vor der Bühne':x>37?'rechts direkt vor der Bühne':'direkt vor der Bühne';
+  if(TGEO[0][c]<=3){if(MAPDEF.runway&&y>14)return y>=27?'an der B-Stage':'am Laufsteg';return x<22?'links direkt vor der Bühne':x>37?'rechts direkt vor der Bühne':'direkt vor der Bühne'}
+  if(MAPDEF.blocks&&y>=80)return x<15?'in der linken Gasse':x>44?'in der rechten Gasse':'in der mittleren Gasse';
   if(y<=30&&(x<15||x>44))return x<30?'vor der linken Videowand':'vor der rechten Videowand';
   for(const m of MASTS)if(Math.hypot(x-m.x-1,y-m.y-1)<7)return m.x<30?'am linken Delay-Mast':'am rechten Delay-Mast';
   if(Math.hypot(x-30,y-51)<7)return'am FOH';
@@ -1530,7 +1629,7 @@ function analyzeRound(){
   if(top&&top[1]>=2){const [r,n]=top;
     const zoneTip=hasTool('lock')?' oder eine Zone mit Limit':'';
     if(r==='an den Zählschleusen')tips.push(`${n} Verletzte ${r}: Dort hat sich der Andrang gestaut. Mehr oder breitere Schleusen verteilen ihn.`);
-    else if(r.includes('vor der Bühne'))tips.push(ZONES.some(z=>z.front)?`${n} Verletzte ${r}: Senke das Limit der Bühnenzone oder setze Wellenbrecher hinein, die die Druckwellen brechen.`
+    else if(r.includes('vor der Bühne')||r==='am Laufsteg'||r==='an der B-Stage')tips.push(ZONES.some(z=>z.front)?`${n} Verletzte ${r}: Senke das Limit der Bühnenzone oder setze Wellenbrecher hinein, die die Druckwellen brechen.`
       :`${n} Verletzte ${r}: Die Druckwellen drücken alle gegen die Barriere. Wellenbrecher dahinter${zoneTip} fangen das ab.`);
     else tips.push(`${n} Verletzte ${r}: Hier wurde es gefährlich eng. Ein Wellenbrecher${hasTool('ordner')?' oder Ordner':''} in der Nähe hilft.`)}
   if(S.tips)tips.push('Umgekippte Hamburger Gitter wurden zur Stolperfalle. Wo Druck entsteht, nur Wellenbrecher einsetzen.');
@@ -1648,10 +1747,52 @@ function setSound(on){AU_ON=on;store.set('sound',on);$('snd').setAttribute('aria
 $('snd').addEventListener('click',()=>setSound(!AU_ON));
 addEventListener('pointerdown',()=>{audioInit();if(AC&&AC.state==='suspended')AC.resume()},{capture:true});
 setSound(AU_ON);
-let onPhaseExtra=p=>{if(p==='plan'&&LV)renderGoals()};
+let onPhaseExtra=p=>{if(p==='plan'){flowDirty=true;if(LV)renderGoals()}};
+
+// ---------- Laufweg-Vorschau: leuchtende Strömungslinien in der Planung ----------
+const FLOW_N=MOBILE?600:1000,flowP=new Float32Array(FLOW_N*2),flowV=new Float32Array(FLOW_N*2),flowAge=new Float32Array(FLOW_N),flowK=new Int8Array(FLOW_N),flowVisit=new Float32Array(N);
+// Kometenform: vorn breit, hinten spitz (liegt flach, zeigt in +z)
+const flowShape=new THREE.BufferGeometry();flowShape.setAttribute('position',new THREE.Float32BufferAttribute([-0.42,0,0, 0.42,0,0, 0,0,-3.4, -0.42,0,0, 0,0,0.4, 0.42,0,0],3));
+const flowLines=new THREE.InstancedMesh(flowShape,new THREE.MeshBasicMaterial({transparent:true,opacity:0.9,depthWrite:false,toneMapped:false,fog:false,side:THREE.DoubleSide}),FLOW_N);
+flowLines.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(FLOW_N*3),3);flowLines.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+flowLines.frustumCulled=false;flowLines.renderOrder=6;scene.add(flowLines);const flowO=new THREE.Object3D(),flowC=new THREE.Color(),FLOW_ZERO=new THREE.Matrix4().makeScale(0,0,0);
+let flowMode=1,flowDirty=true,flowReady=false; // 0 aus, 1 Einlass (zu den Plätzen), 2 Räumung (zu den Ausgängen)
+const FLOW_NAME=['Wege: aus','Wege: rein','Wege: raus'];
+function flowPrepare(){flowDirty=false;flowReady=true;flowVisit.fill(0);
+  if(flowMode===1){for(let k=0;k<TG;k++)if(tAvail[k])recomputeTarget(k,null)}
+  else if(flowMode===2){computeGeoExits();for(let g=0;g<groupCount();g++)recomputeGroup(g,null)}
+  for(let i=0;i<FLOW_N;i++){flowSpawn(i);flowAge[i]=-Math.random()*4}
+  for(let k=0;k<200;k++)flowStep(0.06)} // vorlaufen lassen, damit die Wege sofort sichtbar sind
+function flowSpawn(i){flowAge[i]=0;
+  if(flowMode===1){const E=exits[(Math.random()*exits.length)|0];flowP[i*2]=E.x0+0.3+Math.random()*(E.x1-E.x0+0.4);flowP[i*2+1]=H-1.4;
+    const r=Math.random();flowK[i]=r<0.16&&tAvail[1]?1:r<0.3&&tAvail[2]?2:r<0.42&&tAvail[3]?3:0}
+  else{let c=0;for(let t=0;t<30;t++){c=(Math.random()*N)|0;if(!blk(tile[c])&&isFinite(GEO[0][c]))break}
+    flowP[i*2]=c%W+Math.random();flowP[i*2+1]=((c/W)|0)+Math.random();
+    let best=-1,bc=Infinity;for(let g=0;g<groupCount();g++){if(!groupOpen(g))continue;const d=GEO[g][c];if(!isFinite(d)||(g>=exits.length&&d>GATE_SEE))continue;if(d<bc){bc=d;best=g}}flowK[i]=best}}
+const FC_IN=[1,0.72,0.1],FC_OUT=[0.1,0.75,1],FC_HOT=[1,0.12,0.08];
+function updateFlow(dt){
+  const on=flowMode>0&&S.phase==='plan'&&$('menu').hidden;flowLines.visible=on;if(!on)return;
+  if(flowDirty||!flowReady)flowPrepare();flowStep(dt)}
+function flowStep(dt){
+  const base=flowMode===1?FC_IN:FC_OUT;for(let c=0;c<N;c++)flowVisit[c]*=0.985;
+  for(let i=0;i<FLOW_N;i++){flowAge[i]+=dt;
+    if(flowAge[i]<0){flowLines.setMatrixAt(i,FLOW_ZERO);continue}
+    let x=flowP[i*2],y=flowP[i*2+1],k=flowK[i];const c=((y|0)*W)+(x|0);
+    let done=flowAge[i]>14||k<0||c<0||c>=N;
+    if(!done){if(flowMode===1){sampleDir(x,y,TDX[k],TDY[k]);if(TGEO[k][c]<=1.5||(!sdx&&!sdy))done=true}
+      else{sampleDir(x,y,GX[k],GY[k]);const t=tile[c];if(t===6||t===5||(!sdx&&!sdy))done=true}}
+    if(done){flowSpawn(i);flowLines.setMatrixAt(i,FLOW_ZERO);continue}
+    const sp=8*dt;x+=sdx*sp;y+=sdy*sp;flowP[i*2]=x;flowP[i*2+1]=y;flowVisit[c]+=1;
+    const hot=Math.min(1,flowVisit[c]/((MOBILE?28:45)*(flowMode===1?2.2:1))),fade=Math.min(1,flowAge[i]*2);
+    const r=base[0]+(FC_HOT[0]-base[0])*hot,g=base[1]+(FC_HOT[1]-base[1])*hot,b=base[2]+(FC_HOT[2]-base[2])*hot;
+    flowO.position.set(x,0.42,y);flowO.rotation.set(0,Math.atan2(sdx,sdy),0);const sc=0.6+0.4*fade;flowO.scale.set(sc,1,sc);flowO.updateMatrix();flowLines.setMatrixAt(i,flowO.matrix);
+    flowC.setRGB(r,g,b);flowLines.setColorAt(i,flowC)}
+  flowLines.instanceMatrix.needsUpdate=true;flowLines.instanceColor.needsUpdate=true}
+$('flow').addEventListener('click',e=>{flowMode=(flowMode+1)%3;e.currentTarget.textContent=FLOW_NAME[flowMode];e.currentTarget.setAttribute('aria-pressed',flowMode>0);flowDirty=true;
+  if(flowMode)flash(flowMode===1?'So strömen die Besucher beim Einlass zu ihren Plätzen. Rot = hier drängen sich viele Wege.':'So laufen alle bei der Räumung zu den Ausgängen. Notausgänge zählen nur, wenn man sie sieht.',4500)});
 
 // ---------- Start ----------
-buildMap(true);computeGeo();buildGates();rebuildFence();rebuildBarriers();rebuildStructures();rebuildPools();updatePlanInfo();rebuildTurnstiles();
+buildMap(true);computeGeo();applyMapScene();rebuildBarriers();rebuildStructures();updatePlanInfo();
 resize();applyCam();onPhase('plan');
 // Mit Plan-Link direkt ins freie Spiel, sonst Menü
 if(fromHash()){startFree()}else{const sv=store.get('free',null);if(sv){loadPlan(sv)}openMenu()}
@@ -1676,9 +1817,18 @@ function frame(now){
   if((ledTick++&3)===0)drawLed(t);
   ledMode=lm;updateLocks(false);updateZoneFloor();updateZoneTags(false);if(zoneOpen>=0&&!$('zoneSheet').hidden&&(zoneSheetVer!==zoneVer||(ledTick&15)===0)){zoneSheetVer=zoneVer;renderZoneSheet()}
   {const want=S.phase==='show'&&!calmNow?0:1;flood+=(want-flood)*Math.min(1,rdt*0.8);
-   floodLight.intensity=0.85*flood;hemi.intensity=0.55+0.5*flood;floodHeadMat.color.setScalar(0.12+0.88*flood);
-   if(bloom)bloom.strength=0.85-0.35*flood}
+   const dw=S.phase==='plan'?1:S.phase==='ingress'?0.35:0;day+=(dw-day)*Math.min(1,rdt*0.7);
+   const night=(1-flood)*(1-day);
+   floodLight.intensity=0.85*flood*(1-day);hemi.intensity=0.75+0.3*flood+0.25*day;floodHeadMat.color.setScalar(0.12+0.88*flood*(1-day*0.9));
+   hemi.color.copy(SKY_N).lerp(SKY_D,day);moon.color.copy(MOON_C).lerp(SUN_C,day);moon.intensity=0.55+0.8*day;
+   CLR.copy(NIGHT_C).lerp(DAY_C,day);renderer.setClearColor(CLR);scene.fog.color.copy(CLR);scene.fog.density=0.0052*(1-0.55*day)+0.0015*night;
+   for(const f of facades)f.emissiveIntensity=0.95*(1-0.85*day);poolMesh.material.opacity=1-0.8*day;
+   for(const b of spots)b.cone.material.uniforms.op.value=(b.op||0.32)*(1-day);
+   if(bloom)bloom.strength=(0.85-0.35*flood)*(1-0.8*day);
+   if(gradePass){gradePass.uniforms.amt.value=night;gradePass.uniforms.time.value=t%10}}
   if(composer)composer.render();else renderer.render(scene,camera);
+  updateFlow(Math.min(rdt,0.05));
+  if(waterMesh.visible){waterTex.offset.x=t*0.012;waterTex.offset.y=Math.sin(t*0.3)*0.02}
   updateHot(rdt,t);coachTick();audioTick();
   updateStats(now);requestAnimationFrame(frame);
 }
