@@ -122,6 +122,23 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
   #more{display:block}
   .settings:not(.open){display:none}
 }
+.zoneTags{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:1}
+.zoneTags[data-pass="true"] .zoneTag{pointer-events:none;opacity:.75}
+.app{z-index:2}.result,.toast{z-index:6}
+.zoneTag{position:absolute;left:0;top:0;pointer-events:auto;font-family:var(--display);font-weight:700;font-size:14px;letter-spacing:.03em;padding:5px 10px;border-radius:999px;background:rgba(10,14,22,.85);border:2px solid var(--zc);color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums;min-height:32px}
+.zoneTag[data-state="full"]{background:#4a1d1a;color:#ffb0a8}
+.zoneTag[data-state="over"],.zoneTag[data-state="none"]{color:var(--hazard)}
+.zoneSheet{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);transform:translateX(-50%);width:min(420px,calc(100% - 20px));padding:12px;display:flex;flex-direction:column;gap:10px;z-index:5}
+.zHead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.zHead b{font-family:var(--display);font-size:20px;text-transform:uppercase;letter-spacing:.04em}
+.zRow{display:flex;align-items:center;gap:10px}
+.zStep{width:52px;height:48px;font-size:26px;line-height:1;padding:0}
+.zNum{flex:1;text-align:center;display:flex;flex-direction:column}
+.zNum output{font-family:var(--display);font-weight:800;font-size:32px;font-variant-numeric:tabular-nums;line-height:1}
+.zNum small{color:var(--muted);font-size:12px}
+#zRange{width:100%;accent-color:var(--hazard);height:28px}
+.zPresets{display:flex;gap:6px}.zPresets .btn{flex:1;font-size:12px;padding:8px 4px}
+.zInfo{margin:0;font-size:12px;line-height:1.4;color:var(--muted)}.zInfo[data-warn="true"]{color:var(--hazard)}
 .ghostTag{position:fixed;left:0;top:0;transform:translate(-50%,-100%);pointer-events:none;font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.03em;padding:4px 9px;border-radius:8px;background:rgba(10,14,22,.88);border:1px solid var(--line);color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
 .ghostTag[data-bad="true"]{color:#ffb0a8;border-color:#ff6b5e}
 .loading{position:fixed;inset:0;display:grid;place-items:center;font-family:var(--display);font-size:20px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);pointer-events:none}
@@ -202,7 +219,15 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
   </div>
 </div>
 
+<div class="zoneTags" id="zoneTags"></div>
 <div class="ghostTag" id="ghostTag" hidden></div>
+<div class="zoneSheet panel" id="zoneSheet" hidden role="dialog" aria-labelledby="zTitle">
+  <div class="zHead"><b id="zTitle">Zone</b><button class="btn" id="zClose">Fertig</button></div>
+  <div class="zRow"><button class="btn zStep" id="zMinus" aria-label="Weniger">−</button><div class="zNum"><output id="zVal">0</output><small id="zDens"></small></div><button class="btn zStep" id="zPlus" aria-label="Mehr">+</button></div>
+  <input type="range" id="zRange" min="0" max="100" value="50" aria-label="Personenlimit">
+  <div class="zPresets"><button class="btn" data-zd="1">1 P/m²</button><button class="btn" data-zd="2">2 P/m² (zulässig)</button><button class="btn" data-zd="3">3 P/m²</button></div>
+  <p class="zInfo" id="zInfo"></p>
+</div>
 <div class="toast" id="toast" hidden role="status"><b id="toastT"></b><span id="toastM"></span></div>
 
 <script src="vendor/three-r128-bloom.js"></script>
@@ -212,7 +237,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
 const W=60,H=100,N=W*H,MAXA=7000,DT=1/30;
 const RB=0.46,K_BODY=120,K_FR=40,A_SOC=0.8,B_SOC=0.15,R_SOC=1.1,LAMBDA=0.35,KW=80;
 const INV_TAU=2,VMAX=2.2,MEDIC_T=20,MEDIC_SANI=8,MEDIC_PIT=5,PUSH_OUT=0.4,PUSH_FAN=0.6,P_CRIT=6,P_TIME=2;
-const GATE_SEE=35,ORD_R=7,PIT_R=4.5,G_TIP=12,G_TIP_T=1,WATCH_R=16,SANI_R=26,PULL_RATE=0.7;
+const GATE_SEE=35,ORD_R=7,PIT_R=4.5,G_TIP=17,G_TIP_T=3,G_CHAIN=2,WATCH_R=16,SANI_R=26,PULL_RATE=0.7;
 const BUDGET=60000,COST={gitter:15,wave:120,lock:350,tower:3000,sani:5000,gate:1500,ordner:400,lane:800};
 const CFG={lanes:4,mosh:1};
 const SHOW_READY=0.95,SHOW_WAIT_MAX=150,MOSH_DELAY=10; // Anteil am Platz, max. Wartezeit nach Einlassende (s), erste Moshpits frühestens nach x s Konzert // Einlass-Spuren je Eingang, Moshpits 0 keine / 1 wenig / 2 viel
@@ -222,7 +247,8 @@ const tile=new Uint8Array(N),fixed=new Uint8Array(N);
 const BLKP=new Uint8Array(16);[1,2,3,4,9,10,11,12,13,14,15].forEach(t=>BLKP[t]=1);
 const BLKF=new Uint8Array(16);BLKF.set(BLKP);
 const blk=t=>BLKP[t]===1;      // für Wegberechnung (Schleuse gilt als passierbar)
-const wall=t=>BLKF[t]===1;     // physisch (geschlossene Schleuse blockiert)
+const wall=t=>BLKF[t]===1;     // physisch
+const wallC=c=>BLKF[tile[c]]===1||lockShut[c]===1; // physisch je Zelle (geschlossene Schleuse blockiert)
 let gates=[],exits=[],towers=[],sanis=[],ordner=[],tipped=[];
 const MASTS=[{x:14,y:60},{x:44,y:60}],SCREENS=[{x0:2,x1:13,y0:16,y1:24,cx:7.5},{x0:46,x1:57,y0:16,y1:24,cx:52.5}];
 const STAGE_ROW=13;
@@ -320,20 +346,39 @@ function targetGoals(k){
 }
 function recomputeTarget(k,dens){const G=targetGoals(k);dijkstra(G.cells,TFLD[k],dens);buildDir(TFLD[k],TDX[k],TDY[k],G.dirs)}
 function recomputeStage(dens){for(let k=0;k<TG;k++)if(tAvail[k])recomputeTarget(k,dens)}
-// Front-Pen: Fläche vor der Bühne, die nur über Zählschleusen erreichbar ist
-const penMask=new Uint8Array(N),watch=new Uint8Array(N),medic=new Uint8Array(N),ord=new Uint8Array(N);
-const PEN={exists:false,area:0,cap:0,count:0,closed:false,locks:0};
-function computePen(){
-  penMask.fill(0);const q=[];for(const c of stageGoals().cells){penMask[c]=1;q.push(c)}
-  let open=false,area=0,free=0;for(let i=0;i<N;i++)if(!blk(tile[i]))free++;
-  while(q.length){const c=q.pop();area++;const t=tile[c];if(t===6||t===5)open=true;const cx=c%W,cy=(c/W)|0;
-    for(let k=0;k<4;k++){const nx=cx+NB[k][0],ny=cy+NB[k][1];if(nx<0||ny<0||nx>=W||ny>=H)continue;const n=ny*W+nx;
-      if(penMask[n]||blk(tile[n])||tile[n]===7)continue;penMask[n]=1;q.push(n)}}
-  let locks=0;for(let i=0;i<N;i++)if(tile[i]===7)locks++;
-  PEN.locks=locks;
-  if(open||area>free*0.6||locks===0){penMask.fill(0);PEN.exists=false;PEN.area=0;PEN.cap=0}
-  else{PEN.exists=true;PEN.area=area;PEN.cap=area*2}
+// Zonen: von Wellenbrechern/Gittern umschlossene Bereiche, Zugang nur über Zählschleusen.
+// Jede Zone hat ein Personenlimit; ist es erreicht, schließen ihre Schleusen.
+const watch=new Uint8Array(N),medic=new Uint8Array(N),ord=new Uint8Array(N);
+const zoneId=new Int16Array(N).fill(-1),lockOwner=new Int16Array(N).fill(-1),lockShut=new Uint8Array(N);
+let ZONES=[],zoneVer=0;
+const ZONE_DENS=2,ZONE_MAXD=4; // zulässig 2 P/m² (NVStättVO), einstellbar bis 4 P/m²
+function computeZones(){
+  const old=ZONES,oldId=zoneId.slice();
+  zoneId.fill(-1);lockOwner.fill(-1);ZONES=[];zoneVer++;
+  let free=0;for(let i=0;i<N;i++)if(!blk(tile[i]))free++;
+  const seen=new Uint8Array(N),q=[];
+  for(let s0=0;s0<N;s0++){
+    if(seen[s0]||blk(tile[s0])||tile[s0]===7)continue;
+    const cells=[];let open=false;q.length=0;q.push(s0);seen[s0]=1;
+    while(q.length){const c=q.pop();cells.push(c);const t=tile[c];if(t===6||t===5)open=true;const cx=c%W,cy=(c/W)|0;
+      for(let k=0;k<4;k++){const nx=cx+NB[k][0],ny=cy+NB[k][1];if(nx<0||ny<0||nx>=W||ny>=H)continue;const n=ny*W+nx;
+        if(seen[n]||blk(tile[n])||tile[n]===7)continue;seen[n]=1;q.push(n)}}
+    if(open||cells.length>free*0.6||cells.length<6)continue;
+    const id=ZONES.length,lockSet=new Set(),ov=new Map();let sx=0,sy=0,front=false;
+    for(const c of cells){zoneId[c]=id;const cx=c%W,cy=(c/W)|0;sx+=cx+0.5;sy+=cy+0.5;if(cy===STAGE_ROW)front=true;
+      const o=oldId[c];if(o>=0)ov.set(o,(ov.get(o)||0)+1);
+      for(let k=0;k<4;k++){const nx=cx+NB[k][0],ny=cy+NB[k][1];if(nx<0||ny<0||nx>=W||ny>=H)continue;const n=ny*W+nx;if(tile[n]===7)lockSet.add(n)}}
+    // Limit übernehmen, wenn die Zone aus einer früheren hervorgeht
+    let best=-1,bo=0;for(const [o,k] of ov)if(k>bo){bo=k;best=o}
+    const area=cells.length,legal=area*ZONE_DENS,custom=best>=0&&old[best]&&old[best].custom;
+    ZONES.push({id,area,legal,limit:custom?Math.min(old[best].limit,area*ZONE_MAXD):legal,custom,locks:[...lockSet],count:0,closed:false,x:sx/area,y:sy/area,front});
+  }
+  // Schleuse gehört zur kleinsten angrenzenden Zone (bei verschachtelten Zonen die innere)
+  [...ZONES].sort((a,b)=>b.area-a.area).forEach(z=>{for(const c of z.locks)lockOwner[c]=z.id});
+  for(const z of ZONES)z.locks=z.locks.filter(c=>lockOwner[c]===z.id);
+  lockShut.fill(0);
 }
+function zonesOpen(){for(const z of ZONES){z.closed=false;z.count=0}lockShut.fill(0)}
 function computeCoverage(){
   watch.fill(0);medic.fill(0);ord.fill(0);
   const mark=(arr,cx,cy,r)=>{for(let y=Math.max(0,Math.floor(cy-r));y<=Math.min(H-1,Math.ceil(cy+r));y++)for(let x=Math.max(0,Math.floor(cx-r));x<=Math.min(W-1,Math.ceil(cx+r));x++)
@@ -342,7 +387,7 @@ function computeCoverage(){
   for(const o of sanis)mark(medic,o.x+1.5,o.y+1.5,SANI_R);
   for(const o of ordner)mark(ord,o.x+0.5,o.y+0.5,ORD_R);
 }
-function computeGeo(){for(let k=0;k<TG;k++){const G=targetGoals(k);tAvail[k]=G.cells.length?1:0;dijkstra(G.cells,TGEO[k],null)}computeGeoExits();computePen();computeCoverage()}
+function computeGeo(){for(let k=0;k<TG;k++){const G=targetGoals(k);tAvail[k]=G.cells.length?1:0;dijkstra(G.cells,TGEO[k],null)}computeGeoExits();computeZones();computeCoverage()}
 
 // Personen
 const ax=new Float32Array(MAXA),ay=new Float32Array(MAXA),vx=new Float32Array(MAXA),vy=new Float32Array(MAXA),
@@ -363,7 +408,7 @@ function setPhase(p){S.phase=p;if(onPhase)onPhase(p)}
 function emit(type,data){if(onEvent)onEvent(type,data)}
 function resetRound(){
   for(const c of tipped)if(tile[c]===8)tile[c]=2;tipped=[];
-  nA=0;nGrp=0;agentGen++;pits.length=0;D.fill(0);gLoad.fill(0);gT.fill(0);BLKF[7]=0;PEN.closed=false;PEN.count=0;
+  nA=0;nGrp=0;agentGen++;pits.length=0;D.fill(0);gLoad.fill(0);gT.fill(0);zonesOpen();
   Object.assign(S,S0);computeGeo();setPhase('plan');
 }
 function startIngress(){computeGeo();recomputeStage(null);S.fieldTimer=0.5;setPhase('ingress')}
@@ -377,7 +422,7 @@ function chooseExit(i,dyn){
   ex[i]=best;
 }
 function startEgress(){
-  S.egressStart=S.t;BLKF[7]=0;PEN.closed=false;computeGeoExits();
+  S.egressStart=S.t;zonesOpen();computeGeoExits();
   for(let g=0;g<groupCount();g++)recomputeGroup(g,D);
   for(let i=0;i<nA;i++)if(st[i]===1)chooseExit(i,false);
   setPhase('egress');
@@ -430,7 +475,7 @@ function spawnGroup(){
 function injure(i){st[i]=2;injT[i]=0;vx[i]=vy[i]=0;S.hurt++}
 function tipGitter(c0){ // Hamburger Gitter sind verklammert: kippt eins, gehen die Nachbarn mit
   const q=[[c0,0]],seen=new Set([c0]);const cells=[];
-  while(q.length){const [c,d]=q.shift();cells.push(c);if(d>=3)continue;const cx=c%W,cy=(c/W)|0;
+  while(q.length){const [c,d]=q.shift();cells.push(c);if(d>=G_CHAIN)continue;const cx=c%W,cy=(c/W)|0;
     for(let k=0;k<4;k++){const nx=cx+NB[k][0],ny=cy+NB[k][1];if(nx<0||ny<0||nx>=W||ny>=H)continue;const n=ny*W+nx;
       if(tile[n]===2&&!seen.has(n)){seen.add(n);q.push([n,d+1])}}}
   for(const c of cells){tile[c]=8;tipped.push(c);gLoad[c]=0;gT[c]=0;
@@ -454,11 +499,12 @@ function step(dt){
   }
   if(S.mapDirty){S.mapDirty=false;computeGeo();if(P==='egress'){for(let g=0;g<groupCount();g++)recomputeGroup(g,D)}else recomputeStage(D)}
   // Einsortieren
-  cnt.fill(0);let active=0,penCount=0;
-  for(let i=0;i<nA;i++){if(!st[i])continue;const c=cellOf(i);acell[i]=c;cnt[c]++;if(st[i]===1){active++;if(penMask[c])penCount++}}
-  S.active=active;PEN.count=penCount;
-  if(PEN.exists&&P!=='egress'){if(!PEN.closed&&penCount>=PEN.cap)PEN.closed=true;else if(PEN.closed&&penCount<PEN.cap*0.94)PEN.closed=false}else PEN.closed=false;
-  BLKF[7]=PEN.closed?1:0;
+  cnt.fill(0);let active=0;for(const z of ZONES)z.count=0;
+  for(let i=0;i<nA;i++){if(!st[i])continue;const c=cellOf(i);acell[i]=c;cnt[c]++;if(st[i]===1){active++;const z=zoneId[c];if(z>=0)ZONES[z].count++}}
+  S.active=active;
+  for(const z of ZONES){const was=z.closed;
+    if(P!=='egress'){if(!z.closed&&z.count>=z.limit)z.closed=true;else if(z.closed&&z.count<z.limit*0.94)z.closed=false}else z.closed=false;
+    if(was!==z.closed)for(const c of z.locks)lockShut[c]=z.closed?1:0}
   start[0]=0;for(let c=0;c<N;c++){start[c+1]=start[c]+cnt[c];fillp[c]=start[c]}
   for(let i=0;i<nA;i++)if(st[i])order[fillp[acell[i]]++]=i;
   for(let g=0;g<nGrp;g++){gsx[g]=gsy[g]=0;gcn[g]=0}
@@ -500,7 +546,7 @@ function step(dt){
       if(egress)sampleDir(x,y,GX[ex[i]],GY[ex[i]]);else sampleDir(x,y,TDX[tg],TDY[tg]);
       hx=sdx;hy=sdy;
       let lx=(x+sdx*0.9)|0,ly=(y+sdy*0.9)|0;if(lx<0)lx=0;if(lx>=W)lx=W-1;if(ly<0)ly=0;if(ly>=H)ly=H-1;
-      const lc=ly*W+lx,da=wall(tile[lc])?D[c]:D[lc];
+      const lc=ly*W+lx,da=wallC(lc)?D[c]:D[lc];
       let s=spd[i]*Math.max(egress?pushOut:(want[i]<0?(ord[c]?0.22:pushFan):0.12),1-da/5.6);if(tile[c]===8)s*=0.55;if(calm)s*=0.8;
       dx=sdx*s;dy=sdy*s;
       cheer[i]=Math.max(0,cheer[i]-dt*2);
@@ -534,10 +580,10 @@ function step(dt){
         }}}
     // Wände, Barrieren, Gitter (Last auf Hamburger Gitter wird gemessen)
     const frx=x-cx,fry=y-cy,M=0.3;let wf,n;
-    if(frx<M&&cx>0&&wall(tile[n=c-1])){wf=KW*(M-frx);fx+=wf;press+=wf;if(tile[n]===2)gAcc[n]+=wf+pr[i]}
-    if(frx>1-M&&cx<W-1&&wall(tile[n=c+1])){wf=KW*(frx-1+M);fx-=wf;press+=wf;if(tile[n]===2)gAcc[n]+=wf+pr[i]}
-    if(fry<M&&cy>0&&wall(tile[n=c-W])){wf=KW*(M-fry);fy+=wf;press+=wf;if(tile[n]===2)gAcc[n]+=wf+pr[i]}
-    if(fry>1-M&&cy<H-1&&wall(tile[n=c+W])){wf=KW*(fry-1+M);fy-=wf;press+=wf;if(tile[n]===2)gAcc[n]+=wf+pr[i]}
+    if(frx<M&&cx>0&&wallC(n=c-1)){wf=KW*(M-frx);fx+=wf;press+=wf;if(tile[n]===2)gAcc[n]+=wf+pr[i]}
+    if(frx>1-M&&cx<W-1&&wallC(n=c+1)){wf=KW*(frx-1+M);fx-=wf;press+=wf;if(tile[n]===2)gAcc[n]+=wf+pr[i]}
+    if(fry<M&&cy>0&&wallC(n=c-W)){wf=KW*(M-fry);fy+=wf;press+=wf;if(tile[n]===2)gAcc[n]+=wf+pr[i]}
+    if(fry>1-M&&cy<H-1&&wallC(n=c+W)){wf=KW*(fry-1+M);fy-=wf;press+=wf;if(tile[n]===2)gAcc[n]+=wf+pr[i]}
     pr[i]+=(press-pr[i])*sm;if(pr[i]>maxP)maxP=pr[i];
     injT[i]+=dt;
     // Security im Graben zieht Bedrängte über die Barriere
@@ -545,8 +591,8 @@ function step(dt){
     const crit=tile[c]===8?P_CRIT*0.6:P_CRIT;
     if(pr[i]>crit&&injT[i]>8){crT[i]+=dt*(ord[c]?0.4:1)*(watch[c]?0.5:1);if(crT[i]>P_TIME&&rng()<dt*0.6){injure(i);continue}}else crT[i]=Math.max(0,crT[i]-dt);
     let nvx=vx[i]+fx*dt,nvy=vy[i]+fy*dt;const sp=Math.hypot(nvx,nvy);if(sp>VMAX){nvx*=VMAX/sp;nvy*=VMAX/sp}
-    let nx=x+nvx*dt;{const nc=(y|0)*W+(nx|0);if(nx<0.05||nx>W-0.05||(nc!==c&&wall(tile[nc]))){nx=x;nvx*=-0.2}}
-    let ny=y+nvy*dt;{const nc=(ny|0)*W+(nx|0);if(ny<0.05||ny>H-0.05||(nc!==c&&wall(tile[nc]))){ny=y;nvy*=-0.2}}
+    let nx=x+nvx*dt;{const nc=(y|0)*W+(nx|0);if(nx<0.05||nx>W-0.05||(nc!==c&&wallC(nc))){nx=x;nvx*=-0.2}}
+    let ny=y+nvy*dt;{const nc=(ny|0)*W+(nx|0);if(ny<0.05||ny>H-0.05||(nc!==c&&wallC(nc))){ny=y;nvy*=-0.2}}
     ax[i]=nx;ay[i]=ny;vx[i]=nvx;vy[i]=nvy;
     if(egress){const t=tile[(ny|0)*W+(nx|0)];if(t===6||t===5){st[i]=0;S.left++;S.dirty=true}}
   }
@@ -832,12 +878,13 @@ function rebuildBarriers(){
   lockState=-1;updateLocks(true);
 }
 function updateLocks(force){
-  const stt=!PEN.exists?2:PEN.closed?1:0;if(!force&&stt===lockState)return;lockState=stt;
-  const o=new THREE.Object3D(),col=new THREE.Color(stt===2?0xf2c230:stt===1?0xff3b30:0x3ddc84);let np=0,nl=0;
+  const key=zoneVer+'|'+ZONES.map(z=>z.closed?1:0).join('');if(!force&&key===lockState)return;lockState=key;
+  const o=new THREE.Object3D(),C_FREE=new THREE.Color(0xf2c230),C_SHUT=new THREE.Color(0xff3b30),C_OPEN=new THREE.Color(0x3ddc84);let np=0,nl=0;
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(tile[y*W+x]!==7)continue;if(nl>=450)break;
+    const own=lockOwner[y*W+x],shut=own>=0&&lockShut[y*W+x]===1,col=own<0?C_FREE:shut?C_SHUT:C_OPEN;
     const ry=faceRot(x,y,7),cx=x+0.5,cz=y+0.5,ox=Math.cos(ry)*0.46,oz=-Math.sin(ry)*0.46;
     for(const k of [-1,1]){o.position.set(cx+ox*k,0.53,cz+oz*k);o.rotation.set(0,ry,0);o.scale.set(1,1,1);o.updateMatrix();lockPost.setMatrixAt(np++,o.matrix)}
-    o.position.set(cx,0.92,cz);o.rotation.set(0,ry,0);o.scale.set(1,stt===1?1:0.001,1);o.updateMatrix();lockBelt.setMatrixAt(nl,o.matrix);
+    o.position.set(cx,0.92,cz);o.rotation.set(0,ry,0);o.scale.set(1,shut?1:0.001,1);o.updateMatrix();lockBelt.setMatrixAt(nl,o.matrix);
     o.position.set(cx+ox,1.12,cz+oz);o.scale.set(1,1,1);o.updateMatrix();lockLamp.setMatrixAt(nl,o.matrix);lockLamp.setColorAt(nl,col);nl++}
   lockPost.count=np;lockBelt.count=nl;lockLamp.count=nl;
   lockPost.instanceMatrix.needsUpdate=lockBelt.instanceMatrix.needsUpdate=lockLamp.instanceMatrix.needsUpdate=true;if(nl)lockLamp.instanceColor.needsUpdate=true;
@@ -874,6 +921,47 @@ function heatColor(d,o,p){if(d<=STOPS[0][0]){o[p+3]=0;return}
   for(let k=1;k<STOPS.length;k++){const b=STOPS[k];if(d<=b[0]){const a=STOPS[k-1],t=(d-a[0])/(b[0]-a[0]);for(let m=1;m<5;m++)o[p+m-1]=a[m]+(b[m]-a[m])*t;return}}
   const l=STOPS[STOPS.length-1];o[p]=l[1];o[p+1]=l[2];o[p+2]=l[3];o[p+3]=l[4]}
 function updateHeat(){for(let y=0;y<H;y++){const row=H-1-y;for(let x=0;x<W;x++)heatColor(D[y*W+x],heatData,(row*W+x)*4)}heatTex.needsUpdate=true}
+
+// Zonen: farbiger Boden, Etiketten mit Belegung
+const ZCOL=[[61,214,255],[255,138,42],[173,120,255],[120,230,90],[255,92,170],[255,216,74]];
+const zoneData=new Uint8Array(W*H*4),zoneTex=new THREE.DataTexture(zoneData,W,H,THREE.RGBAFormat);zoneTex.magFilter=THREE.NearestFilter;zoneTex.minFilter=THREE.LinearFilter;
+const zoneMesh=new THREE.Mesh(new THREE.PlaneGeometry(W,H),new THREE.MeshBasicMaterial({map:zoneTex,transparent:true,depthWrite:false,toneMapped:false}));
+zoneMesh.rotation.x=-Math.PI/2;zoneMesh.position.set(W/2,0.19,H/2);zoneMesh.renderOrder=2;scene.add(zoneMesh);
+let zoneDrawn=-1;
+function zoneLetter(i){return String.fromCharCode(65+i)}
+function updateZoneFloor(){
+  const key=zoneVer;if(key===zoneDrawn)return;zoneDrawn=key;zoneData.fill(0);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const z=zoneId[y*W+x];if(z<0)continue;const c=ZCOL[z%ZCOL.length],p=((H-1-y)*W+x)*4;
+    // Rand kräftiger, Fläche zart
+    let edge=false;for(let k=0;k<4;k++){const nx=x+NB[k][0],ny=y+NB[k][1];if(nx<0||ny<0||nx>=W||ny>=H||zoneId[ny*W+nx]!==z){edge=true;break}}
+    zoneData[p]=c[0];zoneData[p+1]=c[1];zoneData[p+2]=c[2];zoneData[p+3]=edge?190:75}
+  zoneTex.needsUpdate=true;rebuildZoneTags()}
+const zoneTags=document.getElementById('zoneTags'),zv=new THREE.Vector3();
+function rebuildZoneTags(){zoneTags.textContent='';
+  ZONES.forEach((z,i)=>{const b=document.createElement('button');b.className='zoneTag';b.dataset.z=i;const c=ZCOL[i%ZCOL.length];b.style.setProperty('--zc',`rgb(${c})`);
+    b.addEventListener('click',()=>openZone(i));zoneTags.appendChild(b)});
+  updateZoneTags(true)}
+let zoneTagT=0;
+function updateZoneTags(force){
+  const kids=zoneTags.children,plan=S.phase==='plan';zoneTags.dataset.pass=tool!=='view';
+  for(let i=0;i<kids.length;i++){const z=ZONES[i],el=kids[i];if(!z)continue;
+    zv.set(z.x,1.2,z.y).project(camera);const vis=zv.z<1&&Math.abs(zv.x)<1.1&&Math.abs(zv.y)<1.1;el.hidden=!vis;if(!vis)continue;
+    el.style.transform=`translate(${((zv.x+1)/2*innerWidth).toFixed(1)}px,${((1-zv.y)/2*innerHeight).toFixed(1)}px) translate(-50%,-50%)`;
+    if(force||performance.now()-zoneTagT>200){
+      const txt=!z.locks.length?zoneLetter(i)+' · kein Zugang':plan?zoneLetter(i)+' · max. '+nf.format(z.limit):zoneLetter(i)+' · '+nf.format(z.count)+' / '+nf.format(z.limit)+(z.closed?' · voll':'');
+      if(el.textContent!==txt)el.textContent=txt;el.dataset.state=!z.locks.length?'none':z.closed?'full':z.limit>z.legal?'over':''}}
+  if(force||performance.now()-zoneTagT>200)zoneTagT=performance.now()}
+// Zonen-Limit einstellen
+let zoneOpen=-1;
+function openZone(i){const z=ZONES[i];if(!z)return;zoneOpen=i;$('zoneSheet').hidden=false;renderZoneSheet()}
+function renderZoneSheet(){const z=ZONES[zoneOpen];if(!z){$('zoneSheet').hidden=true;zoneOpen=-1;return}
+  $('zTitle').textContent='Zone '+zoneLetter(zoneOpen)+' · '+nf.format(z.area)+' m²';
+  $('zVal').textContent=nf.format(z.limit);const r=$('zRange');r.max=z.area*ZONE_MAXD;r.step=Math.max(1,Math.round(z.area/50));r.value=z.limit;
+  $('zDens').textContent=fmtD(z.limit/z.area)+' P/m²';
+  $('zInfo').textContent=!z.locks.length?'Noch kein Zugang: Setze eine Zählschleuse in die Begrenzung, sonst bleibt die Zone leer.':
+    z.limit>z.legal?'Über der zulässigen Dichte (NVStättVO: '+nf.format(z.legal)+' Personen bei 2 P/m²).':'Zulässig sind bis '+nf.format(z.legal)+' Personen (2 P/m²). Ist das Limit erreicht, schließen die Zählschleusen dieser Zone.';
+  $('zInfo').dataset.warn=z.limit>z.legal||!z.locks.length}
+function setZoneLimit(v){const z=ZONES[zoneOpen];if(!z)return;z.limit=Math.max(0,Math.min(z.area*ZONE_MAXD,Math.round(v)));z.custom=true;renderZoneSheet();updateZoneTags(true)}
 
 // ---------- Menschen ----------
 const personGeo=mergeBoxes([
@@ -1056,8 +1144,8 @@ const fmtT=t=>{t=Math.floor(t);return String(Math.floor(t/60)).padStart(2,'0')+'
 const fmtD=d=>d.toFixed(1).replace('.',',');
 const nf=new Intl.NumberFormat('de-DE');
 const HINTS={
-  plan:'Wellenbrecher halten Druck aus, Hamburger Gitter kippen. Schließe einen Front-Pen mit Wellenbrechern und setze Zählschleusen als Zugang. Zwei Finger drehen und zoomen.',
-  ingress:'Einlass läuft, Flutlicht an. Das Konzert beginnt, wenn alle ihren Platz gefunden haben. Ist der Front-Pen voll (2 P/m²), schließen die Zählschleusen.',
+  plan:'Umschließe Bereiche mit Wellenbrechern und setze Zählschleusen als Zugang: So entstehen Zonen. Tippe auf das Zonen-Etikett, um festzulegen, wie viele hinein dürfen.',
+  ingress:'Einlass läuft, Flutlicht an. Das Konzert beginnt, wenn alle ihren Platz gefunden haben. Ist eine Zone voll, schließen ihre Zählschleusen.',
   show:'Konzert läuft, jetzt können Moshpits entstehen. Druck im Publikum? „Durchsage“ unterbricht die Show und beruhigt die Menge.',
   egress:'Räumung läuft. Notausgänge werden nur genutzt, wenn man sie aus der Nähe sieht.',
   done:'Runde beendet.'};
@@ -1069,8 +1157,8 @@ function updateStats(now,force){
   const pk=$('sPeak');pk.innerHTML=fmtD(S.peak)+'<small> P/m²</small>';pk.className='v'+(S.peak>=5.5?' crit':S.peak>=4?' warn':'');
   $('sHurt').textContent=nf.format(S.hurt);
   if(S.phase==='ingress'){const ph=$('phase');ph.textContent=S.spawned>=S.target?'Gleich los · '+Math.min(99,Math.floor(S.settled/SHOW_READY*100))+' %':PNAME.ingress}
-  const pc=$('pen');if(PEN.exists&&S.phase!=='plan'){pc.hidden=false;pc.textContent='Front-Pen '+nf.format(PEN.count)+' / '+nf.format(PEN.cap)+(PEN.closed?' · zu':'');pc.dataset.closed=PEN.closed}
-  else if(PEN.exists){pc.hidden=false;pc.textContent='Front-Pen max. '+nf.format(PEN.cap);pc.dataset.closed=false}else pc.hidden=true;
+  const pc=$('pen');if(ZONES.length){pc.hidden=false;const full=ZONES.filter(z=>z.closed).length;
+    pc.textContent=S.phase==='plan'?ZONES.length+(ZONES.length===1?' Zone':' Zonen'):'Zonen '+ZONES.length+(full?' · '+full+' voll':'');pc.dataset.closed=full>0}else pc.hidden=true;
   const pa=$('pa');if(S.calm>0){pa.textContent='Show steht '+Math.ceil(S.calm)+' s';pa.disabled=true}else if(S.calmCd>0){pa.textContent='Durchsage '+Math.ceil(S.calmCd)+' s';pa.disabled=true}
   else{pa.textContent='Durchsage';pa.disabled=S.phase==='plan'||S.phase==='done'}
 }
@@ -1148,6 +1236,11 @@ function undo(){if(S.phase!=='plan'||!undoStack.length)return;const sn=undoStack
   tile.set(sn.tile);towers=sn.towers;sanis=sn.sanis;ordner=sn.ordner;gates.forEach((g,i)=>g.open=sn.gates[i]);
   mapChanged(true);updateUndo();buzz();flash('Letzter Schritt rückgängig gemacht.')}
 $('undo').addEventListener('click',undo);
+$('zClose').addEventListener('click',()=>{$('zoneSheet').hidden=true;zoneOpen=-1});
+$('zMinus').addEventListener('click',()=>{const z=ZONES[zoneOpen];if(z)setZoneLimit(z.limit-Math.max(10,Math.round(z.area/20)))});
+$('zPlus').addEventListener('click',()=>{const z=ZONES[zoneOpen];if(z)setZoneLimit(z.limit+Math.max(10,Math.round(z.area/20)))});
+$('zRange').addEventListener('input',e=>setZoneLimit(+e.target.value));
+document.querySelectorAll('[data-zd]').forEach(b=>b.addEventListener('click',()=>{const z=ZONES[zoneOpen];if(z)setZoneLimit(z.area*+b.dataset.zd)}));
 addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();undo()}});
 const buzz=()=>{try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}};
 
@@ -1197,7 +1290,7 @@ function commitAction(a,b){
   const sn=snapshot();let ch=false;
   if(LINE_TILE[tool]!==undefined){const pl=planAction(a,b);for(const [c,col] of pl.g)if(col===GOK){tile[c]=LINE_TILE[tool];ch=true}
     if(pl.bad&&pl.ok)noMoney();if(ch)mapChanged(false);
-    if(ch&&tool==='lock'&&!PEN.exists)flash('Die Zählschleusen wirken erst, wenn der Bereich vor der Bühne ringsum mit Wellenbrechern geschlossen ist.')}
+    if(ch&&tool==='lock'&&pl.g.some(([c,col])=>col===GOK&&lockOwner[c]<0))flash('Diese Zählschleuse begrenzt noch keine Zone. Umschließe den Bereich ringsum mit Wellenbrechern, die Schleuse ist der Zugang.',5000)}
   else if(tool==='erase'){const pl=planAction(a,b);const done=new Set();
     for(const c of pl.del){if(done.has(c))continue;const x=c%W,y=(c/W)|0,t=tile[c];
       if(t===11||t===12){for(const k of structCells(t===11?towers:sanis,t===11?2:3,x,y)||[])done.add(k);removeAt(x,y)}else if(t===15)removeAt(x,y);else tile[c]=0;ch=true}
@@ -1208,14 +1301,15 @@ function commitAction(a,b){
 }
 const TOUCH=matchMedia('(pointer:coarse)').matches;
 const TOOL_HINT={wave:'Ziehen zeichnet eine gerade Linie, Loslassen baut. Linien rasten waagerecht, senkrecht und diagonal ein.',bar:'Ziehen zeichnet eine Linie, Loslassen baut. Neue Linien docken am Ende der letzten an.',
-  lock:'Zählschleusen als Lücke in eine geschlossene Wellenbrecher-Linie setzen.',ordner:'Antippen und verschieben, Loslassen setzt den Ordner.',tower:'Antippen und verschieben, Loslassen setzt den Hochstand.',
+  lock:'Zählschleusen als Lücke in eine geschlossene Wellenbrecher-Linie setzen. Sie zählen, wer in die Zone geht, und schließen, wenn sie voll ist.',ordner:'Antippen und verschieben, Loslassen setzt den Ordner.',tower:'Antippen und verschieben, Loslassen setzt den Hochstand.',
   sani:'Antippen und verschieben, Loslassen setzt den Sanitätsposten.',gate:'Tippe auf einen Abschnitt am Bauzaun, um einen Notausgang zu öffnen oder zu schließen.',erase:'Über Bauteile wischen, Loslassen entfernt sie. Kosten werden erstattet.'};
-function setTool(t){tool=t;document.querySelectorAll('.tool').forEach(o=>o.setAttribute('aria-pressed',o.dataset.tool===t));if(TOOL_HINT[t])flash(TOOL_HINT[t]+(TOUCH?' Zweiter Finger bricht ab.':''),6000)}
+let camGoal=null;const BUILD_DIST=MOBILE?78:70;
+function setTool(t){tool=t;if((TOUCH||MOBILE)&&t!=='view'&&t!=='gate'&&cam.dist>BUILD_DIST+4)camGoal={dist:BUILD_DIST,tilt:Math.min(cam.tilt,0.45)};document.querySelectorAll('.tool').forEach(o=>o.setAttribute('aria-pressed',o.dataset.tool===t));if(TOOL_HINT[t])flash(TOOL_HINT[t]+(TOUCH?' Zweiter Finger bricht ab.':''),6000)}
 document.querySelectorAll('.tool').forEach(b=>b.addEventListener('click',()=>setTool(tool===b.dataset.tool&&tool!=='view'?'view':b.dataset.tool)));
 
 // Gesten: ein Finger je nach Werkzeug (Vorschau, Bauen beim Loslassen), zwei Finger drehen/zoomen/schieben und brechen das Bauen ab
 const pts=new Map();let mode=null,last=null,pinch=null,dragA=null,dragB=null,downAt=null,lastEnd=null;
-function startPinch(){mode='pinch';clearGhost();const [a,b]=[...pts.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),mx:(a.x+b.x)/2,my:(a.y+b.y)/2,ang:Math.atan2(b.y-a.y,b.x-a.x)}}
+function startPinch(){mode='pinch';camGoal=null;clearGhost();const [a,b]=[...pts.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),mx:(a.x+b.x)/2,my:(a.y+b.y)/2,ang:Math.atan2(b.y-a.y,b.x-a.x)}}
 function updateDrag(x,y){const p=cellAt(x,y,true);if(!p)return;const line=LINE_TILE[tool]!==undefined||tool==='erase';
   dragB=line&&tool!=='erase'?snapEnd(dragA,p):p;const pl=planAction(line?dragA:dragB,dragB);showGhost(pl.g);tag(pl.txt,pl.bad,x,y)}
 canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
@@ -1228,7 +1322,7 @@ canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);
   mode='build';
   // neue Linie dockt am Ende der letzten an, wenn man nahe dran ansetzt
   dragA=(LINE_TILE[tool]!==undefined&&lastEnd&&Math.max(Math.abs(lastEnd.x-p.x),Math.abs(lastEnd.y-p.y))<=2)?{...lastEnd}:p;
-  updateDrag(e.clientX,e.clientY)});
+  camGoal=null;updateDrag(e.clientX,e.clientY)});
 canvas.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(mode==='pinch'&&pts.size>=2){const [a,b]=[...pts.values()];const d=Math.hypot(a.x-b.x,a.y-b.y),mx=(a.x+b.x)/2,my=(a.y+b.y)/2,ang=Math.atan2(b.y-a.y,b.x-a.x);
     cam.dist*=pinch.d/Math.max(10,d);cam.yaw-=(ang-pinch.ang);panBy(mx-pinch.mx,my-pinch.my);pinch={d,mx,my,ang};applyCam();return}
@@ -1239,12 +1333,13 @@ function panBy(dx,dy){const k=cam.dist/innerHeight*1.1;const c=Math.cos(cam.yaw)
 const endPtr=e=>{const was=mode;pts.delete(e.pointerId);
   if(e.type==='pointerup'&&pts.size===0){
     if(was==='build'&&dragA&&dragB)commitAction(dragA,dragB);
+    else if(was==='orbit'&&tool==='view'&&downAt&&Math.hypot(e.clientX-downAt.x,e.clientY-downAt.y)<10){const p=cellAt(e.clientX,e.clientY,false);if(p&&zoneId[p.y*W+p.x]>=0)openZone(zoneId[p.y*W+p.x])}
     else if(was==='tap'&&downAt&&Math.hypot(e.clientX-downAt.x,e.clientY-downAt.y)<14){const p=cellAt(e.clientX,e.clientY,false);if(p){const sn=snapshot();if(toggleGate(p)){pushUndo(sn);buzz()}}}}
   if(was==='build'||was==='pinch')clearGhost();
   if(pts.size<2&&mode==='pinch')mode=null;if(!pts.size){mode=null;dragA=dragB=null}};
 canvas.addEventListener('pointerup',endPtr);canvas.addEventListener('pointercancel',endPtr);
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
-canvas.addEventListener('wheel',e=>{e.preventDefault();cam.dist*=Math.exp(e.deltaY*0.0012);applyCam()},{passive:false});
+canvas.addEventListener('wheel',e=>{e.preventDefault();camGoal=null;cam.dist*=Math.exp(e.deltaY*0.0012);applyCam()},{passive:false});
 
 // ---------- Start ----------
 buildMap(true);computeGeo();buildGates();rebuildFence();rebuildBarriers();rebuildStructures();rebuildPools();updatePlanInfo();rebuildTurnstiles();
@@ -1252,11 +1347,13 @@ resize();applyCam();onPhase('plan');
 {const live=new Set([structGroup,turnGroup]);for(const b of spots){live.add(b.cone);live.add(b.s.target)}
  scene.traverse(o=>{if(o===scene||live.has(o)||(o.parent&&live.has(o.parent)))return;o.updateMatrix();o.matrixAutoUpdate=false})}
 $('loading').hidden=true;
+let zoneSheetVer=-1;
 let lastT=performance.now(),acc=0,ledTick=0,ftAvg=1/60,ftN=0;
 function adaptQuality(rdt){ftAvg+=(rdt-ftAvg)*0.05;if(++ftN<180)return;ftN=0;
   const pr=renderer.getPixelRatio();if(ftAvg>1/28&&pr>1){renderer.setPixelRatio(Math.max(1,pr-0.25));resize()}}
 function frame(now){
   const rdt=Math.min(0.1,(now-lastT)/1000);lastT=now;const t=now/1000;adaptQuality(rdt);
+  if(camGoal){const k=Math.min(1,rdt*5);cam.dist+=(camGoal.dist-cam.dist)*k;cam.tilt+=(camGoal.tilt-cam.tilt)*k;applyCam();if(Math.abs(cam.dist-camGoal.dist)<0.5)camGoal=null}
   acc+=rdt*speed;let n=0;while(acc>=DT&&n<6){step(DT);acc-=DT;n++}if(n>=6)acc=0;
   updatePeople(rdt,t);updatePits(t);
   if(heatOn)updateHeat();
@@ -1264,7 +1361,7 @@ function frame(now){
   const lm=ledMode;if(calmNow)ledMode='calm';
   aimBeams(t,ledMode==='egress'||calmNow);
   if((ledTick++&3)===0)drawLed(t);
-  ledMode=lm;updateLocks(false);
+  ledMode=lm;updateLocks(false);updateZoneFloor();updateZoneTags(false);if(zoneOpen>=0&&!$('zoneSheet').hidden&&zoneSheetVer!==zoneVer){zoneSheetVer=zoneVer;renderZoneSheet()}
   {const want=S.phase==='show'&&!calmNow?0:1;flood+=(want-flood)*Math.min(1,rdt*0.8);
    floodLight.intensity=0.85*flood;hemi.intensity=0.55+0.5*flood;floodHeadMat.color.setScalar(0.12+0.88*flood);
    if(bloom)bloom.strength=0.85-0.35*flood}
