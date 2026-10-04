@@ -139,6 +139,40 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
 #zRange{width:100%;accent-color:var(--hazard);height:28px}
 .zPresets{display:flex;gap:6px}.zPresets .btn{flex:1;font-size:12px;padding:8px 4px}
 .zInfo{margin:0;font-size:12px;line-height:1.4;color:var(--muted)}.zInfo[data-warn="true"]{color:var(--hazard)}
+.icon{width:30px;height:28px;border-radius:8px;background:var(--glass-2);font-size:15px;line-height:1;color:var(--ink);display:grid;place-items:center;flex:none}
+.icon[aria-pressed="false"]{color:var(--muted);text-decoration:line-through}
+.goals{margin-top:6px;font-size:12px;color:var(--muted);display:flex;gap:4px 10px;flex-wrap:wrap}
+.goals b{color:var(--hazard);font-weight:700;letter-spacing:.05em}.goals .ok{color:var(--exit)}
+.result{overflow:auto}
+.result .card{max-width:420px;max-height:calc(100% - 8px);overflow:auto}
+.stars{font-size:30px;letter-spacing:4px;color:var(--hazard);margin:2px 0 6px;line-height:1}.stars .off{color:#3a404c}
+.score{display:flex;align-items:baseline;gap:8px;margin:0 0 2px}.score b{font-family:var(--display);font-size:40px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}.score span{color:var(--muted)}.score small{margin-left:auto;color:var(--hazard);font-size:12px}
+.breakdown{margin:0 0 12px!important;font-size:12px!important}
+.rGrid{display:grid;grid-template-columns:96px 1fr;gap:12px;margin-bottom:12px;align-items:start}
+.rGrid figure{margin:0}.rGrid canvas{width:96px;height:160px;border-radius:6px;image-rendering:pixelated;display:block;background:#0b0f16}
+.rGrid figcaption{font-size:10px;color:var(--muted);margin-top:3px}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#fff;border:1px solid #ff3b30;vertical-align:middle}
+.tips{margin:0;padding-left:16px;font-size:13px;line-height:1.4;display:flex;flex-direction:column;gap:6px}
+.row2{display:flex;gap:8px}.row2>*{flex:1}
+.menu{position:fixed;inset:0;z-index:7;display:grid;place-items:start center;padding:16px;background:radial-gradient(ellipse at 50% 30%,rgba(20,26,38,.75),rgba(5,7,10,.92));overflow:auto}
+.menuCard{width:min(440px,100%);display:flex;flex-direction:column;gap:10px}
+.menuCard h2{margin:0;font-family:var(--display);font-weight:800;font-size:34px;text-transform:uppercase;letter-spacing:.05em;line-height:1}.menuCard h2 span{color:var(--hazard)}
+.sub{margin:0 0 4px;color:var(--muted);font-size:14px;line-height:1.4}
+.levels{display:flex;flex-direction:column;gap:8px}
+.lvl{display:grid;grid-template-columns:34px 1fr auto;gap:2px 10px;align-items:center;text-align:left;background:var(--glass);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.lvl .n{grid-row:span 2;font-family:var(--display);font-weight:800;font-size:26px;color:var(--hazard);text-align:center}
+.lvl b{font-family:var(--display);font-size:18px;letter-spacing:.03em;text-transform:uppercase}
+.lvl small{grid-column:2;color:var(--muted);font-size:12px;line-height:1.3}
+.lvl .st{grid-row:1/span 2;grid-column:3;color:var(--hazard);font-size:16px;letter-spacing:1px;text-align:right}.lvl .st .off{color:#3a404c}.lvl .st em{display:block;font-style:normal;font-size:11px;color:var(--muted);letter-spacing:0}
+.wide{width:100%;padding:12px}
+.hotArrows{position:fixed;inset:0;pointer-events:none;z-index:3}
+.hotArrow{position:absolute;left:0;top:0;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:#ff3b30;color:#fff;font-size:20px;display:grid;place-items:center;pointer-events:auto;box-shadow:0 0 0 4px rgba(255,59,48,.35);animation:hotp 1s infinite}
+@keyframes hotp{50%{box-shadow:0 0 0 10px rgba(255,59,48,.1)}}
+.coach{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 120px);transform:translateX(-50%);width:min(380px,calc(100% - 24px));z-index:6;background:#16202e;border:1px solid var(--hazard);border-radius:12px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.coach p{margin:0 0 10px;font-size:14px;line-height:1.45}
+.coach-target{outline:3px solid var(--hazard)!important;outline-offset:2px;animation:coachp 1.2s infinite;position:relative;z-index:1}
+@keyframes coachp{50%{outline-color:transparent}}
+.finger{position:fixed;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;background:rgba(255,255,255,.85);box-shadow:0 0 0 6px rgba(255,255,255,.25);z-index:4;pointer-events:none;animation:fingerMove 2.2s ease-in-out infinite}
+@keyframes fingerMove{0%{left:28%;top:34%;opacity:0}15%{opacity:1}70%{left:72%;top:34%;opacity:1}100%{left:72%;top:34%;opacity:0}}
 .ghostTag{position:fixed;left:0;top:0;transform:translate(-50%,-100%);pointer-events:none;font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.03em;padding:4px 9px;border-radius:8px;background:rgba(10,14,22,.88);border:1px solid var(--line);color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
 .ghostTag[data-bad="true"]{color:#ffb0a8;border-color:#ff6b5e}
 .loading{position:fixed;inset:0;display:grid;place-items:center;font-family:var(--display);font-size:20px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);pointer-events:none}
@@ -150,7 +184,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
   <header class="panel">
     <div class="brand">
       <h1>Gedränge<span>-</span>Planer</h1>
-      <span class="right"><span class="chip" id="budget">60.000 € frei</span><span class="phase" id="phase" data-p="plan">Planung</span></span>
+      <span class="right"><span class="chip" id="budget">60.000 € frei</span><span class="phase" id="phase" data-p="plan">Planung</span><button class="icon" id="snd" aria-label="Ton aus" aria-pressed="true">♪</button><button class="icon" id="menuBtn" aria-label="Menü">☰</button></span>
     </div>
     <div class="stats">
       <div class="stat"><span class="k">Zeit</span><span class="v" id="sTime">00:00</span></div>
@@ -158,6 +192,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
       <div class="stat"><span class="k">Dichte max.</span><span class="v" id="sPeak">0,0<small> P/m²</small></span></div>
       <div class="stat hurt"><span class="k">Verletzte</span><span class="v" id="sHurt">0</span></div>
     </div>
+    <div class="goals" id="goals" hidden></div>
   </header>
 
   <div class="bottom">
@@ -194,6 +229,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
         </label>
         <div class="seg"><span>Moshpits</span><div class="opts" role="group" aria-label="Moshpits">
           <button data-mosh="0" aria-pressed="false">Keine</button><button data-mosh="1" aria-pressed="true">Wenige</button><button data-mosh="2" aria-pressed="false">Viele</button></div></div>
+        <div class="seg"><span>Plan</span><div class="opts" id="slots"><button data-slot="1">Platz 1</button><button data-slot="2">Platz 2</button><button data-slot="3">Platz 3</button><button id="share">Link</button></div></div>
         <p class="legal" id="legal"></p>
       </div>
     </div>
@@ -202,23 +238,40 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
 <div class="result" id="result" hidden>
   <div class="card">
     <h2 id="rTitle">Räumung abgeschlossen</h2>
+    <div class="stars" id="rStars" hidden></div>
     <p id="rText"></p>
+    <div class="score"><b id="rScore">0</b><span>Punkte</span><small id="rBest"></small></div>
+    <p class="breakdown" id="rBreak"></p>
+    <div class="rGrid"><figure><canvas id="rMap" width="120" height="200" aria-label="Karte: höchste Dichte und Verletzte"></canvas><figcaption>Dichte & <i class="dot"></i> Verletzte</figcaption></figure><ul class="tips" id="rTips"></ul></div>
     <dl>
       <dt>Verletzte</dt><dd id="rHurt">0</dd>
       <dt>Räumungsdauer</dt><dd id="rTime">00:00</dd>
       <dt>Höchste Dichte</dt><dd id="rPeak">0,0 P/m²</dd>
       <dt>Über die Barriere gehoben</dt><dd id="rPulled">0</dd>
-      <dt>Umgekippte Gitter</dt><dd id="rTips">0</dd>
+      <dt>Umgekippte Gitter</dt><dd id="rTips2">0</dd>
       <dt>Moshpits</dt><dd id="rPits">0</dd>
       <dt>Planungskosten</dt><dd id="rCost">0 €</dd>
     </dl>
     <div class="actions">
-      <button class="primary" id="again">Gleicher Plan, neue Runde</button>
-      <button class="btn" id="clear">Plan verwerfen</button>
+      <button class="primary" id="next" hidden>Nächstes Level</button>
+      <button class="primary" id="again">Plan anpassen, nochmal</button>
+      <div class="row2"><button class="btn" id="toMenu">Menü</button><button class="btn" id="clear">Plan verwerfen</button></div>
     </div>
   </div>
 </div>
 
+<div class="menu" id="menu" hidden>
+  <div class="menuCard">
+    <h2>Gedränge<span>-</span>Planer</h2>
+    <p class="sub">Plane ein Open-Air-Festival so, dass niemand im Gedränge zu Schaden kommt. Jedes Level hat drei Sterne zu holen.</p>
+    <div class="levels" id="levels"></div>
+    <button class="btn wide" id="freeBtn">Freies Spiel</button>
+    <div class="row2"><button class="btn" id="tutBtn">Tutorial</button><button class="btn" id="menuClose" hidden>Zurück zum Spiel</button></div>
+  </div>
+</div>
+<div class="hotArrows" id="hotArrows"></div>
+<div class="coach" id="coach" hidden><p id="coachT"></p><div class="row2"><button class="btn" id="coachSkip">Überspringen</button><button class="primary" id="coachNext">Weiter</button></div></div>
+<div class="finger" id="finger" hidden></div>
 <div class="zoneTags" id="zoneTags"></div>
 <div class="ghostTag" id="ghostTag" hidden></div>
 <div class="zoneSheet panel" id="zoneSheet" hidden role="dialog" aria-labelledby="zTitle">
@@ -226,6 +279,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
   <div class="zRow"><button class="btn zStep" id="zMinus" aria-label="Weniger">−</button><div class="zNum"><output id="zVal">0</output><small id="zDens"></small></div><button class="btn zStep" id="zPlus" aria-label="Mehr">+</button></div>
   <input type="range" id="zRange" min="0" max="100" value="50" aria-label="Personenlimit">
   <div class="zPresets"><button class="btn" data-zd="1">1 P/m²</button><button class="btn" data-zd="2">2 P/m² (zulässig)</button><button class="btn" data-zd="3">3 P/m²</button></div>
+  <button class="btn" id="zShut" hidden>Schleusen jetzt schließen</button>
   <p class="zInfo" id="zInfo"></p>
 </div>
 <div class="toast" id="toast" hidden role="status"><b id="toastT"></b><span id="toastM"></span></div>
@@ -238,8 +292,8 @@ const W=60,H=100,N=W*H,MAXA=7000,DT=1/30;
 const RB=0.46,K_BODY=120,K_FR=40,A_SOC=0.8,B_SOC=0.15,R_SOC=1.1,LAMBDA=0.35,KW=80;
 const INV_TAU=2,VMAX=2.2,MEDIC_T=20,MEDIC_SANI=8,MEDIC_PIT=5,PUSH_OUT=0.4,PUSH_FAN=0.45,FAN_IDLE=0.16,SURGE_EVERY=[25,45],SURGE_LEN=5,P_CRIT=6,P_TIME=3;
 const GATE_SEE=35,ORD_R=7,PIT_R=4.5,G_TIP=17,G_TIP_T=3,G_CHAIN=2,WATCH_R=16,SANI_R=26,PULL_RATE=0.7;
-const BUDGET=60000,COST={gitter:15,wave:120,lock:350,tower:3000,sani:5000,gate:1500,ordner:400,lane:800};
-const CFG={lanes:4,mosh:1};
+let BUDGET=60000;const COST={gitter:15,wave:120,lock:350,tower:3000,sani:5000,gate:1500,ordner:400,lane:800};
+const CFG={lanes:4,mosh:1,showLen:0,events:[]}; // showLen: Konzertdauer in s (0 = von Hand beenden), events: [{t,type}] ab Konzertbeginn
 const SHOW_READY=0.95,SHOW_WAIT_MAX=150,MOSH_DELAY=10; // Anteil am Platz, max. Wartezeit nach Einlassende (s), erste Moshpits frühestens nach x s Konzert // Einlass-Spuren je Eingang, Moshpits 0 keine / 1 wenig / 2 viel
 // Kacheln: 0 frei,1 Bau,2 Hamburger Gitter,3 Notausgang zu,4 Bühne,5 Notausgang offen,6 Ein-/Ausgang,
 // 7 Zählschleuse,8 Gitter umgekippt,9 Barrier/Wellenbrecher,10 Bühnengraben,11 Hochstand,12 Sanitätsposten,13 Podest,14 Delay-Mast,15 Ordner
@@ -371,14 +425,14 @@ function computeZones(){
     // Limit übernehmen, wenn die Zone aus einer früheren hervorgeht
     let best=-1,bo=0;for(const [o,k] of ov)if(k>bo){bo=k;best=o}
     const area=cells.length,legal=area*ZONE_DENS,custom=best>=0&&old[best]&&old[best].custom;
-    ZONES.push({id,area,legal,limit:custom?Math.min(old[best].limit,area*ZONE_MAXD):legal,custom,locks:[...lockSet],count:0,closed:false,x:sx/area,y:sy/area,front});
+    ZONES.push({id,area,legal,limit:custom?Math.min(old[best].limit,area*ZONE_MAXD):legal,custom,manual:best>=0&&old[best]?!!old[best].manual:false,locks:[...lockSet],count:0,closed:false,x:sx/area,y:sy/area,front});
   }
   // Schleuse gehört zur kleinsten angrenzenden Zone (bei verschachtelten Zonen die innere)
   [...ZONES].sort((a,b)=>b.area-a.area).forEach(z=>{for(const c of z.locks)lockOwner[c]=z.id});
   for(const z of ZONES)z.locks=z.locks.filter(c=>lockOwner[c]===z.id);
   lockShut.fill(0);
 }
-function zonesOpen(){for(const z of ZONES){z.closed=false;z.count=0}lockShut.fill(0)}
+function zonesOpen(){for(const z of ZONES){z.closed=false;z.count=0;z.manual=false}lockShut.fill(0)}
 function computeCoverage(){
   watch.fill(0);medic.fill(0);ord.fill(0);
   const mark=(arr,cx,cy,r)=>{for(let y=Math.max(0,Math.floor(cy-r));y<=Math.min(H-1,Math.ceil(cy+r));y++)for(let x=Math.max(0,Math.floor(cx-r));x<=Math.min(W-1,Math.ceil(cx+r));x++)
@@ -387,7 +441,9 @@ function computeCoverage(){
   for(const o of sanis)mark(medic,o.x+1.5,o.y+1.5,SANI_R);
   for(const o of ordner)mark(ord,o.x+0.5,o.y+0.5,ORD_R);
 }
-function computeGeo(){for(let k=0;k<TG;k++){const G=targetGoals(k);tAvail[k]=G.cells.length?1:0;dijkstra(G.cells,TGEO[k],null)}computeGeoExits();computeZones();computeCoverage()}
+const tZone=new Int16Array(TG).fill(-1);
+function computeGeo(){for(let k=0;k<TG;k++){const G=targetGoals(k);tAvail[k]=G.cells.length?1:0;dijkstra(G.cells,TGEO[k],null)}computeGeoExits();computeZones();computeCoverage();
+  for(let k=0;k<TG;k++){const G=targetGoals(k);let z=G.cells.length?zoneId[G.cells[0]]:-1;for(const c of G.cells)if(zoneId[c]!==z){z=-1;break}tZone[k]=z}}
 
 // Personen
 const ax=new Float32Array(MAXA),ay=new Float32Array(MAXA),vx=new Float32Array(MAXA),vy=new Float32Array(MAXA),
@@ -401,7 +457,8 @@ const gsx=new Float32Array(MAXA),gsy=new Float32Array(MAXA),gcn=new Uint16Array(
 const cnt=new Int32Array(N),start=new Int32Array(N+1),fillp=new Int32Array(N),order=new Int32Array(MAXA),D=new Float32Array(N);
 const gAcc=new Float32Array(N),gLoad=new Float32Array(N),gT=new Float32Array(N);
 let seed=12345;function rng(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}
-const S0={moshAcc:0,pitsTotal:0,tr:0,t:0,spawned:0,hurt:0,left:0,pulled:0,tips:0,peak:0,maxPeak:0,maxP:0,active:0,egressStart:0,egressT:0,fieldTimer:0,spawnAcc:0,dirty:false,rr:0,tick:0,calm:0,calmCd:0,pullAcc:0,mapDirty:false,showStart:0,allInT:0,settled:0,surge:0,surgeIn:20,surges:0};
+const S0={moshAcc:0,pitsTotal:0,tr:0,t:0,spawned:0,hurt:0,left:0,pulled:0,tips:0,peak:0,maxPeak:0,maxP:0,active:0,egressStart:0,egressT:0,fieldTimer:0,spawnAcc:0,dirty:false,rr:0,tick:0,calm:0,calmCd:0,pullAcc:0,paUsed:0,mapDirty:false,showStart:0,allInT:0,settled:0,surge:0,surgeIn:20,surges:0,hype:0,dangerT:0,evI:0,storm:false};
+const maxD=new Float32Array(N),injLog=[]; // für die Auswertung: höchste Dichte je Zelle, Orte der Verletzungen
 const S=Object.assign({phase:'plan',target:5000},S0);
 let onPhase=null,onEvent=null;
 function setPhase(p){S.phase=p;if(onPhase)onPhase(p)}
@@ -409,7 +466,7 @@ function emit(type,data){if(onEvent)onEvent(type,data)}
 function resetRound(){
   for(const c of tipped)if(tile[c]===8)tile[c]=2;tipped=[];
   nA=0;nGrp=0;agentGen++;pits.length=0;D.fill(0);gLoad.fill(0);gT.fill(0);zonesOpen();
-  Object.assign(S,S0);computeGeo();setPhase('plan');
+  Object.assign(S,S0);maxD.fill(0);injLog.length=0;computeGeo();setPhase('plan');
 }
 function startIngress(){computeGeo();recomputeStage(null);S.fieldTimer=0.5;setPhase('ingress')}
 function cellOf(i){let cx=ax[i]|0,cy=ay[i]|0;if(cx<0)cx=0;if(cx>=W)cx=W-1;if(cy<0)cy=0;if(cy>=H)cy=H-1;return cy*W+cx}
@@ -434,7 +491,7 @@ function gatesChanged(){
   for(let i=0;i<nA;i++)if(st[i]===1&&!groupOpen(ex[i]))chooseExit(i,true);
 }
 function announce(){ // Durchsage über die PA: Show stoppen, Publikum beruhigen
-  if(S.calmCd>0||S.phase==='plan'||S.phase==='done')return false;S.calm=15;S.calmCd=45;pits.length=0;emit('calm');return true}
+  if(S.calmCd>0||S.phase==='plan'||S.phase==='done')return false;S.calm=15;S.calmCd=45;S.paUsed=(S.paUsed||0)+1;pits.length=0;emit('calm');return true}
 function addAgent(x,y,w,e,g,tg){
   if(nA>=MAXA)return;const i=nA++;
   ax[i]=x;ay[i]=y;vx[i]=0;vy[i]=-1;st[i]=1;injT[i]=0;pr[i]=0;crT[i]=0;
@@ -472,7 +529,7 @@ function spawnGroup(){
   for(let k=0;k<size&&S.spawned<S.target;k++){addAgent(Math.min(E.x1+0.8,Math.max(E.x0+0.2,x+(rng()-0.5)*1.4)),y-k*0.6,fan?-1:tg?base+rng()*1.5:Math.max(0.5,base+(rng()-0.5)*3),e,g,tg);n++}
   return n;
 }
-function injure(i){st[i]=2;injT[i]=0;vx[i]=vy[i]=0;S.hurt++}
+function injure(i){st[i]=2;injT[i]=0;vx[i]=vy[i]=0;S.hurt++;injLog.push({c:cellOf(i),ph:S.phase,surge:S.surge>0})}
 function tipGitter(c0){ // Hamburger Gitter sind verklammert: kippt eins, gehen die Nachbarn mit
   const q=[[c0,0]],seen=new Set([c0]);const cells=[];
   while(q.length){const [c,d]=q.shift();cells.push(c);if(d>=G_CHAIN)continue;const cx=c%W,cy=(c/W)|0;
@@ -503,7 +560,7 @@ function step(dt){
   for(let i=0;i<nA;i++){if(!st[i])continue;const c=cellOf(i);acell[i]=c;cnt[c]++;if(st[i]===1){active++;const z=zoneId[c];if(z>=0)ZONES[z].count++}}
   S.active=active;
   for(const z of ZONES){const was=z.closed;
-    if(P!=='egress'){if(!z.closed&&z.count>=z.limit)z.closed=true;else if(z.closed&&z.count<z.limit*0.94)z.closed=false}else z.closed=false;
+    if(P!=='egress'){if(z.manual)z.closed=true;else if(!z.closed&&z.count>=z.limit)z.closed=true;else if(z.closed&&z.count<z.limit*0.94)z.closed=false}else z.closed=false;
     if(was!==z.closed)for(const c of z.locks)lockShut[c]=z.closed?1:0}
   start[0]=0;for(let c=0;c<N;c++){start[c+1]=start[c]+cnt[c];fillp[c]=start[c]}
   for(let i=0;i<nA;i++)if(st[i])order[fillp[acell[i]]++]=i;
@@ -513,8 +570,8 @@ function step(dt){
   const a=Math.min(1,dt/0.6);let peak=0;
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){const c=y*W+x;if(blk(tile[c])){D[c]=0;continue}
     let s=2*cnt[c],w=2;for(let q=0;q<8;q++){const nx=x+NB[q][0],ny=y+NB[q][1];if(nx<0||ny<0||nx>=W||ny>=H)continue;const n=ny*W+nx;if(!blk(tile[n])){s+=cnt[n];w++}}
-    D[c]+=(s/w-D[c])*a;if(D[c]>peak)peak=D[c]}
-  S.peak=peak;if(peak>S.maxPeak)S.maxPeak=peak;
+    D[c]+=(s/w-D[c])*a;if(D[c]>peak)peak=D[c];if(D[c]>maxD[c])maxD[c]=D[c]}
+  S.peak=peak;if(peak>S.maxPeak)S.maxPeak=peak;if(peak>6&&P!=='egress')S.dangerT+=dt;
   // Wegfelder
   const egress=P==='egress';
   if(egress){const ng=groupCount();for(let k=0;k<ng;k++){const g=(S.rr+k)%ng;if(groupOpen(g)){recomputeGroup(g,D);S.rr=g+1;break}}}
@@ -529,8 +586,15 @@ function step(dt){
   gAcc.fill(0);S.pullAcc=Math.min(3,S.pullAcc+PULL_RATE*dt);
   const sm=Math.min(1,dt/0.5);let maxP=0;
   // Druckwellen: während der Show drücken die Fans in Schüben nach vorn (Drop, Hit), sonst stehen sie
-  if(P==='show'&&!calm){if(S.surge>0)S.surge-=dt;else if((S.surgeIn-=dt)<=0){S.surge=SURGE_LEN;S.surges++;S.surgeIn=SURGE_EVERY[0]+rng()*(SURGE_EVERY[1]-SURGE_EVERY[0]);emit('surge')}}else S.surge=0;
-  const pushFan=calm?0.12:S.surge>0?PUSH_FAN:FAN_IDLE,pushOut=calm?0.18:PUSH_OUT;let onWay=0;
+  if(P==='show'&&!calm){if(S.surge>0)S.surge-=dt;else if((S.surgeIn-=dt*(S.hype>0?2:1))<=0){S.surge=SURGE_LEN;S.surges++;S.surgeIn=SURGE_EVERY[0]+rng()*(SURGE_EVERY[1]-SURGE_EVERY[0]);emit('surge')}}else S.surge=0;
+  if(S.hype>0)S.hype-=dt;
+  // Ereignisse im Konzert und automatisches Ende
+  if(P==='show'){const st0=S.t-S.showStart;
+    while(S.evI<CFG.events.length&&st0>=CFG.events[S.evI].t){const ev=CFG.events[S.evI++];
+      if(ev.type==='headliner'){S.hype=30;S.surgeIn=Math.min(S.surgeIn,3);emit('headliner')}
+      else if(ev.type==='storm'){S.storm=true;emit('storm');startEgress();return}}
+    if(CFG.showLen&&st0>=CFG.showLen){emit('showEnd');startEgress();return}}
+  const pushFan=calm?0.12:S.surge>0?PUSH_FAN*(S.hype>0?1.2:1):FAN_IDLE,pushOut=calm?0.18:PUSH_OUT;let onWay=0;
   for(let i=0;i<nA;i++){
     const c=acell[i];
     if(st[i]===2){injT[i]+=dt;const cy=(c/W)|0,lim=cy<=STAGE_ROW+2?MEDIC_PIT:medic[c]?MEDIC_SANI:MEDIC_T;if(injT[i]>lim){st[i]=0;S.dirty=true}continue}
@@ -542,6 +606,8 @@ function step(dt){
       if(alt>=0)ex[i]=alt}
     let dx=0,dy=0,hx=0,hy=0;
     let tg=tgt[i];if(tg&&(!tAvail[tg]||!isFinite(TGEO[tg][c]))){tg=tgt[i]=0;want[i]=6+rng()*10}
+    // Ziel liegt in einer vollen Zone und man ist draußen: hier stehen bleiben (auch Fans drücken dann nicht mehr)
+    if(!egress){const tz=tZone[tg];if(tz>=0&&ZONES[tz].closed&&zoneId[c]!==tz&&(want[i]<0||TGEO[tg][c]>want[i]))want[i]=TGEO[tg][c]+0.3}
     const moving=egress||TGEO[tg][c]>want[i];
     if(!egress&&moving&&vx[i]*vx[i]+vy[i]*vy[i]>0.16)onWay++; // läuft noch aktiv zu seinem Platz
     if(moving){
@@ -959,11 +1025,13 @@ let zoneOpen=-1;
 function openZone(i){const z=ZONES[i];if(!z)return;zoneOpen=i;$('zoneSheet').hidden=false;renderZoneSheet()}
 function renderZoneSheet(){const z=ZONES[zoneOpen];if(!z){$('zoneSheet').hidden=true;zoneOpen=-1;return}
   $('zTitle').textContent='Zone '+zoneLetter(zoneOpen)+' · '+nf.format(z.area)+' m²';
-  $('zVal').textContent=nf.format(z.limit);const r=$('zRange');r.max=z.area*ZONE_MAXD;r.step=Math.max(1,Math.round(z.area/50));r.value=z.limit;
+  $('zVal').textContent=nf.format(z.limit);const r=$('zRange');if(document.activeElement!==r){r.max=z.area*ZONE_MAXD;r.step=Math.max(1,Math.round(z.area/50));r.value=z.limit}
   $('zDens').textContent=fmtD(z.limit/z.area)+' P/m²';
   $('zInfo').textContent=!z.locks.length?'Noch kein Zugang: Setze eine Zählschleuse in die Begrenzung, sonst bleibt die Zone leer.':
     z.limit>z.legal?'Über der zulässigen Dichte (NVStättVO: '+nf.format(z.legal)+' Personen bei 2 P/m²).':'Zulässig sind bis '+nf.format(z.legal)+' Personen (2 P/m²). Ist das Limit erreicht, schließen die Zählschleusen dieser Zone.';
-  $('zInfo').dataset.warn=z.limit>z.legal||!z.locks.length}
+  $('zInfo').dataset.warn=z.limit>z.legal||!z.locks.length;
+  const live=S.phase==='ingress'||S.phase==='show';$('zShut').hidden=!live||!z.locks.length;$('zShut').textContent=z.manual?'Schleusen wieder öffnen':'Schleusen jetzt schließen';
+  if(live)$('zTitle').textContent='Zone '+zoneLetter(zoneOpen)+' · '+nf.format(z.count)+' drin'}
 function setZoneLimit(v){const z=ZONES[zoneOpen];if(!z)return;z.limit=Math.max(0,Math.min(z.area*ZONE_MAXD,Math.round(v)));z.custom=true;renderZoneSheet();updateZoneTags(true)}
 
 // ---------- Menschen ----------
@@ -1159,6 +1227,8 @@ function updateStats(now,force){
   $('sTime').textContent=fmtT(S.t);$('sCount').textContent=nf.format(S.active);
   const pk=$('sPeak');pk.innerHTML=fmtD(S.peak)+'<small> P/m²</small>';pk.className='v'+(S.peak>=5.5?' crit':S.peak>=4?' warn':'');
   $('sHurt').textContent=nf.format(S.hurt);
+  if(LV&&S.phase==='show'&&CFG.showLen){$('main').textContent='Konzert läuft · '+fmtT(Math.max(0,CFG.showLen-(S.t-S.showStart)))}
+  if(LV&&S.phase==='ingress'){$('main').textContent='Einlass läuft'}
   if(S.phase==='ingress'){const ph=$('phase');ph.textContent=S.spawned>=S.target?'Gleich los · '+Math.min(99,Math.floor(S.settled/SHOW_READY*100))+' %':PNAME.ingress}
   const pc=$('pen');if(ZONES.length){pc.hidden=false;const full=ZONES.filter(z=>z.closed).length;
     pc.textContent=S.phase==='plan'?ZONES.length+(ZONES.length===1?' Zone':' Zonen'):'Zonen '+ZONES.length+(full?' · '+full+' voll':'');pc.dataset.closed=full>0}else pc.hidden=true;
@@ -1169,28 +1239,21 @@ function updatePlanInfo(){
   const cost=planCost();$('budget').textContent=nf.format(BUDGET-cost)+' €';$('budget').title='Restbudget';$('budget').dataset.low=(BUDGET-cost)<3000;
   $('legal').textContent='Zulässig nach NVStättVO: bis '+nf.format(legalCapacity())+' Personen (2 P/m²)';
 }
-function verdict(){
-  if(S.hurt===0&&S.maxPeak<4.5)return['Sauber geplant','Niemand ist gestürzt und es wurde nirgends kritisch eng.'];
-  if(S.hurt===0)return['Gerade noch gut gegangen','Keine Verletzten, aber stellenweise war es gefährlich dicht.'];
-  if(S.hurt<=15)return['Rettungsdienst im Einsatz','Einige Menschen sind im Gedränge gestürzt. Wo hat sich der Druck aufgebaut?'];
-  return['Abbruch durch die Behörde','So hätte die Veranstaltung nicht stattfinden dürfen.'+(S.tips?' Umgekippte Hamburger Gitter haben die Lage verschärft.':' Mehr Ausgänge, weniger Engstellen.')];
-}
 onPhase=p=>{
   const ph=$('phase');ph.textContent=PNAME[p];ph.dataset.p=p;$('hint').textContent=HINTS[p];
   const m=$('main');m.disabled=p==='egress';
   m.textContent=p==='plan'?'Einlass öffnen':p==='egress'?'Räumung läuft':p==='done'?'Neue Runde':'Konzert beenden';
-  $('visRow').hidden=p!=='plan';$('more').hidden=p!=='plan';$('undo').hidden=p!=='plan';$('pa').hidden=p==='plan';if(typeof updateUndo==='function')updateUndo();
+  if(LV&&(p==='ingress'||p==='show'))m.disabled=true;
+  $('visRow').hidden=p!=='plan'||!!LV;$('more').hidden=p!=='plan'||!!LV;$('undo').hidden=p!=='plan';$('pa').hidden=p==='plan';if(typeof updateUndo==='function')updateUndo();
   ledMode=p==='egress'||p==='done'?'egress':p==='plan'?'plan':'show';
   if(p==='plan'){rebuildBarriers();rebuildStructures();updatePlanInfo()}else if(p==='ingress')rebuildStructures();
 
-  if(p==='done'){const[v,t]=verdict();$('rTitle').textContent=v;$('rText').textContent=t;$('rHurt').textContent=nf.format(S.hurt);
-    $('rTime').textContent=fmtT(S.egressT);$('rPeak').textContent=fmtD(S.maxPeak)+' P/m²';
-    $('rPulled').textContent=nf.format(S.pulled);$('rTips').textContent=nf.format(S.tips);$('rCost').textContent=nf.format(planCost())+' €';$('rPits').textContent=nf.format(S.pitsTotal);$('result').hidden=false}
-  else $('result').hidden=true;
+  if(p==='done')showResult();else $('result').hidden=true;
+  if(typeof onPhaseExtra==='function')onPhaseExtra(p);
   updateStats(0,true);
 };
 $('main').addEventListener('click',()=>{const p=S.phase;
-  if(p==='plan'){S.target=+$('visitors').value;startIngress()}
+  if(p==='plan'){S.target=LV?LV.visitors:+$('visitors').value;savePlanAuto();startIngress()}
   else if(p==='ingress'||p==='show')startEgress();
   else if(p==='done')resetRound()});
 $('again').addEventListener('click',resetRound);
@@ -1199,8 +1262,14 @@ $('pa').addEventListener('click',()=>{if(announce())flash('Durchsage über die P
 $('lanes').addEventListener('input',e=>{const old=CFG.lanes;CFG.lanes=+e.target.value;if(planCost()>BUDGET){CFG.lanes=old;e.target.value=old;noMoney()}
   $('lanesOut').textContent=CFG.lanes+' je Eingang';rebuildTurnstiles();updatePlanInfo()});
 document.querySelectorAll('[data-mosh]').forEach(b=>b.addEventListener('click',()=>{CFG.mosh=+b.dataset.mosh;document.querySelectorAll('[data-mosh]').forEach(o=>o.setAttribute('aria-pressed',o===b))}));
-onEvent=(type,d)=>{if(type==='pit'){flash('Moshpit! Der Kreis öffnet sich, gleich wird es eng drumherum. Ordner in der Nähe verhindern neue Pits.');return}
-  if(type==='tip'){rebuildBarriers();toast('Hamburger Gitter umgekippt','Unter Druck kippen sie und werden zur Stolperfalle. Als Wellenbrecher taugen nur lastaufnehmende Barrieren.')}};
+onEvent=(type,d)=>{sfx(type);
+  if(type==='pit'){flash('Moshpit! Der Kreis öffnet sich, gleich wird es eng drumherum. Ordner in der Nähe verhindern neue Pits.');return}
+  if(type==='tip'){rebuildBarriers();toast('Hamburger Gitter umgekippt','Unter Druck kippen sie und werden zur Stolperfalle. Als Wellenbrecher taugen nur lastaufnehmende Barrieren.');buzz([40,40,40])}
+  if(type==='surge'){flash(S.hype>0?'Druckwelle! Der Headliner heizt ein, die Fans schieben nach vorn.':'Druckwelle! Beim Drop schieben die Fans nach vorn.',3000);buzz(25)}
+  if(type==='headliner')toast('Der Headliner kommt!','Die nächsten 30 Sekunden kommen die Druckwellen doppelt so oft und stärker. Durchsage bereithalten.');
+  if(type==='storm')toast('Gewitterwarnung!','Das Konzert wird abgebrochen, alle müssen jetzt raus. Öffne Notausgänge, damit es schnell geht.');
+  if(type==='showEnd')flash('Letzter Song. Das Konzert ist vorbei, die Räumung beginnt.',4000);
+  if(type==='calm')buzz(15)};
 let toastTimer=0;function toast(t,m){const el=$('toast');$('toastT').textContent=t;$('toastM').textContent=m;el.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.hidden=true,6000)}
 $('toast').addEventListener('click',()=>$('toast').hidden=true);
 $('heat').addEventListener('click',e=>{heatOn=!heatOn;e.currentTarget.setAttribute('aria-pressed',heatOn);heat.visible=heatOn;$('legend').hidden=!heatOn});
@@ -1212,7 +1281,7 @@ $('cam').addEventListener('click',e=>{camIdx=1-camIdx;Object.assign(cam,camPrese
 $('visitors').addEventListener('input',e=>{$('visOut').textContent=nf.format(+e.target.value)});
 let tool='view';
 
-function mapChanged(gatesToo){computeGeo();S.fieldTimer=0;rebuildBarriers();rebuildStructures();rebuildPools();updatePlanInfo();if(gatesToo){rebuildFence();gatesChanged()}}
+function mapChanged(gatesToo){if(S.phase==='plan')queueSave();computeGeo();S.fieldTimer=0;rebuildBarriers();rebuildStructures();rebuildPools();updatePlanInfo();if(gatesToo){rebuildFence();gatesChanged()}}
 const ray=new THREE.Raycaster(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),ndc=new THREE.Vector2(),hit=new THREE.Vector3();
 const LINE_TILE={bar:2,wave:9,lock:7},LINE_COST={bar:COST.gitter,wave:COST.wave,lock:COST.lock};
 function noMoney(){flash('Budget aufgebraucht. Radiere etwas weg oder nutze günstigere Teile.')}
@@ -1243,9 +1312,10 @@ $('zClose').addEventListener('click',()=>{$('zoneSheet').hidden=true;zoneOpen=-1
 $('zMinus').addEventListener('click',()=>{const z=ZONES[zoneOpen];if(z)setZoneLimit(z.limit-Math.max(10,Math.round(z.area/20)))});
 $('zPlus').addEventListener('click',()=>{const z=ZONES[zoneOpen];if(z)setZoneLimit(z.limit+Math.max(10,Math.round(z.area/20)))});
 $('zRange').addEventListener('input',e=>setZoneLimit(+e.target.value));
+$('zShut').addEventListener('click',()=>{const z=ZONES[zoneOpen];if(!z)return;z.manual=!z.manual;buzz();renderZoneSheet();flash(z.manual?'Zone '+zoneLetter(zoneOpen)+' von Hand geschlossen.':'Zone '+zoneLetter(zoneOpen)+' wieder geöffnet.')});
 document.querySelectorAll('[data-zd]').forEach(b=>b.addEventListener('click',()=>{const z=ZONES[zoneOpen];if(z)setZoneLimit(z.area*+b.dataset.zd)}));
 addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();undo()}});
-const buzz=()=>{try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}};
+const buzz=(p=12)=>{try{if(AU_ON&&navigator.vibrate)navigator.vibrate(p)}catch(e){}};
 
 // Bauvorschau: grün = wird gebaut, rot = kein Platz / kein Geld
 const GHOST_MAX=900;
@@ -1329,6 +1399,7 @@ canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);
 canvas.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(mode==='pinch'&&pts.size>=2){const [a,b]=[...pts.values()];const d=Math.hypot(a.x-b.x,a.y-b.y),mx=(a.x+b.x)/2,my=(a.y+b.y)/2,ang=Math.atan2(b.y-a.y,b.x-a.x);
     cam.dist*=pinch.d/Math.max(10,d);cam.yaw-=(ang-pinch.ang);panBy(mx-pinch.mx,my-pinch.my);pinch={d,mx,my,ang};applyCam();return}
+  if(mode==='orbit'||mode==='pinch')userCam=true;
   if(mode==='orbit'){cam.yaw-=(e.clientX-last.x)*0.006;cam.tilt-=(e.clientY-last.y)*0.005;last={x:e.clientX,y:e.clientY};applyCam();return}
   if(mode==='pan'){panBy(e.clientX-last.x,e.clientY-last.y);last={x:e.clientX,y:e.clientY};applyCam();return}
   if(mode==='build')updateDrag(e.clientX,e.clientY)});
@@ -1344,9 +1415,236 @@ canvas.addEventListener('pointerup',endPtr);canvas.addEventListener('pointercanc
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('wheel',e=>{e.preventDefault();camGoal=null;cam.dist*=Math.exp(e.deltaY*0.0012);applyCam()},{passive:false});
 
+// ---------- Speicher (nur Komfort: Fortschritt und Pläne auf diesem Gerät) ----------
+const store={get(k,d){try{const v=localStorage.getItem('gp.'+k);return v===null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem('gp.'+k,JSON.stringify(v))}catch(e){}}};
+
+// ---------- Level ----------
+const ALL_TOOLS=['view','wave','bar','lock','ordner','tower','sani','gate','erase'];
+const LEVELS=[
+  {title:'Erste Schritte',desc:'2.500 Besucher, keine Moshpits. Lerne, wie Wellenbrecher den Druck vor der Bühne abfangen.',
+   visitors:2500,mosh:0,lanes:4,budget:20000,showLen:90,events:[],tools:['view','wave','bar','erase'],
+   stars:[{hurt:6},{hurt:3},{hurt:1}]},
+  {title:'Front-Pen',desc:'4.000 Besucher. Grenze den Bereich vor der Bühne als Zone ab und lass nur so viele hinein, wie sicher ist.',
+   visitors:4000,mosh:1,lanes:4,budget:30000,showLen:120,events:[],tools:['view','wave','bar','lock','erase'],
+   stars:[{hurt:12},{hurt:5},{hurt:3,frontZone:true}]},
+  {title:'Gewitter',desc:'4.500 Besucher. Mitten im Konzert zieht ein Gewitter auf und alle müssen schnell raus.',
+   visitors:4500,mosh:1,lanes:4,budget:40000,showLen:150,events:[{t:75,type:'storm'}],tools:['view','wave','bar','lock','ordner','gate','erase'],
+   stars:[{hurt:15},{egress:150},{hurt:8,egress:105}]},
+  {title:'Headliner',desc:'5.000 Besucher, viele Moshpits. Wenn der Headliner kommt, rollen die Druckwellen doppelt so oft.',
+   visitors:5000,mosh:2,lanes:4,budget:50000,showLen:150,events:[{t:30,type:'headliner'}],tools:ALL_TOOLS,
+   stars:[{hurt:40},{hurt:20},{hurt:8}]},
+  {title:'Ausverkauft',desc:'6.000 Besucher, Headliner und Moshpits. Alles, was du gelernt hast, auf einmal.',
+   visitors:6000,mosh:2,lanes:5,budget:60000,showLen:180,events:[{t:40,type:'headliner'},{t:120,type:'headliner'}],tools:ALL_TOOLS,
+   stars:[{hurt:60},{hurt:25},{hurt:10,score:700}]}
+];
+let LV=null,LVi=-1;
+function starGoalText(g,short){const p=[];if(g.hurt!==undefined)p.push(g.hurt===0?'0 Verl.':'≤'+g.hurt+(short?'':' Verletzte'));
+  if(g.egress)p.push('raus <'+fmtT(g.egress).replace(/^0/,''));if(g.frontZone)p.push('Bühnenzone');if(g.score)p.push(g.score+' P.');return p.join(' + ')}
+function starMet(g,r){return(g.hurt===undefined||r.hurt<=g.hurt)&&(!g.egress||r.egress<=g.egress)&&(!g.frontZone||r.frontZone)&&(!g.score||r.score>=g.score)}
+function starsHtml(n,best){let h='';for(let i=0;i<3;i++)h+=i<n?'★':'<span class="off">★</span>';return h+(best?'<em>'+nf.format(best)+' P.</em>':'')}
+function renderMenu(){const box=$('levels');box.textContent='';const prog=store.get('prog',{});
+  LEVELS.forEach((L,i)=>{const pr=prog[i]||{stars:0,best:0};const b=document.createElement('button');b.className='lvl';
+    b.innerHTML=`<span class="n">${i+1}</span><b></b><span class="st">${starsHtml(pr.stars,pr.best)}</span><small></small>`;
+    b.querySelector('b').textContent=L.title;b.querySelector('small').textContent=L.desc;b.addEventListener('click',()=>startLevel(i));box.appendChild(b)});
+  $('menuClose').hidden=!started}
+let started=false;
+function openMenu(){renderMenu();$('menu').hidden=false}
+function closeMenu(){$('menu').hidden=true}
+function applyTools(list){document.querySelectorAll('.tool').forEach(b=>b.hidden=!list.includes(b.dataset.tool));if(!list.includes(tool))setTool('view')}
+function startLevel(i){
+  LVi=i;LV=LEVELS[i];started=true;BUDGET=LV.budget;CFG.mosh=LV.mosh;CFG.lanes=LV.lanes;CFG.showLen=LV.showLen;CFG.events=LV.events;
+  resetRound();loadPlan(store.get('lvl'+i,null));undoStack.length=0;updateUndo();applyTools(LV.tools);
+  Object.assign(cam,camPresets[0]);camIdx=0;$('cam').textContent='Draufsicht';applyCam();
+  $('goals').hidden=false;renderGoals();closeMenu();
+  flash('Level '+(i+1)+': '+LV.desc,7000);
+  if(i===0&&!store.get('tut',false))startCoach();
+}
+function startFree(){
+  LV=null;LVi=-1;started=true;BUDGET=60000;CFG.mosh=+document.querySelector('[data-mosh][aria-pressed="true"]').dataset.mosh;CFG.lanes=+$('lanes').value;
+  CFG.showLen=0;CFG.events=[{t:60,type:'headliner'}];
+  resetRound();const sv=fromHash()||store.get('free',null);if(sv)loadPlan(sv);else{buildMap(true);mapChanged(true);resetRound()}
+  undoStack.length=0;updateUndo();applyTools(ALL_TOOLS);$('goals').hidden=true;closeMenu();
+}
+function renderGoals(){if(!LV){$('goals').hidden=true;return}
+  $('goals').innerHTML='<span>Ziele:</span>'+LV.stars.map((g,i)=>`<span><b>${'★'.repeat(i+1)}</b> ${starGoalText(g,true)}</span>`).join('')}
+$('menuBtn').addEventListener('click',openMenu);$('menuClose').addEventListener('click',closeMenu);
+$('freeBtn').addEventListener('click',startFree);$('tutBtn').addEventListener('click',()=>{store.set('tut',false);startLevel(0);startCoach()});
+$('toMenu').addEventListener('click',()=>{$('result').hidden=true;openMenu()});
+$('next').addEventListener('click',()=>{$('result').hidden=true;if(LVi+1<LEVELS.length)startLevel(LVi+1);else openMenu()});
+
+// ---------- Plan speichern, laden, teilen ----------
+function planToObj(){const t=[];let i=0;
+  while(i<N){const v0=tile[i],v=v0===8?2:v0;if(!fixed[i]&&(v===2||v===7||v===9)){let j=i;while(j+1<N&&!fixed[j+1]&&(tile[j+1]===8?2:tile[j+1])===v)j++;t.push(v,i,j-i+1);i=j+1}else i++}
+  const zl=[];for(const z of ZONES)if(z.custom){let c=-1;for(let k=0;k<N;k++)if(zoneId[k]===z.id){c=k;break}if(c>=0)zl.push([c,z.limit])}
+  return{v:1,t,tw:towers.map(o=>[o.x,o.y]),sa:sanis.map(o=>[o.x,o.y]),or:ordner.map(o=>[o.x,o.y]),g:gates.map(g=>g.open?1:0),l:CFG.lanes,z:zl}}
+function loadPlan(o){
+  buildMap(false);
+  if(o&&o.v===1){for(let k=0;k+2<o.t.length;k+=3){const v=o.t[k],a=o.t[k+1],n=o.t[k+2];for(let c=a;c<a+n&&c<N;c++)if(!fixed[c]&&tile[c]===0)tile[c]=v}
+    for(const [x,y] of o.tw||[])placeStruct('tower',x,y);for(const [x,y] of o.sa||[])placeStruct('sani',x,y);for(const [x,y] of o.or||[])placeOrdner(x,y);
+    (o.g||[]).forEach((v,i)=>{if(gates[i])setGate(gates[i],!!v)});if(!LV&&o.l){CFG.lanes=o.l;$('lanes').value=o.l;$('lanesOut').textContent=o.l+' je Eingang'}}
+  computeGeo();
+  if(o&&o.z)for(const [c,lim] of o.z){const id=zoneId[c];if(id>=0){ZONES[id].limit=Math.min(lim,ZONES[id].area*ZONE_MAXD);ZONES[id].custom=true}}
+  rebuildFence();rebuildBarriers();rebuildStructures();rebuildPools();rebuildTurnstiles();updatePlanInfo();zoneDrawn=-1;
+  if(planCost()>BUDGET){buildMap(false);computeGeo();rebuildFence();rebuildBarriers();rebuildStructures();rebuildPools();updatePlanInfo()} // Plan passt nicht ins Budget dieses Levels
+}
+let saveTimer=0;function queueSave(){clearTimeout(saveTimer);saveTimer=setTimeout(savePlanAuto,400)}
+function savePlanAuto(){if(S.phase!=='plan'||!started)return;const o=planToObj();if(LV)store.set('lvl'+LVi,o);else store.set('free',o)}
+const b64e=s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const b64d=s=>decodeURIComponent(escape(atob(s.replace(/-/g,'+').replace(/_/g,'/'))));
+function fromHash(){const m=location.hash.match(/^#p=([\w-]+)/);if(!m)return null;try{return JSON.parse(b64d(m[1]))}catch(e){return null}}
+document.querySelectorAll('[data-slot]').forEach(b=>b.addEventListener('click',()=>{const k='slot'+b.dataset.slot,sv=store.get(k,null);
+  if(sv&&confirm('Plan „Platz '+b.dataset.slot+'“ laden? (Abbrechen = aktuellen Plan dort speichern)')){if(S.phase!=='plan')resetRound();pushUndo(snapshot());loadPlan(sv);flash('Plan aus Platz '+b.dataset.slot+' geladen.')}
+  else{store.set(k,planToObj());flash('Plan in Platz '+b.dataset.slot+' gespeichert.')}}));
+$('share').addEventListener('click',async()=>{const url=location.origin+location.pathname+'#p='+b64e(JSON.stringify(planToObj()));
+  try{if(navigator.share){await navigator.share({title:'Mein Gedränge-Plan',url});return}await navigator.clipboard.writeText(url);flash('Link kopiert. Wer ihn öffnet, startet mit deinem Plan im freien Spiel.')}
+  catch(e){prompt('Link zu deinem Plan:',url)}});
+
+// ---------- Score & Auswertung ----------
+function roundResult(){
+  const hurt=S.hurt,egress=S.egressT,left=Math.max(0,BUDGET-planCost());
+  const safety=Math.round(600*Math.max(0,1-hurt/50)),ev=Math.round(250*Math.min(1,Math.max(0,(270-egress)/180))),bud=Math.round(150*left/BUDGET);
+  return{hurt,egress,score:safety+ev+bud,safety,ev,bud,frontZone:ZONES.some(z=>z.front&&z.locks.length)}}
+const REG_FRONT=(x,y)=>y<=STAGE_ROW+3;
+function regionName(c){const x=c%W,y=(c/W)|0;
+  for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const xx=x+dx,yy=y+dy;if(xx>=0&&yy>=0&&xx<W&&yy<H&&tile[yy*W+xx]===7)return'an den Zählschleusen'}
+  if(y<=STAGE_ROW+3)return x<22?'links direkt vor der Bühne':x>37?'rechts direkt vor der Bühne':'direkt vor der Bühne';
+  if(y<=30&&(x<15||x>44))return x<30?'vor der linken Videowand':'vor der rechten Videowand';
+  for(const m of MASTS)if(Math.hypot(x-m.x-1,y-m.y-1)<7)return m.x<30?'am linken Delay-Mast':'am rechten Delay-Mast';
+  if(Math.hypot(x-30,y-51)<7)return'am FOH';
+  if(y>=88)return'am Einlass';
+  const h=x<20?'links':x>40?'rechts':'mittig';return h+(y<=30?' vorn':y<=62?' in der Mitte':' hinten')}
+const hasTool=t=>!LV||LV.tools.includes(t);
+function analyzeRound(){
+  const tips=[],byReg={};for(const e of injLog){const r=regionName(e.c);byReg[r]=(byReg[r]||0)+1}
+  const top=Object.entries(byReg).sort((a,b)=>b[1]-a[1])[0];
+  if(top&&top[1]>=2){const [r,n]=top;
+    const zoneTip=hasTool('lock')?' oder eine Zone mit Limit':'';
+    if(r==='an den Zählschleusen')tips.push(`${n} Verletzte ${r}: Dort hat sich der Andrang gestaut. Mehr oder breitere Schleusen verteilen ihn.`);
+    else if(r.includes('vor der Bühne'))tips.push(ZONES.some(z=>z.front)?`${n} Verletzte ${r}: Senke das Limit der Bühnenzone oder setze Wellenbrecher hinein, die die Druckwellen brechen.`
+      :`${n} Verletzte ${r}: Die Druckwellen drücken alle gegen die Barriere. Wellenbrecher dahinter${zoneTip} fangen das ab.`);
+    else tips.push(`${n} Verletzte ${r}: Hier wurde es gefährlich eng. Ein Wellenbrecher${hasTool('ordner')?' oder Ordner':''} in der Nähe hilft.`)}
+  if(S.tips)tips.push('Umgekippte Hamburger Gitter wurden zur Stolperfalle. Wo Druck entsteht, nur Wellenbrecher einsetzen.');
+  if(S.egressT>180&&hasTool('gate')&&gates.some(g=>!g.open))tips.push(`Die Räumung dauerte ${fmtT(S.egressT)}. Mit dem Notausgang-Werkzeug öffnest du zusätzliche Wege am Bauzaun.`);
+  if(S.hurt>0&&hasTool('sani')&&!sanis.length&&tips.length<3)tips.push('Ohne Sanitätsposten dauert die Versorgung länger und Verletzte blockieren den Platz.');
+  if(S.pitsTotal>1&&hasTool('ordner')&&!ordner.length&&tips.length<3)tips.push('Ordner verhindern Moshpits in ihrem Umkreis.');
+  if(S.surges>0&&!S.paUsed&&S.hurt>3&&tips.length<3)tips.push('Bei Druckwellen hilft die Durchsage: Sie stoppt die Show kurz und beruhigt die Menge.');
+  if(!tips.length)tips.push(S.hurt===0?'Stark geplant! Probier das nächste Level oder mehr Besucher.':'Schau auf die Karte: Wo die roten Punkte liegen, fehlt Schutz.');
+  return tips.slice(0,3)}
+function drawResultMap(){const cv=$('rMap'),g=cv.getContext('2d'),img=g.createImageData(W,H),d=img.data,tmp=new Uint8Array(4);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const c=y*W+x,p=c*4,t=tile[c];let r=12,gg=16,b=24;
+    if(t===4||t===10){r=40;gg=44;b=58}else if(t===9){r=150;gg=156;b=166}else if(t===2||t===8){r=200;gg=205;b=212}else if(t===7){r=61;gg=220;b=132}else if(blk(t)){r=34;gg=38;b=46}
+    else{heatColor(Math.max(maxD[c],0.7),tmp,0);const a=tmp[3]/255;r=r*(1-a)+tmp[0]*a;gg=gg*(1-a)+tmp[1]*a;b=b*(1-a)+tmp[2]*a}
+    d[p]=r;d[p+1]=gg;d[p+2]=b;d[p+3]=255}
+  const sc=document.createElement('canvas');sc.width=W;sc.height=H;sc.getContext('2d').putImageData(img,0,0);
+  g.imageSmoothingEnabled=false;g.clearRect(0,0,cv.width,cv.height);g.drawImage(sc,0,0,cv.width,cv.height);
+  const k=cv.width/W;for(const e of injLog){const x=(e.c%W+0.5)*k,y=(((e.c/W)|0)+0.5)*k;g.fillStyle='#fff';g.beginPath();g.arc(x,y,1.9,0,6.3);g.fill();g.strokeStyle='#ff3b30';g.lineWidth=1;g.stroke()}}
+function showResult(){
+  const r=roundResult(),[v,t]=verdict(r);$('rTitle').textContent=S.storm?'Gewitter: '+v:v;$('rText').textContent=t;
+  $('rScore').textContent=nf.format(r.score);$('rBreak').textContent=`Sicherheit ${r.safety} · Räumung ${r.ev} · Budget ${r.bud}`;
+  $('rHurt').textContent=nf.format(S.hurt);$('rTime').textContent=fmtT(S.egressT);$('rPeak').textContent=fmtD(S.maxPeak)+' P/m²';
+  $('rPulled').textContent=nf.format(S.pulled);$('rTips2').textContent=nf.format(S.tips);$('rCost').textContent=nf.format(planCost())+' €';$('rPits').textContent=nf.format(S.pitsTotal);
+  const ul=$('rTips');ul.textContent='';for(const tx of analyzeRound()){const li=document.createElement('li');li.textContent=tx;ul.appendChild(li)}
+  drawResultMap();
+  if(LV){const n=LV.stars.filter(g=>starMet(g,r)).length,prog=store.get('prog',{}),old=prog[LVi]||{stars:0,best:0};
+    const rec=r.score>old.best;prog[LVi]={stars:Math.max(old.stars,n),best:Math.max(old.best,r.score)};store.set('prog',prog);
+    $('rStars').hidden=false;$('rStars').innerHTML=starsHtml(n);$('rBest').textContent=rec&&old.best?'Neuer Rekord!':old.best?'Rekord '+nf.format(old.best):'';
+    $('next').hidden=!(n>=1&&LVi+1<LEVELS.length);if(n===3)sfx('win')}
+  else{const best=store.get('freeBest',0);$('rStars').hidden=true;$('next').hidden=true;$('rBest').textContent=r.score>best&&best?'Neuer Rekord!':best?'Rekord '+nf.format(best):'';if(r.score>best)store.set('freeBest',r.score)}
+  $('result').hidden=false}
+function verdict(r){
+  if(S.hurt===0)return['Sauber geplant','Niemand ist im Gedränge gestürzt.'];
+  if(S.hurt<=8)return['Fast geschafft','Ein paar Menschen sind gestürzt. Die Karte zeigt, wo.'];
+  if(S.hurt<=25)return['Rettungsdienst im Einsatz','Mehrere Menschen sind im Gedränge gestürzt. Wo hat sich der Druck aufgebaut?'];
+  return['Abbruch durch die Behörde','So hätte die Veranstaltung nicht stattfinden dürfen.'+(S.tips?' Umgekippte Hamburger Gitter haben die Lage verschärft.':'')]}
+
+// ---------- Gefahrenstellen: rote Kreise, Pfeile am Rand ----------
+const hotRing=new THREE.InstancedMesh(new THREE.RingGeometry(2.4,3.2,48),new THREE.MeshBasicMaterial({color:0xff3b30,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false,fog:false}),3);
+hotRing.count=0;hotRing.renderOrder=5;hotRing.frustumCulled=false;scene.add(hotRing);
+const HB=5,HGW=Math.ceil(W/HB),HGH=Math.ceil(H/HB),hotCnt=new Float32Array(HGW*HGH),hotSx=new Float32Array(HGW*HGH),hotSy=new Float32Array(HGW*HGH);
+let hot=[],hotTimer=0,hotSeen=[],hotO=new THREE.Object3D(),hotV=new THREE.Vector3();
+for(let i=0;i<3;i++){const b=document.createElement('button');b.className='hotArrow';b.hidden=true;b.textContent='!';b.setAttribute('aria-label','Zur Gefahrenstelle');
+  b.addEventListener('click',()=>{const h=hot[i];if(h)camGoal={tx:h.x,tz:h.y,dist:Math.min(cam.dist,70),tilt:Math.min(cam.tilt,0.6)}});$('hotArrows').appendChild(b)}
+function findHot(){
+  hotCnt.fill(0);hotSx.fill(0);hotSy.fill(0);
+  for(let i=0;i<nA;i++){if(st[i]!==1||pr[i]<P_CRIT*0.7)continue;const b=((ay[i]/HB)|0)*HGW+((ax[i]/HB)|0);hotCnt[b]++;hotSx[b]+=ax[i];hotSy[b]+=ay[i]}
+  const cand=[];for(let b=0;b<hotCnt.length;b++)if(hotCnt[b]>=4)cand.push(b);cand.sort((a,b)=>hotCnt[b]-hotCnt[a]);
+  const out=[];for(const b of cand){const x=hotSx[b]/hotCnt[b],y=hotSy[b]/hotCnt[b];if(out.some(o=>Math.hypot(o.x-x,o.y-y)<9))continue;out.push({x,y,n:hotCnt[b]});if(out.length===3)break}
+  return out}
+function updateHot(dt,t){
+  const live=S.phase==='ingress'||S.phase==='show'||S.phase==='egress';
+  if(!live){if(hot.length){hot=[];hotSeen=[]}}
+  else if((hotTimer-=dt)<=0){hotTimer=0.4;hot=findHot();
+    for(const h of hot)if(!hotSeen.some(o=>Math.hypot(o.x-h.x,o.y-h.y)<10)){hotSeen.push({x:h.x,y:h.y,t:S.t});sfx('alarm');buzz([30,60,30]);flash('Gefahr: '+regionName(((h.y|0)*W)+(h.x|0))+' wird es kritisch eng.',3500);break}
+    hotSeen=hotSeen.filter(o=>S.t-o.t<20)}
+  hotRing.count=hot.length;const pulse=1+0.15*Math.sin(t*8);
+  hot.forEach((h,i)=>{hotO.position.set(h.x,0.3,h.y);hotO.rotation.set(-Math.PI/2,0,0);const s=pulse*(0.8+Math.min(1,h.n/15)*0.6);hotO.scale.set(s,s,1);hotO.updateMatrix();hotRing.setMatrixAt(i,hotO.matrix)});
+  if(hot.length)hotRing.instanceMatrix.needsUpdate=true;hotRing.material.opacity=0.55+0.35*Math.sin(t*8);
+  // Pfeil am Rand, wenn die Stelle nicht im freien Bildbereich liegt
+  const arrows=$('hotArrows').children,top=document.querySelector('header').getBoundingClientRect().bottom+8,bot=document.querySelector('.bottom').getBoundingClientRect().top-8;
+  for(let i=0;i<3;i++){const el=arrows[i],h=hot[i];if(!h){el.hidden=true;continue}
+    hotV.set(h.x,0,h.y).project(camera);let x=(hotV.x+1)/2*innerWidth,y=(1-hotV.y)/2*innerHeight;const behind=hotV.z>1;
+    if(!behind&&x>24&&x<innerWidth-24&&y>top&&y<bot){el.hidden=true;continue}
+    if(behind){x=innerWidth-x;y=bot}
+    const cx=innerWidth/2,cy=(top+bot)/2,dx=x-cx,dy=y-cy,k=Math.min((innerWidth/2-30)/Math.max(1,Math.abs(dx)),((bot-top)/2-26)/Math.max(1,Math.abs(dy)));
+    el.hidden=false;el.style.left=(cx+dx*Math.min(1,k))+'px';el.style.top=(cy+dy*Math.min(1,k))+'px';el.textContent=Math.abs(dx)>Math.abs(dy)?(dx>0?'→':'←'):(dy>0?'↓':'↑')}}
+
+// ---------- Tutorial ----------
+let userCam=false,coachI=-1,coachT0=0;
+const COACH=[
+  {t:'Willkommen! Wisch mit einem Finger über das Gelände, um die Kamera zu drehen. Mit zwei Fingern zoomst und verschiebst du.',done:()=>userCam,sel:null,finger:false},
+  {t:'Bei Druckwellen schiebt die Menge gegen die Bühne. Wähle den Wellenbrecher.',done:()=>tool==='wave',sel:'[data-tool="wave"]'},
+  {t:'Zieh eine Linie quer über das Feld, ein paar Meter hinter der Bühne. Beim Loslassen wird gebaut, ein zweiter Finger bricht ab.',done:()=>{let n=0;for(let i=0;i<N;i++)if(!fixed[i]&&tile[i]===9)n++;return n>=6},sel:null,finger:true},
+  {t:'Gut! Ein zweiter Wellenbrecher mit Lücke dazwischen fängt noch mehr ab. Wenn du fertig bist: Einlass öffnen.',done:()=>S.phase!=='plan',sel:'#main'},
+  {t:'Achte auf rote Kreise: Dort wird es gefährlich. Liegen sie außerhalb des Bildes, tippe auf den roten Pfeil am Rand.',done:()=>performance.now()-coachT0>9000,sel:null}];
+function startCoach(){coachI=-1;nextCoach()}
+function nextCoach(){document.querySelectorAll('.coach-target').forEach(e=>e.classList.remove('coach-target'));coachI++;
+  if(coachI>=COACH.length){$('coach').hidden=true;$('finger').hidden=true;store.set('tut',true);coachI=-1;return}
+  const c=COACH[coachI];$('coach').hidden=false;$('coachT').textContent=c.t;$('finger').hidden=!c.finger;coachT0=performance.now();
+  if(c.sel){const el=document.querySelector(c.sel);if(el){el.classList.add('coach-target');if(el.closest('.tools'))el.scrollIntoView({inline:'center',block:'nearest'})}}
+  if(coachI===0)userCam=false}
+function coachTick(){if(coachI<0)return;if(COACH[coachI].done())nextCoach()}
+$('coachNext').addEventListener('click',nextCoach);$('coachSkip').addEventListener('click',()=>{coachI=COACH.length-1;nextCoach()});
+
+// ---------- Ton (synthetisch, ohne Dateien) ----------
+let AU_ON=store.get('sound',true),AC=null,AM=null,crowdG=null,musicG=null,noiseBuf=null,nextBeat=0,beatN=0;
+function audioInit(){if(AC||!AU_ON)return;try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){return}
+  AM=AC.createGain();AM.gain.value=0.55;AM.connect(AC.destination);
+  noiseBuf=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  const src=AC.createBufferSource();src.buffer=noiseBuf;src.loop=true;const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=520;bp.Q.value=0.6;
+  crowdG=AC.createGain();crowdG.gain.value=0;src.connect(bp).connect(crowdG).connect(AM);src.start();
+  musicG=AC.createGain();musicG.gain.value=0;musicG.connect(AM);nextBeat=AC.currentTime+0.1}
+function env(g,t,a,peak,dec){g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(peak,t+a);g.gain.exponentialRampToValueAtTime(0.0001,t+a+dec)}
+function tone(type,f0,f1,t,dur,peak,dest){const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f0,t);if(f1)o.frequency.exponentialRampToValueAtTime(f1,t+dur);env(g,t,0.005,peak,dur);o.connect(g).connect(dest||AM);o.start(t);o.stop(t+dur+0.05)}
+function noise(t,dur,peak,ftype,freq,q,dest){const s=AC.createBufferSource();s.buffer=noiseBuf;const f=AC.createBiquadFilter();f.type=ftype;f.frequency.value=freq;if(q)f.Q.value=q;const g=AC.createGain();env(g,t,0.01,peak,dur);s.connect(f).connect(g).connect(dest||AM);s.start(t,Math.random());s.stop(t+dur+0.1)}
+function sfx(type){if(!AC||!AU_ON)return;const t=AC.currentTime;
+  if(type==='surge'){noise(t,1.6,0.35,'bandpass',1100,0.8);noise(t+0.1,1.2,0.2,'bandpass',2200,1)}
+  else if(type==='calm'){tone('sine',659,0,t,0.5,0.25);tone('sine',523,0,t+0.55,0.7,0.25)}
+  else if(type==='alarm'){tone('square',880,0,t,0.1,0.08);tone('square',880,0,t+0.18,0.1,0.08)}
+  else if(type==='tip'){noise(t,0.45,0.5,'lowpass',900);tone('triangle',180,60,t,0.3,0.2)}
+  else if(type==='storm'){noise(t,2.8,0.7,'lowpass',140);noise(t+0.05,0.4,0.3,'highpass',3000)}
+  else if(type==='headliner'){noise(t,2.5,0.45,'bandpass',1400,0.6)}
+  else if(type==='pit'){noise(t,0.8,0.18,'bandpass',1800,1.2)}
+  else if(type==='win'){[523,659,784,1047].forEach((f,i)=>tone('triangle',f,0,t+i*0.12,0.35,0.15))}}
+function audioTick(){if(!AC)return;const t=AC.currentTime,ph=S.phase;
+  const crowd=ph==='plan'||ph==='done'?0:Math.min(1,S.active/4000)*(ph==='egress'?0.12:S.surge>0?0.32:0.16);crowdG.gain.setTargetAtTime(AU_ON?crowd:0,t,0.3);
+  const mus=!AU_ON?0:ph==='show'&&S.calm<=0?0.5:ph==='ingress'?0.15:0;musicG.gain.setTargetAtTime(mus,t,0.4);
+  if(nextBeat<t)nextBeat=t+0.05;
+  while(nextBeat<t+0.15){const b=beatN++%8,bt=nextBeat;   // 126 BPM: Kick auf jedem Viertel, Offbeat-Hihat, Bass
+    if(mus>0){tone('sine',140,42,bt,0.28,0.9,musicG);noise(bt+0.238,0.05,0.12,'highpass',7000,0,musicG);
+      const bn=[55,55,65.4,49][(beatN>>3)%4];tone('sawtooth',bn,0,bt+0.238,0.2,0.12,musicG)}
+    nextBeat+=60/126}}
+function setSound(on){AU_ON=on;store.set('sound',on);$('snd').setAttribute('aria-pressed',on);$('snd').setAttribute('aria-label',on?'Ton aus':'Ton an');if(on)audioInit();if(AC)AM.gain.setTargetAtTime(on?0.55:0,AC.currentTime,0.05)}
+$('snd').addEventListener('click',()=>setSound(!AU_ON));
+addEventListener('pointerdown',()=>{audioInit();if(AC&&AC.state==='suspended')AC.resume()},{capture:true});
+setSound(AU_ON);
+let onPhaseExtra=p=>{if(p==='plan'&&LV)renderGoals()};
+
 // ---------- Start ----------
 buildMap(true);computeGeo();buildGates();rebuildFence();rebuildBarriers();rebuildStructures();rebuildPools();updatePlanInfo();rebuildTurnstiles();
 resize();applyCam();onPhase('plan');
+// Mit Plan-Link direkt ins freie Spiel, sonst Menü
+if(fromHash()){startFree()}else{const sv=store.get('free',null);if(sv){loadPlan(sv)}openMenu()}
 {const live=new Set([structGroup,turnGroup]);for(const b of spots){live.add(b.cone);live.add(b.s.target)}
  scene.traverse(o=>{if(o===scene||live.has(o)||(o.parent&&live.has(o.parent)))return;o.updateMatrix();o.matrixAutoUpdate=false})}
 $('loading').hidden=true;
@@ -1356,7 +1654,9 @@ function adaptQuality(rdt){ftAvg+=(rdt-ftAvg)*0.05;if(++ftN<180)return;ftN=0;
   const pr=renderer.getPixelRatio();if(ftAvg>1/28&&pr>1){renderer.setPixelRatio(Math.max(1,pr-0.25));resize()}}
 function frame(now){
   const rdt=Math.min(0.1,(now-lastT)/1000);lastT=now;const t=now/1000;adaptQuality(rdt);
-  if(camGoal){const k=Math.min(1,rdt*5);cam.dist+=(camGoal.dist-cam.dist)*k;cam.tilt+=(camGoal.tilt-cam.tilt)*k;applyCam();if(Math.abs(cam.dist-camGoal.dist)<0.5)camGoal=null}
+  if(camGoal){const k=Math.min(1,rdt*5),g=camGoal;cam.dist+=(g.dist-cam.dist)*k;cam.tilt+=(g.tilt-cam.tilt)*k;
+    if(g.tx!==undefined){cam.tx+=(g.tx-cam.tx)*k;cam.tz+=(g.tz-cam.tz)*k}applyCam();
+    if(Math.abs(cam.dist-g.dist)<0.5&&(g.tx===undefined||Math.hypot(g.tx-cam.tx,g.tz-cam.tz)<0.5))camGoal=null}
   acc+=rdt*speed;let n=0;while(acc>=DT&&n<6){step(DT);acc-=DT;n++}if(n>=6)acc=0;
   updatePeople(rdt,t);updatePits(t);
   if(heatOn)updateHeat();
@@ -1364,11 +1664,12 @@ function frame(now){
   const lm=ledMode;if(calmNow)ledMode='calm';
   aimBeams(t,ledMode==='egress'||calmNow);
   if((ledTick++&3)===0)drawLed(t);
-  ledMode=lm;updateLocks(false);updateZoneFloor();updateZoneTags(false);if(zoneOpen>=0&&!$('zoneSheet').hidden&&zoneSheetVer!==zoneVer){zoneSheetVer=zoneVer;renderZoneSheet()}
+  ledMode=lm;updateLocks(false);updateZoneFloor();updateZoneTags(false);if(zoneOpen>=0&&!$('zoneSheet').hidden&&(zoneSheetVer!==zoneVer||(ledTick&15)===0)){zoneSheetVer=zoneVer;renderZoneSheet()}
   {const want=S.phase==='show'&&!calmNow?0:1;flood+=(want-flood)*Math.min(1,rdt*0.8);
    floodLight.intensity=0.85*flood;hemi.intensity=0.55+0.5*flood;floodHeadMat.color.setScalar(0.12+0.88*flood);
    if(bloom)bloom.strength=0.85-0.35*flood}
   if(composer)composer.render();else renderer.render(scene,camera);
+  updateHot(rdt,t);coachTick();audioTick();
   updateStats(now);requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
