@@ -236,7 +236,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
 // ---------- Simulation (ohne DOM) ----------
 const W=60,H=100,N=W*H,MAXA=7000,DT=1/30;
 const RB=0.46,K_BODY=120,K_FR=40,A_SOC=0.8,B_SOC=0.15,R_SOC=1.1,LAMBDA=0.35,KW=80;
-const INV_TAU=2,VMAX=2.2,MEDIC_T=20,MEDIC_SANI=8,MEDIC_PIT=5,PUSH_OUT=0.4,PUSH_FAN=0.6,P_CRIT=6,P_TIME=2;
+const INV_TAU=2,VMAX=2.2,MEDIC_T=20,MEDIC_SANI=8,MEDIC_PIT=5,PUSH_OUT=0.4,PUSH_FAN=0.45,FAN_IDLE=0.16,SURGE_EVERY=[25,45],SURGE_LEN=5,P_CRIT=6,P_TIME=3;
 const GATE_SEE=35,ORD_R=7,PIT_R=4.5,G_TIP=17,G_TIP_T=3,G_CHAIN=2,WATCH_R=16,SANI_R=26,PULL_RATE=0.7;
 const BUDGET=60000,COST={gitter:15,wave:120,lock:350,tower:3000,sani:5000,gate:1500,ordner:400,lane:800};
 const CFG={lanes:4,mosh:1};
@@ -401,7 +401,7 @@ const gsx=new Float32Array(MAXA),gsy=new Float32Array(MAXA),gcn=new Uint16Array(
 const cnt=new Int32Array(N),start=new Int32Array(N+1),fillp=new Int32Array(N),order=new Int32Array(MAXA),D=new Float32Array(N);
 const gAcc=new Float32Array(N),gLoad=new Float32Array(N),gT=new Float32Array(N);
 let seed=12345;function rng(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}
-const S0={moshAcc:0,pitsTotal:0,tr:0,t:0,spawned:0,hurt:0,left:0,pulled:0,tips:0,peak:0,maxPeak:0,maxP:0,active:0,egressStart:0,egressT:0,fieldTimer:0,spawnAcc:0,dirty:false,rr:0,tick:0,calm:0,calmCd:0,pullAcc:0,mapDirty:false,showStart:0,allInT:0,settled:0};
+const S0={moshAcc:0,pitsTotal:0,tr:0,t:0,spawned:0,hurt:0,left:0,pulled:0,tips:0,peak:0,maxPeak:0,maxP:0,active:0,egressStart:0,egressT:0,fieldTimer:0,spawnAcc:0,dirty:false,rr:0,tick:0,calm:0,calmCd:0,pullAcc:0,mapDirty:false,showStart:0,allInT:0,settled:0,surge:0,surgeIn:20,surges:0};
 const S=Object.assign({phase:'plan',target:5000},S0);
 let onPhase=null,onEvent=null;
 function setPhase(p){S.phase=p;if(onPhase)onPhase(p)}
@@ -528,7 +528,9 @@ function step(dt){
   for(let k=pits.length-1;k>=0;k--){pits[k].t+=dt;if(pits[k].t>pits[k].dur||egress||calm)pits.splice(k,1)}
   gAcc.fill(0);S.pullAcc=Math.min(3,S.pullAcc+PULL_RATE*dt);
   const sm=Math.min(1,dt/0.5);let maxP=0;
-  const pushFan=calm?0.12:PUSH_FAN,pushOut=calm?0.18:PUSH_OUT;let onWay=0;
+  // Druckwellen: während der Show drücken die Fans in Schüben nach vorn (Drop, Hit), sonst stehen sie
+  if(P==='show'&&!calm){if(S.surge>0)S.surge-=dt;else if((S.surgeIn-=dt)<=0){S.surge=SURGE_LEN;S.surges++;S.surgeIn=SURGE_EVERY[0]+rng()*(SURGE_EVERY[1]-SURGE_EVERY[0]);emit('surge')}}else S.surge=0;
+  const pushFan=calm?0.12:S.surge>0?PUSH_FAN:FAN_IDLE,pushOut=calm?0.18:PUSH_OUT;let onWay=0;
   for(let i=0;i<nA;i++){
     const c=acell[i];
     if(st[i]===2){injT[i]+=dt;const cy=(c/W)|0,lim=cy<=STAGE_ROW+2?MEDIC_PIT:medic[c]?MEDIC_SANI:MEDIC_T;if(injT[i]>lim){st[i]=0;S.dirty=true}continue}
@@ -547,6 +549,7 @@ function step(dt){
       hx=sdx;hy=sdy;
       let lx=(x+sdx*0.9)|0,ly=(y+sdy*0.9)|0;if(lx<0)lx=0;if(lx>=W)lx=W-1;if(ly<0)ly=0;if(ly>=H)ly=H-1;
       const lc=ly*W+lx,da=wallC(lc)?D[c]:D[lc];
+      if(lockShut[lc]&&!egress){want[i]=TGEO[tg][c]+0.5;tgt[i]=tg} // Zone voll: hier stehen bleiben
       let s=spd[i]*Math.max(egress?pushOut:(want[i]<0?(ord[c]?0.22:pushFan):0.12),1-da/5.6);if(tile[c]===8)s*=0.55;if(calm)s*=0.8;
       dx=sdx*s;dy=sdy*s;
       cheer[i]=Math.max(0,cheer[i]-dt*2);
@@ -589,7 +592,7 @@ function step(dt){
     // Security im Graben zieht Bedrängte über die Barriere
     if(cy===STAGE_ROW&&cx>=15&&cx<=44&&pr[i]>P_CRIT*0.8&&S.pullAcc>=1){S.pullAcc-=1;st[i]=0;S.pulled++;S.dirty=true;continue}
     const crit=tile[c]===8?P_CRIT*0.6:P_CRIT;
-    if(pr[i]>crit&&injT[i]>8){crT[i]+=dt*(ord[c]?0.4:1)*(watch[c]?0.5:1);if(crT[i]>P_TIME&&rng()<dt*0.6){injure(i);continue}}else crT[i]=Math.max(0,crT[i]-dt);
+    if(pr[i]>crit&&injT[i]>8){crT[i]+=dt*(ord[c]?0.4:1)*(watch[c]?0.5:1);if(crT[i]>P_TIME&&rng()<dt*0.4){injure(i);continue}}else crT[i]=Math.max(0,crT[i]-dt);
     let nvx=vx[i]+fx*dt,nvy=vy[i]+fy*dt;const sp=Math.hypot(nvx,nvy);if(sp>VMAX){nvx*=VMAX/sp;nvy*=VMAX/sp}
     let nx=x+nvx*dt;{const nc=(y|0)*W+(nx|0);if(nx<0.05||nx>W-0.05||(nc!==c&&wallC(nc))){nx=x;nvx*=-0.2}}
     let ny=y+nvy*dt;{const nc=(ny|0)*W+(nx|0);if(ny<0.05||ny>H-0.05||(nc!==c&&wallC(nc))){ny=y;nvy*=-0.2}}
