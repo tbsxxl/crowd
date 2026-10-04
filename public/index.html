@@ -1,5 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Gedränge-Planer</title>
+<link rel="preload" href="vendor/three-r128-bloom.js" as="script">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap">
@@ -178,13 +179,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
 
 <div class="toast" id="toast" hidden role="status"><b id="toastT"></b><span id="toastM"></span></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="vendor/three-r128-bloom.js"></script>
 
 <script id="sim">
 // ---------- Simulation (ohne DOM) ----------
@@ -258,15 +253,15 @@ function dijkstra(goals,out,dens){
       let cost=NB[q][2];if(tile[n]===8)cost*=1.8;if(dens){const d=dens[n];if(d>2)cost*=1+0.3*(d-2)}
       const nk=k+cost;if(nk<out[n]){out[n]=nk;hpush(n,nk)}}}
 }
+function fval(f,fc,x,y){if(x<0||y<0||x>=W||y>=H)return fc+1;const n=y*W+x;return(blk(tile[n])||!isFinite(f[n]))?fc+1:f[n]}
 function buildDir(f,dx,dy,dirs){
   for(let c=0;c<N;c++){
     dx[c]=dy[c]=0;const fc=f[c];
     if(blk(tile[c])||!isFinite(fc))continue;
     const gd=dirs.get(c);if(gd){dx[c]=gd[0];dy[c]=gd[1];continue}
     const cx=c%W,cy=(c/W)|0;
-    const val=(x,y)=>{if(x<0||y<0||x>=W||y>=H)return fc+1;const n=y*W+x;return(blk(tile[n])||!isFinite(f[n]))?fc+1:f[n]};
-    let gx=val(cx-1,cy)-val(cx+1,cy),gy=val(cx,cy-1)-val(cx,cy+1);
-    if(gx*gx+gy*gy<1e-6){let best=fc;for(const [ex,ey] of NB){const v=val(cx+ex,cy+ey);if(v<best){best=v;gx=ex;gy=ey}}}
+    let gx=fval(f,fc,cx-1,cy)-fval(f,fc,cx+1,cy),gy=fval(f,fc,cx,cy-1)-fval(f,fc,cx,cy+1);
+    if(gx*gx+gy*gy<1e-6){let best=fc;for(let q=0;q<8;q++){const ex=NB[q][0],ey=NB[q][1],v=fval(f,fc,cx+ex,cy+ey);if(v<best){best=v;gx=ex;gy=ey}}}
     const l=Math.hypot(gx,gy);if(l>1e-6){dx[c]=gx/l;dy[c]=gy/l}
   }
 }
@@ -329,7 +324,7 @@ const ax=new Float32Array(MAXA),ay=new Float32Array(MAXA),vx=new Float32Array(MA
       pr=new Float32Array(MAXA),crT=new Float32Array(MAXA),aph=new Float32Array(MAXA),ayaw=new Float32Array(MAXA),cheer=new Float32Array(MAXA),
       tgt=new Uint8Array(MAXA),mosh=new Uint8Array(MAXA);
 const pits=[];
-let nA=0,nGrp=0;
+let nA=0,nGrp=0,agentGen=0; // agentGen: steigt, wenn sich Indizes verschieben (compact/reset)
 const gsx=new Float32Array(MAXA),gsy=new Float32Array(MAXA),gcn=new Uint16Array(MAXA);
 const cnt=new Int32Array(N),start=new Int32Array(N+1),fillp=new Int32Array(N),order=new Int32Array(MAXA),D=new Float32Array(N);
 const gAcc=new Float32Array(N),gLoad=new Float32Array(N),gT=new Float32Array(N);
@@ -341,7 +336,7 @@ function setPhase(p){S.phase=p;if(onPhase)onPhase(p)}
 function emit(type,data){if(onEvent)onEvent(type,data)}
 function resetRound(){
   for(const c of tipped)if(tile[c]===8)tile[c]=2;tipped=[];
-  nA=0;nGrp=0;pits.length=0;D.fill(0);gLoad.fill(0);gT.fill(0);BLKF[7]=0;PEN.closed=false;PEN.count=0;
+  nA=0;nGrp=0;agentGen++;pits.length=0;D.fill(0);gLoad.fill(0);gT.fill(0);BLKF[7]=0;PEN.closed=false;PEN.count=0;
   Object.assign(S,S0);computeGeo();setPhase('plan');
 }
 function startIngress(){computeGeo();recomputeStage(null);S.fieldTimer=0.5;setPhase('ingress')}
@@ -384,7 +379,7 @@ function sampleDir(x,y,DXa,DYa){
   const l=Math.hypot(sx,sy);if(l>1e-6){sdx=sx/l;sdy=sy/l}else{sdx=0;sdy=0}
 }
 const CA=[ax,ay,vx,vy,want,spd,st,hue,look,injT,ex,home,gid,pr,crT,aph,ayaw,cheer,tgt,mosh];
-function compact(){let j=0;for(let i=0;i<nA;i++){if(!st[i])continue;if(i!==j)for(const a of CA)a[j]=a[i];j++}nA=j;S.dirty=false}
+function compact(){agentGen++;let j=0;for(let i=0;i<nA;i++){if(!st[i])continue;if(i!==j)for(const a of CA)a[j]=a[i];j++}nA=j;S.dirty=false}
 function relocate(i,c){
   const cx=c%W,cy=(c/W)|0;
   for(let r=1;r<4;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){const x=cx+dx,y=cy+dy;if(x<1||y<1||x>=W-1||y>=H-1)continue;
@@ -698,16 +693,17 @@ const spots=[];
   box(0.6,0.6,0.6,new THREE.MeshBasicMaterial({color:c}),x,13.6,9.6,false);
   spots.push({s,cone,c,i,x});
 });
+const beamDir=new THREE.Vector3(),beamUp=new THREE.Vector3(0,-1,0);
 function aimBeams(t,egress){
   for(const b of spots){
     let tx,tz;
-    if(egress){tx=b.x;tz=40+b.i*6;b.s.color.set(0xfff4e0);b.cone.material.uniforms.color.value.set(0xfff4e0);b.cone.material.uniforms.op.value=0.12}
-    else{tx=30+Math.sin(t*0.6+b.i*1.7)*20;tz=26+Math.sin(t*0.45+b.i)*14;b.s.color.set(b.c);b.cone.material.uniforms.color.value.set(b.c);b.cone.material.uniforms.op.value=0.32}
+    if(egress){tx=b.x;tz=40+b.i*6}else{tx=30+Math.sin(t*0.6+b.i*1.7)*20;tz=26+Math.sin(t*0.45+b.i)*14}
+    if(b.eg!==egress){b.eg=egress;const c=egress?0xfff4e0:b.c;b.s.color.set(c);b.cone.material.uniforms.color.value.set(c);b.cone.material.uniforms.op.value=egress?0.12:0.32}
     b.s.target.position.set(tx,0,tz);
-    const from=b.s.position,ddx=tx-from.x,ddy=-from.y,ddz=tz-from.z,len=Math.hypot(ddx,ddy,ddz),dir=new THREE.Vector3(ddx/len,ddy/len,ddz/len);
+    const from=b.s.position,ddx=tx-from.x,ddy=-from.y,ddz=tz-from.z,len=Math.hypot(ddx,ddy,ddz),dir=beamDir.set(ddx/len,ddy/len,ddz/len);
     const r=Math.tan(b.s.angle)*len;
     b.cone.scale.set(r,len,r);b.cone.position.copy(from).addScaledVector(dir,len/2);
-    b.cone.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),dir);
+    b.cone.quaternion.setFromUnitVectors(beamUp,dir);
   }
 }
 // FOH
@@ -880,8 +876,9 @@ const HEATC=[0x5f9cff,0x52d38a,0xf2d23a,0xff8a2a,0xff3b3b].map(h=>new THREE.Colo
 const rings=new THREE.InstancedMesh(new THREE.RingGeometry(0.55,0.75,28),new THREE.MeshBasicMaterial({color:0xff3b30,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}),600);
 rings.frustumCulled=false;rings.count=0;rings.renderOrder=4;scene.add(rings);
 const tmpM=new THREE.Matrix4(),tmpQ=new THREE.Quaternion(),tmpE=new THREE.Euler(),tmpV=new THREE.Vector3(),tmpS=new THREE.Vector3(1,1,1);
-let heatOn=false;
+let heatOn=false,lookN=0,lookGen=-1;
 function updatePeople(dt,t){
+  const lookFrom=lookGen===agentGen&&nA>=lookN?lookN:0;
   const M=people.instanceMatrix.array,A=aAnim.array,C=people.instanceColor.array,PA=aPants.array,SK=aSkin.array;
   const show=S.phase==='show'||S.phase==='ingress';let nr=0;
   for(let i=0;i<nA;i++){
@@ -907,12 +904,14 @@ function updatePeople(dt,t){
     }
     let col=SHIRT[hue[i]%SHIRT.length];if(heatOn&&st[i]===1){const dd=D[acell[i]];col=HEATC[dd<2?0:dd<3.5?1:dd<4.8?2:dd<5.8?3:4]}
     C[s3]=col.r;C[s3+1]=col.g;C[s3+2]=col.b;
-    const p=PANTS[(look[i]&15)%PANTS.length],k=SKIN[(look[i]>>4)%SKIN.length];
-    PA[s3]=p.r;PA[s3+1]=p.g;PA[s3+2]=p.b;SK[s3]=k.r;SK[s3+1]=k.g;SK[s3+2]=k.b;
+    if(i>=lookFrom){const p=PANTS[(look[i]&15)%PANTS.length],k=SKIN[(look[i]>>4)%SKIN.length];
+    PA[s3]=p.r;PA[s3+1]=p.g;PA[s3+2]=p.b;SK[s3]=k.r;SK[s3+1]=k.g;SK[s3+2]=k.b}
   }
   people.count=nA;rings.count=nr;
   people.instanceMatrix.updateRange.count=nA*16;people.instanceMatrix.needsUpdate=true;
-  for(const a of [people.instanceColor,aPants,aSkin]){a.updateRange.count=nA*3;a.needsUpdate=true}
+  people.instanceColor.updateRange.count=nA*3;people.instanceColor.needsUpdate=true;
+  if(lookFrom<nA){for(const a of [aPants,aSkin]){a.updateRange.offset=lookFrom*3;a.updateRange.count=(nA-lookFrom)*3;a.needsUpdate=true}}
+  lookN=nA;lookGen=agentGen;
   aAnim.updateRange.count=nA*4;aAnim.needsUpdate=true;if(nr)rings.instanceMatrix.needsUpdate=true;
   rings.material.opacity=0.6+0.4*Math.sin(t*6);
 }
@@ -940,7 +939,8 @@ for(const sc of SCREENS){const cx=sc.cx;
 // Moshpit-Markierung
 const pitRings=new THREE.InstancedMesh(new THREE.RingGeometry(PIT_R-0.7,PIT_R,56),new THREE.MeshBasicMaterial({color:0xff8a2a,transparent:true,opacity:0.5,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}),3);
 pitRings.count=0;pitRings.renderOrder=4;pitRings.frustumCulled=false;scene.add(pitRings);
-function updatePits(t){const o=new THREE.Object3D();pitRings.count=pits.length;
+const pitO=new THREE.Object3D();
+function updatePits(t){const o=pitO;pitRings.count=pits.length;
   pits.forEach((p,i)=>{const open=p.t<3.5,s=open?0.4+0.6*p.t/3.5:1+0.05*Math.sin(t*9);o.position.set(p.x,0.24,p.y);o.rotation.set(-Math.PI/2,0,t*0.8);o.scale.set(s,s,1);o.updateMatrix();pitRings.setMatrixAt(i,o.matrix)});
   if(pits.length)pitRings.instanceMatrix.needsUpdate=true;pitRings.material.opacity=0.35+0.2*Math.sin(t*5);}
 
@@ -1132,6 +1132,8 @@ canvas.addEventListener('wheel',e=>{e.preventDefault();cam.dist*=Math.exp(e.delt
 // ---------- Start ----------
 buildMap(true);computeGeo();buildGates();rebuildFence();rebuildBarriers();rebuildStructures();rebuildPools();updatePlanInfo();rebuildTurnstiles();
 resize();applyCam();onPhase('plan');
+{const live=new Set([structGroup,turnGroup]);for(const b of spots){live.add(b.cone);live.add(b.s.target)}
+ scene.traverse(o=>{if(o===scene||live.has(o)||(o.parent&&live.has(o.parent)))return;o.updateMatrix();o.matrixAutoUpdate=false})}
 $('loading').hidden=true;
 let lastT=performance.now(),acc=0,ledTick=0;
 function frame(now){
