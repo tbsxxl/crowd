@@ -122,6 +122,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
   #more{display:block}
   .settings:not(.open){display:none}
 }
+.ghostTag{position:fixed;left:0;top:0;transform:translate(-50%,-100%);pointer-events:none;font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.03em;padding:4px 9px;border-radius:8px;background:rgba(10,14,22,.88);border:1px solid var(--line);color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.ghostTag[data-bad="true"]{color:#ffb0a8;border-color:#ff6b5e}
 .loading{position:fixed;inset:0;display:grid;place-items:center;font-family:var(--display);font-size:20px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);pointer-events:none}
 </style>
 
@@ -160,6 +162,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
         <button class="btn" id="speed">1×</button>
         <button class="btn" id="cam">Draufsicht</button>
         <button class="btn" id="pa" disabled>Durchsage</button>
+        <button class="btn" id="undo" disabled>Zurück</button>
         <button class="btn" id="more" aria-expanded="false" aria-controls="visRow">Optionen</button>
         <button class="primary" id="main">Einlass öffnen</button>
       </div>
@@ -199,6 +202,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
   </div>
 </div>
 
+<div class="ghostTag" id="ghostTag" hidden></div>
 <div class="toast" id="toast" hidden role="status"><b id="toastT"></b><span id="toastM"></span></div>
 
 <script src="vendor/three-r128-bloom.js"></script>
@@ -1084,7 +1088,7 @@ onPhase=p=>{
   const ph=$('phase');ph.textContent=PNAME[p];ph.dataset.p=p;$('hint').textContent=HINTS[p];
   const m=$('main');m.disabled=p==='egress';
   m.textContent=p==='plan'?'Einlass öffnen':p==='egress'?'Räumung läuft':p==='done'?'Neue Runde':'Konzert beenden';
-  $('visRow').hidden=p!=='plan';$('more').hidden=p!=='plan';
+  $('visRow').hidden=p!=='plan';$('more').hidden=p!=='plan';$('undo').hidden=p!=='plan';$('pa').hidden=p==='plan';if(typeof updateUndo==='function')updateUndo();
   ledMode=p==='egress'||p==='done'?'egress':p==='plan'?'plan':'show';
   if(p==='plan'){rebuildBarriers();rebuildStructures();updatePlanInfo()}else if(p==='ingress')rebuildStructures();
 
@@ -1099,7 +1103,7 @@ $('main').addEventListener('click',()=>{const p=S.phase;
   else if(p==='ingress'||p==='show')startEgress();
   else if(p==='done')resetRound()});
 $('again').addEventListener('click',resetRound);
-$('clear').addEventListener('click',()=>{buildMap(false);mapChanged(true);resetRound()});
+$('clear').addEventListener('click',()=>{resetRound();pushUndo(snapshot());buildMap(false);mapChanged(true);resetRound()});
 $('pa').addEventListener('click',()=>{if(announce())flash('Durchsage über die PA: Show unterbrochen, Publikum tritt zurück.')});
 $('lanes').addEventListener('input',e=>{const old=CFG.lanes;CFG.lanes=+e.target.value;if(planCost()>BUDGET){CFG.lanes=old;e.target.value=old;noMoney()}
   $('lanesOut').textContent=CFG.lanes+' je Eingang';rebuildTurnstiles();updatePlanInfo()});
@@ -1116,54 +1120,128 @@ let speed=1;$('speed').addEventListener('click',e=>{speed=speed===1?2:speed===2?
 $('cam').addEventListener('click',e=>{camIdx=1-camIdx;Object.assign(cam,camPresets[camIdx]);e.currentTarget.textContent=camIdx?'Schräg':'Draufsicht';applyCam()});
 $('visitors').addEventListener('input',e=>{$('visOut').textContent=nf.format(+e.target.value)});
 let tool='view';
-document.querySelectorAll('.tool').forEach(b=>b.addEventListener('click',()=>{tool=b.dataset.tool;document.querySelectorAll('.tool').forEach(o=>o.setAttribute('aria-pressed',o===b))}));
 
 function mapChanged(gatesToo){computeGeo();S.fieldTimer=0;rebuildBarriers();rebuildStructures();rebuildPools();updatePlanInfo();if(gatesToo){rebuildFence();gatesChanged()}}
 const ray=new THREE.Raycaster(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),ndc=new THREE.Vector2(),hit=new THREE.Vector3();
-function toCell(cx,cy){ndc.set(cx/innerWidth*2-1,-(cy/innerHeight)*2+1);ray.setFromCamera(ndc,camera);if(!ray.ray.intersectPlane(plane,hit))return null;
-  const x=Math.floor(hit.x),y=Math.floor(hit.z);return(x<0||y<0||x>=W||y>=H)?null:{x,y}}
 const LINE_TILE={bar:2,wave:9,lock:7},LINE_COST={bar:COST.gitter,wave:COST.wave,lock:COST.lock};
 function noMoney(){flash('Budget aufgebraucht. Radiere etwas weg oder nutze günstigere Teile.')}
-function paint(p){let ch=false;
-  if(LINE_TILE[tool]!==undefined){const c=p.y*W+p.x;if(tile[c]===0&&!fixed[c]){if(planCost()+LINE_COST[tool]>BUDGET){noMoney();return false}tile[c]=LINE_TILE[tool];ch=true}}
-  else if(tool==='erase'){if(removeAt(p.x,p.y))ch=true;
-    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const x=p.x+dx,y=p.y+dy;if(x<0||y<0||x>=W||y>=H)continue;const c=y*W+x;const t=tile[c];if(!fixed[c]&&(t===2||t===7||t===8||t===9)){tile[c]=0;ch=true}}}
-  return ch}
-function placeOrd(p){if(planCost()+COST.ordner>BUDGET){noMoney();return}
-  if(placeOrdner(p.x,p.y)){mapChanged(false);flash('Ordner gesetzt: Im blauen Kreis drängeln Fans weniger und es entstehen keine Moshpits.')}else flash('Hier ist kein Platz für einen Ordner.')}
+function placeOrd(p){if(planCost()+COST.ordner>BUDGET){noMoney();return false}
+  if(placeOrdner(p.x,p.y)){mapChanged(false);flash('Ordner gesetzt: Im blauen Kreis drängeln Fans weniger und es entstehen keine Moshpits.');return true}flash('Hier ist kein Platz für einen Ordner.');return false}
 function placeAt(p){const s=tool==='tower'?2:3,cost=tool==='tower'?COST.tower:COST.sani;
-  if(planCost()+cost>BUDGET){noMoney();return}
+  if(planCost()+cost>BUDGET){noMoney();return false}
   const x0=p.x-Math.floor((s-1)/2),y0=p.y-Math.floor((s-1)/2);
-  if(placeStruct(tool,x0,y0)){mapChanged(false);flash(tool==='tower'?'Hochstand gesetzt: Security greift im gelben Kreis früher ein.':'Sanitätsposten gesetzt: Verletzte im roten Kreis werden schneller versorgt.')}
-  else flash('Hier ist kein Platz. Hochstände und Sanitätsposten brauchen freie Fläche.')}
-function line(a,b){let ch=false;const n=Math.max(Math.abs(b.x-a.x),Math.abs(b.y-a.y));
-  for(let k=0;k<=n;k++){const t=n?k/n:0;ch=paint({x:Math.round(a.x+(b.x-a.x)*t),y:Math.round(a.y+(b.y-a.y)*t)})||ch}return ch}
+  if(placeStruct(tool,x0,y0)){mapChanged(false);flash(tool==='tower'?'Hochstand gesetzt: Security greift im gelben Kreis früher ein.':'Sanitätsposten gesetzt: Verletzte im roten Kreis werden schneller versorgt.');return true}
+  flash('Hier ist kein Platz. Hochstände und Sanitätsposten brauchen freie Fläche.');return false}
 let hintTimer=0;
-function flash(msg){const h=$('hint');h.textContent=msg;clearTimeout(hintTimer);hintTimer=setTimeout(()=>h.textContent=HINTS[S.phase],2400)}
+function flash(msg,ms=2400){const h=$('hint');h.textContent=msg;clearTimeout(hintTimer);hintTimer=setTimeout(()=>h.textContent=HINTS[S.phase],ms)}
 function toggleGate(p){let best=null,bd=5;
   for(const g of gates){const dx=Math.max(g.x0-p.x,0,p.x-g.x1),dy=Math.max(g.y0-p.y,0,p.y-g.y1),d=Math.hypot(dx,dy);if(d<bd){bd=d;best=g}}
-  if(best&&!best.open&&planCost()+COST.gate>BUDGET){noMoney();return}
-  if(best){setGate(best,!best.open);mapChanged(true);flash(best.open?'Notausgang geöffnet.':'Notausgang geschlossen.')}
-  else flash('Tippe auf einen grünen Abschnitt am Bauzaun.')}
-// Gesten: ein Finger je nach Werkzeug, zwei Finger drehen/zoomen/schieben
-const pts=new Map();let mode=null,last=null,pinch=null;
+  if(best&&!best.open&&planCost()+COST.gate>BUDGET){noMoney();return false}
+  if(best){setGate(best,!best.open);mapChanged(true);flash(best.open?'Notausgang geöffnet.':'Notausgang geschlossen.');return true}
+  flash('Tippe auf einen grünen Abschnitt am Bauzaun.');return false}
+// Rückgängig: Planstand vor jeder Bauaktion merken
+const undoStack=[];
+function snapshot(){return{tile:tile.slice(),towers:towers.map(o=>({...o})),sanis:sanis.map(o=>({...o})),ordner:ordner.map(o=>({...o})),gates:gates.map(g=>g.open)}}
+function pushUndo(sn){undoStack.push(sn);if(undoStack.length>40)undoStack.shift();updateUndo()}
+function updateUndo(){$('undo').disabled=!undoStack.length||S.phase!=='plan'}
+function undo(){if(S.phase!=='plan'||!undoStack.length)return;const sn=undoStack.pop();
+  tile.set(sn.tile);towers=sn.towers;sanis=sn.sanis;ordner=sn.ordner;gates.forEach((g,i)=>g.open=sn.gates[i]);
+  mapChanged(true);updateUndo();buzz();flash('Letzter Schritt rückgängig gemacht.')}
+$('undo').addEventListener('click',undo);
+addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();undo()}});
+const buzz=()=>{try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}};
+
+// Bauvorschau: grün = wird gebaut, rot = kein Platz / kein Geld
+const GHOST_MAX=900;
+const ghostGeo=new THREE.BoxGeometry(0.94,1.1,0.94);ghostGeo.translate(0,0.55,0);
+const ghost=new THREE.InstancedMesh(ghostGeo,new THREE.MeshBasicMaterial({transparent:true,opacity:0.85,depthWrite:false,toneMapped:false,fog:false}),GHOST_MAX);
+ghost.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(GHOST_MAX*3),3);ghost.count=0;ghost.renderOrder=6;ghost.frustumCulled=false;scene.add(ghost);
+const GOK=new THREE.Color(0x6dffb0),GBAD=new THREE.Color(0xff3b30),GDEL=new THREE.Color(0xffd84a),gO=new THREE.Object3D();
+function showGhost(list){let n=0;for(const [c,col] of list){if(n>=GHOST_MAX)break;gO.position.set(c%W+0.5,0.08,((c/W)|0)+0.5);gO.updateMatrix();ghost.setMatrixAt(n,gO.matrix);ghost.setColorAt(n,col);n++}
+  ghost.count=n;ghost.instanceMatrix.needsUpdate=true;if(n)ghost.instanceColor.needsUpdate=true}
+function tag(text,bad,x,y){const el=$('ghostTag');if(!text){el.hidden=true;return}el.hidden=false;el.textContent=text;el.dataset.bad=!!bad;
+  el.style.left=Math.min(innerWidth-70,Math.max(70,x))+'px';el.style.top=Math.max(40,y-(TOUCH?70:24))+'px'}
+function clearGhost(){ghost.count=0;tag(null)}
+function cellAt(cx,cy,clamp){ndc.set(cx/innerWidth*2-1,-(cy/innerHeight)*2+1);ray.setFromCamera(ndc,camera);if(!ray.ray.intersectPlane(plane,hit))return null;
+  let x=Math.floor(hit.x),y=Math.floor(hit.z);if(clamp){x=Math.min(W-2,Math.max(1,x));y=Math.min(H-2,Math.max(1,y));return{x,y}}
+  return(x<0||y<0||x>=W||y>=H)?null:{x,y}}
+// Linie vom Start zum Finger; rastet nahe 0°/45°/90° ein
+function snapEnd(a,b){const dx=b.x-a.x,dy=b.y-a.y,ax=Math.abs(dx),ay=Math.abs(dy);if(!ax&&!ay)return b;
+  const ang=Math.atan2(ay,ax),T=0.22;
+  if(ang<T)return{x:b.x,y:a.y};if(ang>Math.PI/2-T)return{x:a.x,y:b.y};
+  if(Math.abs(ang-Math.PI/4)<T){const l=Math.max(ax,ay);return{x:a.x+Math.sign(dx)*l,y:a.y+Math.sign(dy)*l}}return b}
+function lineCells(a,b){const out=[],seen=new Set(),n=Math.max(Math.abs(b.x-a.x),Math.abs(b.y-a.y));
+  for(let k=0;k<=n;k++){const t=n?k/n:0,c=Math.round(a.y+(b.y-a.y)*t)*W+Math.round(a.x+(b.x-a.x)*t);if(!seen.has(c)){seen.add(c);out.push(c)}}return out}
+const eraseable=c=>{const t=tile[c];return !fixed[c]&&(t===2||t===7||t===8||t===9||t===11||t===12||t===15)};
+function structCells(list,s,x,y){for(const o of list)if(x>=o.x&&x<o.x+s&&y>=o.y&&y<o.y+s){const r=[];for(let j=0;j<s;j++)for(let i=0;i<s;i++)r.push((o.y+j)*W+o.x+i);return r}return null}
+// Plant eine Bauaktion, ohne etwas zu verändern
+function planAction(a,b){
+  const g=[];let base=planCost();
+  if(LINE_TILE[tool]!==undefined){const cells=lineCells(a,b),cost=LINE_COST[tool];let ok=0,broke=false,blocked=0;
+    for(const c of cells){if(tile[c]!==0||fixed[c]){g.push([c,GBAD]);blocked++;continue}
+      if(base+cost>BUDGET){g.push([c,GBAD]);broke=true;continue}base+=cost;ok++;g.push([c,GOK])}
+    const txt=ok?ok+' m · '+nf.format(ok*cost)+' €'+(broke?' · Budget reicht nicht':''):broke?'Budget reicht nicht':'Kein Platz';
+    return{g,cells,ok,txt,bad:!ok||broke}}
+  if(tool==='erase'){const del=new Set();
+    for(const c0 of lineCells(a,b)){const cx=c0%W,cy=(c0/W)|0;
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const x=cx+dx,y=cy+dy;if(x<0||y<0||x>=W||y>=H)continue;const c=y*W+x;const t=tile[c];
+        if(t===11||t===12){if(dx||dy)continue;for(const k of structCells(t===11?towers:sanis,t===11?2:3,x,y)||[])del.add(k)}
+        else if(t===15){if(!dx&&!dy)del.add(c)}else if(eraseable(c))del.add(c)}}
+    for(const c of del)g.push([c,GDEL]);
+    return{g,ok:del.size,del,txt:del.size?'Entfernen':'Hier ist nichts zu entfernen',bad:!del.size}}
+  const s=tool==='tower'?2:tool==='sani'?3:1,cost=tool==='tower'?COST.tower:tool==='sani'?COST.sani:COST.ordner;
+  const x0=b.x-Math.floor((s-1)/2),y0=b.y-Math.floor((s-1)/2),fits=canPlace(x0,y0,s,s),money=base+cost<=BUDGET;
+  for(let j=0;j<s;j++)for(let i=0;i<s;i++){const x=x0+i,y=y0+j;if(x>=0&&y>=0&&x<W&&y<H)g.push([y*W+x,fits&&money?GOK:GBAD])}
+  return{g,ok:fits&&money?1:0,txt:!money?'Budget reicht nicht':!fits?'Kein Platz':nf.format(cost)+' €',bad:!(fits&&money)}}
+function commitAction(a,b){
+  const sn=snapshot();let ch=false;
+  if(LINE_TILE[tool]!==undefined){const pl=planAction(a,b);for(const [c,col] of pl.g)if(col===GOK){tile[c]=LINE_TILE[tool];ch=true}
+    if(pl.bad&&pl.ok)noMoney();if(ch)mapChanged(false);
+    if(ch&&tool==='lock'&&!PEN.exists)flash('Die Zählschleusen wirken erst, wenn der Bereich vor der Bühne ringsum mit Wellenbrechern geschlossen ist.')}
+  else if(tool==='erase'){const pl=planAction(a,b);const done=new Set();
+    for(const c of pl.del){if(done.has(c))continue;const x=c%W,y=(c/W)|0,t=tile[c];
+      if(t===11||t===12){for(const k of structCells(t===11?towers:sanis,t===11?2:3,x,y)||[])done.add(k);removeAt(x,y)}else if(t===15)removeAt(x,y);else tile[c]=0;ch=true}
+    if(ch)mapChanged(false)}
+  else if(tool==='ordner')ch=placeOrd(b);
+  else ch=placeAt(b);
+  if(ch){pushUndo(sn);buzz();lastEnd=LINE_TILE[tool]!==undefined?b:null}
+}
+const TOUCH=matchMedia('(pointer:coarse)').matches;
+const TOOL_HINT={wave:'Ziehen zeichnet eine gerade Linie, Loslassen baut. Linien rasten waagerecht, senkrecht und diagonal ein.',bar:'Ziehen zeichnet eine Linie, Loslassen baut. Neue Linien docken am Ende der letzten an.',
+  lock:'Zählschleusen als Lücke in eine geschlossene Wellenbrecher-Linie setzen.',ordner:'Antippen und verschieben, Loslassen setzt den Ordner.',tower:'Antippen und verschieben, Loslassen setzt den Hochstand.',
+  sani:'Antippen und verschieben, Loslassen setzt den Sanitätsposten.',gate:'Tippe auf einen Abschnitt am Bauzaun, um einen Notausgang zu öffnen oder zu schließen.',erase:'Über Bauteile wischen, Loslassen entfernt sie. Kosten werden erstattet.'};
+function setTool(t){tool=t;document.querySelectorAll('.tool').forEach(o=>o.setAttribute('aria-pressed',o.dataset.tool===t));if(TOOL_HINT[t])flash(TOOL_HINT[t]+(TOUCH?' Zweiter Finger bricht ab.':''),6000)}
+document.querySelectorAll('.tool').forEach(b=>b.addEventListener('click',()=>setTool(tool===b.dataset.tool&&tool!=='view'?'view':b.dataset.tool)));
+
+// Gesten: ein Finger je nach Werkzeug (Vorschau, Bauen beim Loslassen), zwei Finger drehen/zoomen/schieben und brechen das Bauen ab
+const pts=new Map();let mode=null,last=null,pinch=null,dragA=null,dragB=null,downAt=null,lastEnd=null;
+function startPinch(){mode='pinch';clearGhost();const [a,b]=[...pts.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),mx:(a.x+b.x)/2,my:(a.y+b.y)/2,ang:Math.atan2(b.y-a.y,b.x-a.x)}}
+function updateDrag(x,y){const p=cellAt(x,y,true);if(!p)return;const line=LINE_TILE[tool]!==undefined||tool==='erase';
+  dragB=line&&tool!=='erase'?snapEnd(dragA,p):p;const pl=planAction(line?dragA:dragB,dragB);showGhost(pl.g);tag(pl.txt,pl.bad,x,y)}
 canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(pts.size===2){mode='pinch';const [a,b]=[...pts.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),mx:(a.x+b.x)/2,my:(a.y+b.y)/2,ang:Math.atan2(b.y-a.y,b.x-a.x)};return}
+  if(pts.size===2){startPinch();return}
   if(pts.size>2)return;
+  downAt={x:e.clientX,y:e.clientY};
   if(e.button===2||tool==='view'){mode=e.button===2?'pan':'orbit';last={x:e.clientX,y:e.clientY};return}
-  if(tool==='gate'){const p=toCell(e.clientX,e.clientY);if(p)toggleGate(p);mode=null;return}
-  if(tool==='ordner'){const p=toCell(e.clientX,e.clientY);if(p)placeOrd(p);mode=null;return}
-  if(tool==='tower'||tool==='sani'){const p=toCell(e.clientX,e.clientY);if(p)placeAt(p);mode=null;return}
-  const p=toCell(e.clientX,e.clientY);mode='draw';last=p;if(p&&paint(p))mapChanged(false)});
-canvas.addEventListener('pointerup',()=>{if(tool==='lock'&&!PEN.exists&&PEN.locks>0)flash('Die Zählschleusen wirken erst, wenn der Bereich vor der Bühne ringsum mit Wellenbrechern geschlossen ist.')});
+  if(tool==='gate'){mode='tap';return}
+  const p=cellAt(e.clientX,e.clientY,false);if(!p){mode='orbit';last={x:e.clientX,y:e.clientY};return}
+  mode='build';
+  // neue Linie dockt am Ende der letzten an, wenn man nahe dran ansetzt
+  dragA=(LINE_TILE[tool]!==undefined&&lastEnd&&Math.max(Math.abs(lastEnd.x-p.x),Math.abs(lastEnd.y-p.y))<=2)?{...lastEnd}:p;
+  updateDrag(e.clientX,e.clientY)});
 canvas.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(mode==='pinch'&&pts.size>=2){const [a,b]=[...pts.values()];const d=Math.hypot(a.x-b.x,a.y-b.y),mx=(a.x+b.x)/2,my=(a.y+b.y)/2,ang=Math.atan2(b.y-a.y,b.x-a.x);
     cam.dist*=pinch.d/Math.max(10,d);cam.yaw-=(ang-pinch.ang);panBy(mx-pinch.mx,my-pinch.my);pinch={d,mx,my,ang};applyCam();return}
   if(mode==='orbit'){cam.yaw-=(e.clientX-last.x)*0.006;cam.tilt-=(e.clientY-last.y)*0.005;last={x:e.clientX,y:e.clientY};applyCam();return}
   if(mode==='pan'){panBy(e.clientX-last.x,e.clientY-last.y);last={x:e.clientX,y:e.clientY};applyCam();return}
-  if(mode==='draw'){const p=toCell(e.clientX,e.clientY);if(!p)return;if(last?line(last,p):paint(p))mapChanged(false);last=p}});
+  if(mode==='build')updateDrag(e.clientX,e.clientY)});
 function panBy(dx,dy){const k=cam.dist/innerHeight*1.1;const c=Math.cos(cam.yaw),s=Math.sin(cam.yaw);cam.tx-=(dx*c+dy*s)*k;cam.tz-=(-dx*s+dy*c)*k}
-const endPtr=e=>{pts.delete(e.pointerId);if(pts.size<2&&mode==='pinch')mode=pts.size?'orbit-wait':null;if(!pts.size)mode=null;if(mode==='orbit-wait'){mode=null}};
+const endPtr=e=>{const was=mode;pts.delete(e.pointerId);
+  if(e.type==='pointerup'&&pts.size===0){
+    if(was==='build'&&dragA&&dragB)commitAction(dragA,dragB);
+    else if(was==='tap'&&downAt&&Math.hypot(e.clientX-downAt.x,e.clientY-downAt.y)<14){const p=cellAt(e.clientX,e.clientY,false);if(p){const sn=snapshot();if(toggleGate(p)){pushUndo(sn);buzz()}}}}
+  if(was==='build'||was==='pinch')clearGhost();
+  if(pts.size<2&&mode==='pinch')mode=null;if(!pts.size){mode=null;dragA=dragB=null}};
 canvas.addEventListener('pointerup',endPtr);canvas.addEventListener('pointercancel',endPtr);
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('wheel',e=>{e.preventDefault();cam.dist*=Math.exp(e.deltaY*0.0012);applyCam()},{passive:false});
