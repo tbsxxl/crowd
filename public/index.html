@@ -601,7 +601,10 @@ function spawnGroup(){
   return n;
 }
 // Druckwelle: die Menge schwankt in gerader Linie zur Bühne (nicht um Hindernisse herum) – Wellenbrecher fangen sie ab
-function surgeDir(x,y){let bx=Math.min(44.5,Math.max(15.5,x)),by=12.5,bd=(bx-x)**2+(by-y)**2;
+function surgeDir(x,y){
+  // vor der Bühne schwankt die Menge gerade nach vorn (nicht in die Ecken)
+  if(!MAPDEF.runway&&y>12.5){sdx=0;sdy=-1;return}
+  let bx=Math.min(44.5,Math.max(15.5,x)),by=12.5,bd=(bx-x)**2+(by-y)**2;
   if(MAPDEF.runway){const rx=Math.min(32.5,Math.max(27.5,x)),ry=Math.min(30,Math.max(12,y)),d1=(rx-x)**2+(ry-y)**2;if(d1<bd){bd=d1;bx=rx;by=ry}
     const ox=x-30,oy=y-34,ol=Math.hypot(ox,oy)||1,qx=30+ox/ol*5.6,qy=34+oy/ol*5.6,d2=(qx-x)**2+(qy-y)**2;if(d2<bd){bd=d2;bx=qx;by=qy}}
   const l=Math.sqrt(bd);if(l<1e-3){sdx=sdy=0;return}sdx=(bx-x)/l;sdy=(by-y)/l}
@@ -630,7 +633,7 @@ const LOAD=new Float32Array(N);let loadOrder=new Int32Array(0);const loadNext=ne
 function computeLoadOrder(){const a=[];for(let c=0;c<N;c++){LOAD[c]=0;if(blk(tile[c])||!(SG[c]<SWAY_R+12))continue;a.push(c)}a.sort((p,q)=>SG[q]-SG[p]);loadOrder=Int32Array.from(a);
   for(const c of a){const x=c%W+0.5,y=((c/W)|0)+0.5;surgeDir(x,y);const nx=Math.floor(x+sdx),ny=Math.floor(y+sdy);loadNext[c]=(nx<0||ny<0||nx>=W||ny>=H)?-1:ny*W+nx}}
 function updateLoad(){LOAD.fill(0);for(let k=0;k<loadOrder.length;k++){const c=loadOrder[k];LOAD[c]+=D[c];const n=loadNext[c];
-  if(n>=0&&n!==c&&!wallC(n))LOAD[n]+=LOAD[c]*LOAD_T}}
+  if(n>=0&&n!==c&&!wallC(n)&&tile[n]!==7)LOAD[n]+=LOAD[c]*LOAD_T}} // Barrieren und Zählschleusen nehmen die Last auf
 function injure(i){st[i]=2;injT[i]=0;vx[i]=vy[i]=0;S.hurt++;injLog.push({c:cellOf(i),ph:S.phase,surge:S.surge>0})}
 function tipGitter(c0){ // Hamburger Gitter sind verklammert: kippt eins, gehen die Nachbarn mit
   const q=[[c0,0]],seen=new Set([c0]);const cells=[];
