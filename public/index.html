@@ -1543,9 +1543,9 @@ const store={get(k,d){try{const v=localStorage.getItem('gp.'+k);return v===null?
 // ---------- Level ----------
 const ALL_TOOLS=['view','wave','bar','lock','ordner','tower','sani','gate','erase'];
 const LEVELS=[
-  {map:'wiese',title:'Erste Schritte',desc:'2.500 Besucher, keine Moshpits. Lerne, wie Wellenbrecher den Druck vor der Bühne abfangen.',
-   visitors:2500,mosh:0,lanes:4,budget:20000,showLen:90,events:[],tools:['view','wave','bar','erase'],
-   stars:[{hurt:10},{hurt:5},{hurt:2}]},
+  {map:'wiese',title:'Erste Schritte',desc:'3.500 Besucher, keine Moshpits. Lerne, wie Wellenbrecher die Druckwellen abfangen, bevor sie die Menschen vorn zerquetschen.',
+   visitors:3500,mosh:0,lanes:4,budget:20000,showLen:90,events:[],tools:['view','wave','bar','erase'],
+   stars:[{hurt:12},{hurt:8},{hurt:5}]},
   {map:'wiese',title:'Front-Pen',desc:'4.000 Besucher. Grenze den Bereich vor der Bühne als Zone ab und lass nur so viele hinein, wie sicher ist.',
    visitors:4000,mosh:1,lanes:4,budget:30000,showLen:120,events:[],tools:['view','wave','bar','lock','erase'],
    stars:[{hurt:40},{hurt:25},{hurt:18,frontZone:true}]},
