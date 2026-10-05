@@ -310,7 +310,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
 // ---------- Simulation (ohne DOM) ----------
 const W=60,H=100,N=W*H,MAXA=7000,DT=1/30;
 const RB=0.46,K_BODY=120,K_FR=40,A_SOC=0.8,B_SOC=0.15,R_SOC=1.1,LAMBDA=0.35,KW=80;
-const INV_TAU=2,VMAX=2.2,MEDIC_T=20,MEDIC_SANI=8,MEDIC_PIT=5,PUSH_OUT=0.2,PUSH_OUT_STORM=0.35,PUSH_FAN=0.6,SWAY=0.13,RELAX_P=0.5,RELAX_V=0.25,COMFORT_D=3.4,ADV_D=1.6,ADV_D_ORD=2.6,ADV_V=0.3,ADV_V_ORD=0.55,ADV_R=4,ADV_R_ORD=7,SWAY_R=25,SPREAD_D=1.2,SPREAD_V=0.35,WB_PRESS=0.35,FAN_IDLE=0.06,FAN_DENSE=3.2,SURGE_EVERY=[25,45],SURGE_LEN=5,P_CRIT=6,P_TIME=3;
+const INV_TAU=2,VMAX=2.2,MEDIC_T=20,MEDIC_SANI=8,MEDIC_PIT=5,PUSH_OUT=0.2,PUSH_OUT_STORM=0.35,PUSH_FAN=0.6,SWAY=0.13,LOAD_T=0.96,SURGE_P=0.15,RELAX_P=0.5,RELAX_V=0.25,COMFORT_D=3.4,ADV_D=1.6,ADV_D_ORD=2.6,ADV_V=0.3,ADV_V_ORD=0.55,ADV_R=4,ADV_R_ORD=7,SWAY_R=25,SPREAD_D=1.2,SPREAD_V=0.35,WB_PRESS=0.35,FAN_IDLE=0.06,FAN_DENSE=3.2,SURGE_EVERY=[25,45],SURGE_LEN=5,P_CRIT=6,P_TIME=3;
 const GATE_SEE=35,ORD_R=7,PIT_R=4.5,G_TIP=14,G_TIP_T=3,G_CHAIN=2,WATCH_R=16,SANI_R=26,PULL_RATE=0.7;
 let BUDGET=60000;const COST={gitter:15,wave:120,lock:350,tower:3000,sani:5000,gate:1500,ordner:400,lane:800,sign:250};
 // Versorgung: Stände (Ziel 4+Index), Bedienzeit (s), gleichzeitig bediente Gäste, Preis, Anteil am Bedarf
@@ -511,7 +511,7 @@ function computeCoverage(){
   signCov.fill(0);for(const o of signs)mark(signCov,o.x+0.5,o.y+0.5,SIGN_R);
 }
 const tZone=new Int16Array(TG).fill(-1);
-function computeGeo(){for(let k=0;k<TG;k++){const G=targetGoals(k);tAvail[k]=G.cells.length?1:0;dijkstra(G.cells,TGEO[k],null,G.init);if(k===0){dijkstra(G.cells,SG,null);computeView()}}computeGeoExits();computeZones();computeCoverage();
+function computeGeo(){for(let k=0;k<TG;k++){const G=targetGoals(k);tAvail[k]=G.cells.length?1:0;dijkstra(G.cells,TGEO[k],null,G.init);if(k===0){dijkstra(G.cells,SG,null);computeView()}}computeGeoExits();computeZones();computeCoverage();computeLoadOrder();
   for(let k=0;k<TG;k++){const G=targetGoals(k);let z=G.cells.length?zoneId[G.cells[0]]:-1;for(const c of G.cells)if(zoneId[c]!==z){z=-1;break}tZone[k]=z}}
 
 // Personen
@@ -624,6 +624,13 @@ function advance(i,x,y,c,tg){
       if(best>=0&&bs>0.35)advC[i]=best}}
   const t=advC[i];if(t<0)return false;const tx=t%W+0.5-x,ty=((t/W)|0)+0.5-y,l=Math.hypot(tx,ty);if(l<0.4){advC[i]=-1;return false}
   const v=spd[i]*(ord[c]?ADV_V_ORD:ADV_V);sdx=tx/l*v;sdy=ty/l*v;return true}
+// Lastübertragung bei Druckwellen: Jede Stelle trägt die Menschen, die in gerader Linie dahinter stehen.
+// Barrieren (Wellenbrecher, geschlossene Schleusen, Bühne) nehmen die Last auf, dahinter beginnt die Kette neu.
+const LOAD=new Float32Array(N);let loadOrder=new Int32Array(0);const loadNext=new Int32Array(N);
+function computeLoadOrder(){const a=[];for(let c=0;c<N;c++){LOAD[c]=0;if(blk(tile[c])||!(SG[c]<SWAY_R+12))continue;a.push(c)}a.sort((p,q)=>SG[q]-SG[p]);loadOrder=Int32Array.from(a);
+  for(const c of a){const x=c%W+0.5,y=((c/W)|0)+0.5;surgeDir(x,y);const nx=Math.floor(x+sdx),ny=Math.floor(y+sdy);loadNext[c]=(nx<0||ny<0||nx>=W||ny>=H)?-1:ny*W+nx}}
+function updateLoad(){LOAD.fill(0);for(let k=0;k<loadOrder.length;k++){const c=loadOrder[k];LOAD[c]+=D[c];const n=loadNext[c];
+  if(n>=0&&n!==c&&!wallC(n))LOAD[n]+=LOAD[c]*LOAD_T}}
 function injure(i){st[i]=2;injT[i]=0;vx[i]=vy[i]=0;S.hurt++;injLog.push({c:cellOf(i),ph:S.phase,surge:S.surge>0})}
 function tipGitter(c0){ // Hamburger Gitter sind verklammert: kippt eins, gehen die Nachbarn mit
   const q=[[c0,0]],seen=new Set([c0]);const cells=[];
@@ -667,7 +674,8 @@ function step(dt){
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){const c=y*W+x;if(blk(tile[c])){D[c]=0;continue}
     let s=2*cnt[c],w=2;for(let q=0;q<8;q++){const nx=x+NB[q][0],ny=y+NB[q][1];if(nx<0||ny<0||nx>=W||ny>=H)continue;const n=ny*W+nx;if(!blk(tile[n])){s+=cnt[n];w++}}
     D[c]+=(s/w-D[c])*a;if(D[c]>peak)peak=D[c];if(D[c]>maxD[c])maxD[c]=D[c]}
-  S.peak=peak;if(peak>S.maxPeak)S.maxPeak=peak;if(peak>6&&P!=='egress')S.dangerT+=dt;
+  S.peak=peak;if(peak>S.maxPeak)S.maxPeak=peak;
+  if(S.surge>0&&!calm&&S.tick%3===0)updateLoad();if(peak>6&&P!=='egress')S.dangerT+=dt;
   // Wegfelder
   const egress=P==='egress';
   if(egress){const ng=groupCount();for(let k=0;k<ng;k++){const g=(S.rr+k)%ng;if(groupOpen(g)){recomputeGroup(g,D);S.rr=g+1;break}}}
@@ -775,6 +783,7 @@ function step(dt){
     if(frx>1-M&&cx<W-1&&wallC(n=c+1)){wf=KW*(frx-1+M);fx-=wf;press+=tile[n]===9?wf*WB_PRESS:wf;if(tile[n]===2)gAcc[n]+=wf+pr[i]}
     if(fry<M&&cy>0&&wallC(n=c-W)){wf=KW*(M-fry);fy+=wf;press+=tile[n]===9?wf*WB_PRESS:wf;if(tile[n]===2)gAcc[n]+=wf+pr[i]}
     if(fry>1-M&&cy<H-1&&wallC(n=c+W)){wf=KW*(fry-1+M);fy-=wf;press+=tile[n]===9?wf*WB_PRESS:wf;if(tile[n]===2)gAcc[n]+=wf+pr[i]}
+    if(S.surge>0&&!calm)press+=SURGE_P*LOAD[c]; // Last der Menschen dahinter bei einer Druckwelle
     pr[i]+=(press-pr[i])*sm;if(pr[i]>maxP)maxP=pr[i];
     injT[i]+=dt;
     // Security im Graben zieht Bedrängte über die Barriere
