@@ -1775,13 +1775,15 @@ function analyzeRound(){
   const top=Object.entries(byReg).sort((a,b)=>b[1]-a[1])[0];
   if(top&&top[1]>=2){const [r,n]=top;
     const zoneTip=hasTool('lock')?' oder eine Zone mit Limit':'';
-    if(r==='an den Zählschleusen')tips.push(`${n} Verletzte ${r}: Dort hat sich der Andrang gestaut. Mehr oder breitere Schleusen verteilen ihn.`);
+    if(r==='an den Zählschleusen')tips.push(`${n} Verletzte ${r}: Bei Druckwellen hat die wartende Menge vor den Schleusen die ganze Last abbekommen. Ein Wellenbrecher einige Meter dahinter entlastet sie, mehr Schleusen verkürzen das Warten.`);
     else if(r.includes('vor der Bühne')||r==='am Laufsteg'||r==='an der B-Stage')tips.push(ZONES.some(z=>z.front)?`${n} Verletzte ${r}: Senke das Limit der Bühnenzone oder setze Wellenbrecher hinein, die die Druckwellen brechen.`
       :(()=>{let wb=0,near=0;for(let c=0;c<N;c++)if(tile[c]===9&&!fixed[c]){wb++;if(SG[c]<9)near++}
         return !wb?`${n} Verletzte ${r}: Jede Druckwelle hat die ganze Menge gegen die Barriere geschoben. Ein Wellenbrecher 10–15 m hinter der Bühne fängt den Schub ab${zoneTip}.`
           :near>wb/2?`${n} Verletzte ${r}: Deine Wellenbrecher stehen zu nah an der Bühne, davor staut es sich. Setze sie 10–15 m nach hinten.`
           :`${n} Verletzte ${r}: Die Druckwellen kamen noch durch. Eine zweite, versetzte Reihe Wellenbrecher${zoneTip} bricht sie weiter.`})());
     else tips.push(`${n} Verletzte ${r}: Hier wurde es gefährlich eng. Ein Wellenbrecher${hasTool('ordner')?' oder Ordner':''} in der Nähe hilft.`)}
+  if(ZONES.some(z=>z.front)&&tips.length<3){let side=0;for(const e of injLog){const x=e.c%W,y=(e.c/W)|0;if(zoneId[e.c]<0&&(x<15||x>44)&&y<32)side++}
+    if(side>=4)tips.push(`${side} Verletzte seitlich neben der Bühnenzone: Wer nicht hineindarf, weicht auf die Seiten aus. Auch dort brauchen die Leute Wellenbrecher.`)}
   if(S.tips)tips.push('Umgekippte Hamburger Gitter wurden zur Stolperfalle. Wo Druck entsteht, nur Wellenbrecher einsetzen.');
   if(CFG.needs&&tips.length<3){const nm=['Getränke','Essen','WC','Merch'],tool=['Getränkebars','Essensstände','WC-Container','Merchstände'];
     let wu=-1,wv=0;for(let q=0;q<4;q++)if(S.unmetBy[q]>wv){wv=S.unmetBy[q];wu=q}
