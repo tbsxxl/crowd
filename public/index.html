@@ -310,7 +310,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
 // ---------- Simulation (ohne DOM) ----------
 const W=60,H=100,N=W*H,MAXA=7000,DT=1/30;
 const RB=0.46,K_BODY=120,K_FR=40,A_SOC=0.8,B_SOC=0.15,R_SOC=1.1,LAMBDA=0.35,KW=80;
-const INV_TAU=2,VMAX=2.2,MEDIC_T=20,MEDIC_SANI=8,MEDIC_PIT=5,PUSH_OUT=0.2,PUSH_OUT_STORM=0.35,PUSH_FAN=0.6,SWAY=0.13,LOAD_T=0.96,SURGE_P=0.15,RELAX_P=0.5,RELAX_V=0.25,COMFORT_D=3.4,ADV_D=1.6,ADV_D_ORD=2.6,ADV_V=0.3,ADV_V_ORD=0.55,ADV_R=4,ADV_R_ORD=7,SWAY_R=25,SPREAD_D=1.2,SPREAD_V=0.35,WB_PRESS=0.35,FAN_IDLE=0.06,FAN_DENSE=3.2,SURGE_EVERY=[25,45],SURGE_LEN=5,P_CRIT=6,P_TIME=3;
+const INV_TAU=2,VMAX=2.2,MEDIC_T=20,MEDIC_SANI=8,MEDIC_PIT=5,PUSH_OUT=0.2,PUSH_OUT_STORM=0.35,PUSH_FAN=0.6,SWAY=0.13,LOAD_T=0.96,SURGE_P=0.3,RELAX_P=0.5,RELAX_V=0.25,COMFORT_D=3.0,ADV_D=1.6,ADV_D_ORD=2.6,ADV_V=0.3,ADV_V_ORD=0.55,ADV_R=4,ADV_R_ORD=7,SWAY_R=25,SPREAD_D=1.2,SPREAD_V=0.35,WB_PRESS=0.35,FAN_IDLE=0.06,FAN_DENSE=2.6,SURGE_EVERY=[25,45],SURGE_LEN=5,P_CRIT=14,P_TIME=3;
 const GATE_SEE=35,ORD_R=7,PIT_R=4.5,G_TIP=14,G_TIP_T=3,G_CHAIN=2,WATCH_R=16,SANI_R=26,PULL_RATE=0.7;
 let BUDGET=60000;const COST={gitter:15,wave:120,lock:350,tower:3000,sani:5000,gate:1500,ordner:400,lane:800,sign:250};
 // Versorgung: Stände (Ziel 4+Index), Bedienzeit (s), gleichzeitig bediente Gäste, Preis, Anteil am Bedarf
@@ -591,9 +591,9 @@ function spawnGroup(){
   const fan=rng()<0.22;let tg=0,base;const r2=rng();
   if(fan)base=-1;
   else if(r2<0.06&&tAvail[1]){tg=1;base=0.8+rng()*1.5} // ein paar lehnen sich an eine Barriere
-  else if(r2<0.24&&tAvail[2]){tg=2;base=0.5+rng()*2}
-  else if(r2<0.38&&tAvail[3]){tg=3;base=0.3+rng()*1.5}
-  else base=rng()<0.55?1+rng()*12:10+rng()*30;
+  else if(r2<0.12&&tAvail[2]){tg=2;base=0.5+rng()*2}
+  else if(r2<0.18&&tAvail[3]){tg=3;base=0.3+rng()*1.5}
+  else base=2+Math.pow(rng(),1.4)*40; // Wunschabstand zur Bühne: viele nah, nach hinten gleichmäßig auslaufend
   const x=E.x0+0.5+rng()*(E.x1-E.x0),y=H-1.6;
   if(D[((y|0)*W)+(x|0)]>3.5)return 0;
   const g=nGrp++;let n=0;
@@ -734,7 +734,8 @@ function step(dt){
       if(lockShut[lc]&&!egress){want[i]=tdist(tg,c)+0.5;tgt[i]=tg} // Zone voll: hier stehen bleiben
       let s=spd[i]*Math.max(egress?pushOut:errand[i]>=0?ERR_PUSH:(want[i]<0?(ord[c]?0.22:pushFan):0.12),1-da/5.6);if(tile[c]===8)s*=0.55;if(calm)s*=0.8;
       // Niemand drückt sich ohne Anlass in eine volle Menge: vor dichter Menge stehen bleiben (außer bei Druckwellen und auf dem Weg zum Stand)
-      if(!egress&&errand[i]<0&&!(S.surge>0&&!calm&&want[i]<0)&&da>=COMFORT_D)s=0;
+      // (nur wer fast am Wunschplatz ist – wer noch unterwegs ist, läuft im dichten Strom langsam weiter, sonst verstopfen Gassen)
+      if(!egress&&errand[i]<0&&!(S.surge>0&&!calm&&want[i]<0)&&da>=COMFORT_D&&tdist(tg,c)<=(want[i]<0?12:want[i]+8))s=0;
       dx=sdx*s;dy=sdy*s;
       cheer[i]=Math.max(0,cheer[i]-dt*2);
     }else{
@@ -789,7 +790,7 @@ function step(dt){
     // Security im Graben zieht Bedrängte über die Barriere
     if(stageAdj[c]&&pr[i]>P_CRIT*0.8&&S.pullAcc>=1){S.pullAcc-=1;st[i]=0;S.pulled++;S.dirty=true;continue}
     const crit=tile[c]===8?P_CRIT*0.6:P_CRIT;
-    if(pr[i]>crit&&injT[i]>8){crT[i]+=dt*(ord[c]?0.4:1)*(watch[c]?0.5:1);if(crT[i]>P_TIME&&rng()<dt*0.08){injure(i);continue}}else crT[i]=Math.max(0,crT[i]-dt);
+    if(pr[i]>crit&&injT[i]>8){crT[i]+=dt*(ord[c]?0.4:1)*(watch[c]?0.5:1);if(crT[i]>P_TIME&&rng()<dt*0.035){injure(i);continue}}else crT[i]=Math.max(0,crT[i]-dt);
     let nvx=vx[i]+fx*dt,nvy=vy[i]+fy*dt;const sp=Math.hypot(nvx,nvy);if(sp>VMAX){nvx*=VMAX/sp;nvy*=VMAX/sp}
     let nx=x+nvx*dt;{const nc=(y|0)*W+(nx|0);if(nx<0.05||nx>W-0.05||(nc!==c&&wallC(nc))){nx=x;nvx*=-0.2}}
     let ny=y+nvy*dt;{const nc=(ny|0)*W+(nx|0);if(ny<0.05||ny>H-0.05||(nc!==c&&wallC(nc))){ny=y;nvy*=-0.2}}
@@ -1486,7 +1487,7 @@ document.querySelectorAll('[data-mosh]').forEach(b=>b.addEventListener('click',(
 onEvent=(type,d)=>{sfx(type);
   if(type==='pit'){flash('Moshpit! Der Kreis öffnet sich, gleich wird es eng drumherum. Ordner in der Nähe verhindern neue Pits.');return}
   if(type==='tip'){rebuildBarriers();toast('Hamburger Gitter umgekippt','Unter Druck kippen sie und werden zur Stolperfalle. Als Wellenbrecher taugen nur lastaufnehmende Barrieren.');buzz([40,40,40])}
-  if(type==='surge'){flash(S.hype>0?'Druckwelle! Der Headliner heizt ein, die Fans schieben nach vorn.':'Druckwelle! Beim Drop schieben die Fans nach vorn.',3000);buzz(25)}
+  if(type==='surge'){flash(S.hype>0?'Druckwelle! Der Headliner heizt ein. Orange/Rot zeigt, wo sich die Last der Menge staut: Wellenbrecher fangen sie ab.':'Druckwelle! Orange/Rot zeigt, wo sich die Last der Menge staut. Wellenbrecher fangen sie ab.',3500);buzz(25)}
   if(type==='headliner')toast('Der Headliner kommt!','Die nächsten 30 Sekunden kommen die Druckwellen doppelt so oft und stärker. Durchsage bereithalten.');
   if(type==='storm')toast('Gewitterwarnung!','Das Konzert wird abgebrochen, alle müssen jetzt raus. Öffne Notausgänge, damit es schnell geht.');
   if(type==='showEnd')flash('Letzter Song. Das Konzert ist vorbei, die Räumung beginnt.',4000);
@@ -1834,6 +1835,17 @@ function updateStandTags(dt){
     el.style.transform=`translate(${((stV.x+1)/2*innerWidth).toFixed(0)}px,${((1-stV.y)/2*innerHeight).toFixed(0)}px) translate(-50%,-100%)`;
     const txt=AM[o.type].name+' · '+n+' warten';if(el.textContent!==txt)el.textContent=txt;el.dataset.hot=n>=15})}
 
+// ---------- Druckwelle sichtbar: wo sich die Last der Menge staut ----------
+const loadData=new Uint8Array(W*H*4),loadTex=new THREE.DataTexture(loadData,W,H,THREE.RGBAFormat);loadTex.magFilter=loadTex.minFilter=THREE.LinearFilter;
+const loadMesh=new THREE.Mesh(new THREE.PlaneGeometry(W,H),new THREE.MeshBasicMaterial({map:loadTex,transparent:true,depthWrite:false,toneMapped:false,blending:THREE.AdditiveBlending}));
+loadMesh.rotation.x=-Math.PI/2;loadMesh.position.set(W/2,0.3,H/2);loadMesh.renderOrder=3;loadMesh.visible=false;scene.add(loadMesh);
+let loadFade=0,loadTick=0;
+function updateLoadViz(dt){const on=S.surge>0&&S.calm<=0&&(S.phase==='show');loadFade=Math.max(0,Math.min(1,loadFade+(on?dt*2:-dt*0.8)));
+  loadMesh.visible=loadFade>0.01;if(!loadMesh.visible||(loadTick++%4))return;
+  for(let y=0;y<H;y++){const row=H-1-y;for(let x=0;x<W;x++){const v=Math.min(1,LOAD[y*W+x]/40)*loadFade,p=(row*W+x)*4;
+    loadData[p]=255*Math.min(1,v*2);loadData[p+1]=150*Math.max(0,1-v*1.6);loadData[p+2]=30;loadData[p+3]=v>0.08?Math.round(200*v):0}}
+  loadTex.needsUpdate=true}
+
 // ---------- Gefahrenstellen: rote Kreise, Pfeile am Rand ----------
 const hotRing=new THREE.InstancedMesh(new THREE.RingGeometry(2.4,3.2,48),new THREE.MeshBasicMaterial({color:0xff3b30,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false,fog:false}),3);
 hotRing.count=0;hotRing.renderOrder=5;hotRing.frustumCulled=false;scene.add(hotRing);
@@ -1924,39 +1936,44 @@ const flowLines=new THREE.InstancedMesh(flowShape,new THREE.MeshBasicMaterial({t
 flowLines.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(FLOW_N*3),3);flowLines.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 flowLines.frustumCulled=false;flowLines.renderOrder=6;scene.add(flowLines);const flowO=new THREE.Object3D(),flowC=new THREE.Color(),FLOW_ZERO=new THREE.Matrix4().makeScale(0,0,0);
 let flowMode=1,flowDirty=true,flowReady=false; // 0 aus, 1 Einlass (zu den Plätzen), 2 Räumung (zu den Ausgängen)
-const FLOW_NAME=['Wege: aus','Wege: rein','Wege: raus'];
+const FLOW_NAME=['Wege: aus','Wege: rein','Wege: raus','Wege: Stände'];
 function flowPrepare(){flowDirty=false;flowReady=true;flowVisit.fill(0);
-  if(flowMode===1){for(let k=0;k<TG;k++)if(tAvail[k])recomputeTarget(k,null)}
+  if(flowMode===1||flowMode===3){for(let k=0;k<TG;k++)if(tAvail[k])recomputeTarget(k,null)}
   else if(flowMode===2){computeGeoExits();for(let g=0;g<groupCount();g++)recomputeGroup(g,null)}
   for(let i=0;i<FLOW_N;i++){flowSpawn(i);flowAge[i]=-Math.random()*4}
   for(let k=0;k<200;k++)flowStep(0.06)} // vorlaufen lassen, damit die Wege sofort sichtbar sind
 function flowSpawn(i){flowAge[i]=0;
   if(flowMode===1){const E=exits[(Math.random()*exits.length)|0];flowP[i*2]=E.x0+0.3+Math.random()*(E.x1-E.x0+0.4);flowP[i*2+1]=H-1.4;
     const r=Math.random();flowK[i]=r<0.16&&tAvail[1]?1:r<0.3&&tAvail[2]?2:r<0.42&&tAvail[3]?3:0}
+  else if(flowMode===3){const avail=[4,5,6,7].filter(k=>tAvail[k]);if(!avail.length){flowK[i]=-1;return}
+    let c=0;for(let t=0;t<40;t++){c=(Math.random()*N)|0;if(!blk(tile[c])&&VIEW[c]<38)break}
+    flowP[i*2]=c%W+Math.random();flowP[i*2+1]=((c/W)|0)+Math.random();
+    const w=[0.45,0.27,0.2,0.08];let r=Math.random()*avail.reduce((a,k)=>a+w[k-4],0),k=avail[0];for(const q of avail){r-=w[q-4];if(r<=0){k=q;break}}flowK[i]=k}
   else{let c=0;for(let t=0;t<30;t++){c=(Math.random()*N)|0;if(!blk(tile[c])&&isFinite(GEO[0][c]))break}
     flowP[i*2]=c%W+Math.random();flowP[i*2+1]=((c/W)|0)+Math.random();
     let best=-1,bc=Infinity;for(let g=0;g<groupCount();g++){if(!groupOpen(g))continue;const d=GEO[g][c];if(!isFinite(d)||(g>=exits.length&&d>GATE_SEE))continue;if(d<bc){bc=d;best=g}}flowK[i]=best}}
-const FC_IN=[1,0.72,0.1],FC_OUT=[0.1,0.75,1],FC_HOT=[1,0.12,0.08];
+const FC_IN=[1,0.72,0.1],FC_OUT=[0.1,0.75,1],FC_HOT=[1,0.12,0.08],FC_AM=[[0.24,0.84,1],[1,0.6,0.24],[0.5,0.65,1],[0.78,0.6,1]];
 function updateFlow(dt){
   const on=flowMode>0&&S.phase==='plan'&&$('menu').hidden;flowLines.visible=on;if(!on)return;
   if(flowDirty||!flowReady)flowPrepare();flowStep(dt)}
 function flowStep(dt){
-  const base=flowMode===1?FC_IN:FC_OUT;for(let c=0;c<N;c++)flowVisit[c]*=0.985;
+  let base=flowMode===1?FC_IN:FC_OUT;for(let c=0;c<N;c++)flowVisit[c]*=0.985;
   for(let i=0;i<FLOW_N;i++){flowAge[i]+=dt;
     if(flowAge[i]<0){flowLines.setMatrixAt(i,FLOW_ZERO);continue}
     let x=flowP[i*2],y=flowP[i*2+1],k=flowK[i];const c=((y|0)*W)+(x|0);
     let done=flowAge[i]>14||k<0||c<0||c>=N;
-    if(!done){if(flowMode===1){sampleDir(x,y,TDX[k],TDY[k]);if(TGEO[k][c]<=1.5||(!sdx&&!sdy))done=true}
+    if(!done){if(flowMode===1||flowMode===3){sampleDir(x,y,TDX[k],TDY[k]);if(TGEO[k][c]<=1.5||(!sdx&&!sdy))done=true}
       else{sampleDir(x,y,GX[k],GY[k]);const t=tile[c];if(t===6||t===5||(!sdx&&!sdy))done=true}}
     if(done){flowSpawn(i);flowLines.setMatrixAt(i,FLOW_ZERO);continue}
     const sp=8*dt;x+=sdx*sp;y+=sdy*sp;flowP[i*2]=x;flowP[i*2+1]=y;flowVisit[c]+=1;
+    if(flowMode===3)base=FC_AM[k-4];
     const hot=Math.min(1,flowVisit[c]/((MOBILE?28:45)*(flowMode===1?2.2:1))),fade=Math.min(1,flowAge[i]*2);
     const r=base[0]+(FC_HOT[0]-base[0])*hot,g=base[1]+(FC_HOT[1]-base[1])*hot,b=base[2]+(FC_HOT[2]-base[2])*hot;
     flowO.position.set(x,0.42,y);flowO.rotation.set(0,Math.atan2(sdx,sdy),0);const sc=0.6+0.4*fade;flowO.scale.set(sc,1,sc);flowO.updateMatrix();flowLines.setMatrixAt(i,flowO.matrix);
     flowC.setRGB(r,g,b);flowLines.setColorAt(i,flowC)}
   flowLines.instanceMatrix.needsUpdate=true;flowLines.instanceColor.needsUpdate=true}
-$('flow').addEventListener('click',e=>{flowMode=(flowMode+1)%3;e.currentTarget.textContent=FLOW_NAME[flowMode];e.currentTarget.setAttribute('aria-pressed',flowMode>0);flowDirty=true;
-  if(flowMode)flash(flowMode===1?'So strömen die Besucher beim Einlass zu ihren Plätzen. Rot = hier drängen sich viele Wege.':'So laufen alle bei der Räumung zu den Ausgängen. Notausgänge zählen nur, wenn man sie sieht.',4500)});
+$('flow').addEventListener('click',e=>{flowMode=(flowMode+1)%(CFG.needs?4:3);e.currentTarget.textContent=FLOW_NAME[flowMode];e.currentTarget.setAttribute('aria-pressed',flowMode>0);flowDirty=true;
+  if(flowMode)flash(flowMode===1?'So strömen die Besucher beim Einlass zu ihren Plätzen. Rot = hier drängen sich viele Wege.':flowMode===2?'So laufen alle bei der Räumung zu den Ausgängen. Notausgänge zählen nur, wenn man sie sieht.':'So laufen die Leute aus der Menge zu den Ständen (blau Getränke, orange Essen, hellblau WC, lila Merch). Rot = Wege kreuzen sich im Gedränge.',5000)});
 
 // ---------- Start ----------
 buildMap(true);computeGeo();applyMapScene();rebuildBarriers();rebuildStructures();updatePlanInfo();
@@ -1996,7 +2013,7 @@ function frame(now){
   if(composer)composer.render();else renderer.render(scene,camera);
   updateFlow(Math.min(rdt,0.05));
   if(waterMesh.visible){waterTex.offset.x=t*0.012;waterTex.offset.y=Math.sin(t*0.3)*0.02}
-  updateHot(rdt,t);updateStandTags(rdt);coachTick();audioTick();
+  updateHot(rdt,t);updateStandTags(rdt);updateLoadViz(rdt);coachTick();audioTick();
   updateStats(now);requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
