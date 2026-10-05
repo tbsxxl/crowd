@@ -128,6 +128,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
 }
 .zoneTags{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:1}
 .zoneTags[data-pass="true"] .zoneTag{pointer-events:none;opacity:.75}
+.standTag{position:absolute;left:0;top:0;font-family:var(--display);font-weight:700;font-size:12px;padding:2px 7px;border-radius:999px;background:rgba(10,14,22,.85);border:1px solid var(--line);color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.standTag[data-hot="true"]{background:#4a1d1a;border-color:#ff6b5e;color:#ffb0a8}
 .app{z-index:2}.result,.toast{z-index:6}
 .zoneTag{position:absolute;left:0;top:0;pointer-events:auto;font-family:var(--display);font-weight:700;font-size:14px;letter-spacing:.03em;padding:5px 10px;border-radius:999px;background:rgba(10,14,22,.85);border:2px solid var(--zc);color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums;min-height:32px}
 .zoneTag[data-state="full"]{background:#4a1d1a;color:#ffb0a8}
@@ -256,6 +258,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
     <p id="rText"></p>
     <div class="score"><b id="rScore">0</b><span>Punkte</span><small id="rBest"></small></div>
     <p class="breakdown" id="rBreak"></p>
+    <p class="breakdown" id="rSupBy" hidden></p>
     <div class="rGrid"><figure><canvas id="rMap" width="120" height="200" aria-label="Karte: höchste Dichte und Verletzte"></canvas><figcaption>Dichte & <i class="dot"></i> Verletzte</figcaption></figure><ul class="tips" id="rTips"></ul></div>
     <dl>
       <dt>Verletzte</dt><dd id="rHurt">0</dd>
@@ -289,6 +292,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
 <div class="coach" id="coach" hidden><p id="coachT"></p><div class="row2"><button class="btn" id="coachSkip">Überspringen</button><button class="primary" id="coachNext">Weiter</button></div></div>
 <div class="finger" id="finger" hidden></div>
 <div class="zoneTags" id="zoneTags"></div>
+<div class="zoneTags" id="standTags"></div>
 <div class="ghostTag" id="ghostTag" hidden></div>
 <div class="zoneSheet panel" id="zoneSheet" hidden role="dialog" aria-labelledby="zTitle">
   <div class="zHead"><b id="zTitle">Zone</b><button class="btn" id="zClose">Fertig</button></div>
@@ -523,16 +527,16 @@ const gsx=new Float32Array(MAXA),gsy=new Float32Array(MAXA),gcn=new Uint16Array(
 const cnt=new Int32Array(N),start=new Int32Array(N+1),fillp=new Int32Array(N),order=new Int32Array(MAXA),D=new Float32Array(N);
 const gAcc=new Float32Array(N),gLoad=new Float32Array(N),gT=new Float32Array(N);
 let seed=12345;function rng(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}
-const S0={moshAcc:0,pitsTotal:0,tr:0,t:0,spawned:0,hurt:0,left:0,pulled:0,tips:0,peak:0,maxPeak:0,maxP:0,active:0,egressStart:0,egressT:0,fieldTimer:0,spawnAcc:0,dirty:false,rr:0,tick:0,calm:0,calmCd:0,pullAcc:0,paUsed:0,mapDirty:false,showStart:0,allInT:0,settled:0,surge:0,surgeIn:20,surges:0,hype:0,dangerT:0,evI:0,storm:false,aborted:false,abortHurt:0,abortHot:0,showEndT:0,served:0,unmet:0,gaveUp:0,longWait:0,revenue:0,unmetBy:null,longBy:null};
+const S0={moshAcc:0,pitsTotal:0,tr:0,t:0,spawned:0,hurt:0,left:0,pulled:0,tips:0,peak:0,maxPeak:0,maxP:0,active:0,egressStart:0,egressT:0,fieldTimer:0,spawnAcc:0,dirty:false,rr:0,tick:0,calm:0,calmCd:0,pullAcc:0,paUsed:0,mapDirty:false,showStart:0,allInT:0,settled:0,surge:0,surgeIn:20,surges:0,hype:0,dangerT:0,evI:0,storm:false,aborted:false,abortHurt:0,abortHot:0,showEndT:0,served:0,unmet:0,gaveUp:0,longWait:0,revenue:0,unmetBy:null,longBy:null,servedBy:null};
 const maxD=new Float32Array(N),injLog=[]; // für die Auswertung: höchste Dichte je Zelle, Orte der Verletzungen
-const S=Object.assign({phase:'plan',target:5000},S0);S.unmetBy=[0,0,0,0];S.longBy=[0,0,0,0];
+const S=Object.assign({phase:'plan',target:5000},S0);S.unmetBy=[0,0,0,0];S.longBy=[0,0,0,0];S.servedBy=[0,0,0,0];
 let onPhase=null,onEvent=null;
 function setPhase(p){S.phase=p;if(onPhase)onPhase(p)}
 function emit(type,data){if(onEvent)onEvent(type,data)}
 function resetRound(){
   for(const c of tipped)if(tile[c]===8)tile[c]=2;tipped=[];
   nA=0;nGrp=0;agentGen++;pits.length=0;D.fill(0);gLoad.fill(0);gT.fill(0);zonesOpen();
-  Object.assign(S,S0);S.unmetBy=[0,0,0,0];S.longBy=[0,0,0,0];maxD.fill(0);injLog.length=0;computeGeo();setPhase('plan');
+  Object.assign(S,S0);S.unmetBy=[0,0,0,0];S.longBy=[0,0,0,0];S.servedBy=[0,0,0,0];maxD.fill(0);injLog.length=0;computeGeo();setPhase('plan');
 }
 function startIngress(){computeGeo();recomputeStage(null);S.fieldTimer=0.5;setPhase('ingress')}
 function cellOf(i){let cx=ax[i]|0,cy=ay[i]|0;if(cx<0)cx=0;if(cx>=W)cx=W-1;if(cy<0)cy=0;if(cy>=H)cy=H-1;return cy*W+cx}
@@ -705,7 +709,7 @@ function step(dt){
           else{S.unmet++;S.unmetBy[ty]++}}}
       else{const ty=errand[i],k=4+ty,A=AM[AM_TYPES[ty]];errT[i]+=dt;let done=false;
         if(TGEO[k][c]<=1.3){const s=nearStand(AM_TYPES[ty],x,y);if(s>=0&&srvCnt[s]<(stands[s].fixed?A.cap+2:A.cap)){srvCnt[s]++;srvT[i]+=dt;
-          if(srvT[i]>=A.svc){S.served++;S.revenue+=A.price;if(errT[i]>ERR_LONG){S.longWait++;S.longBy[ty]++}done=true}}}
+          if(srvT[i]>=A.svc){S.served++;S.servedBy[ty]++;S.revenue+=A.price;if(errT[i]>ERR_LONG){S.longWait++;S.longBy[ty]++}done=true}}}
         if(!done&&errT[i]>ERR_GIVEUP){S.gaveUp++;S.longBy[ty]++;done=true}
         if(done){errand[i]=-1;tgt[i]=homeTg[i];want[i]=homeWant[i]}}}
     let tg=tgt[i];if(tg&&(!tAvail[tg]||!isFinite(TGEO[tg][c]))){if(errand[i]>=0){errand[i]=-1;tg=tgt[i]=homeTg[i];want[i]=homeWant[i]}if(tg&&(!tAvail[tg]||!isFinite(TGEO[tg][c]))){tg=tgt[i]=0;want[i]=6+rng()*10}}
@@ -1452,9 +1456,13 @@ onPhase=p=>{
   updateStats(0,true);
 };
 $('main').addEventListener('click',()=>{const p=S.phase;
-  if(p==='plan'){S.target=LV?LV.visitors:+$('visitors').value;savePlanAuto();startIngress()}
+  if(p==='plan'){
+    if(CFG.needs&&!m_warned){const miss=['drink','wc','food'].filter(t=>!stands.some(o=>o.type===t)).map(t=>AM[t].name);
+      if(miss.length){m_warned=true;toast('Versorgung fehlt',`Es gibt noch nichts für: ${miss.join(', ')}. Die Leute werden es suchen. Trotzdem starten? Tippe noch einmal auf „Einlass öffnen“.`);return}}
+    m_warned=false;S.target=LV?LV.visitors:+$('visitors').value;savePlanAuto();startIngress()}
 
   else if(p==='done')resetRound()});
+let m_warned=false;
 $('again').addEventListener('click',resetRound);
 let abortTimer=0;
 $('abort').addEventListener('click',e=>{const b=e.currentTarget;if(!(S.phase==='ingress'||S.phase==='show'))return;
@@ -1548,11 +1556,11 @@ function structCells(list,s,x,y){for(const o of list)if(x>=o.x&&x<o.x+s&&y>=o.y&
 function planAction(a,b){
   const g=[];let base=planCost();
   if(LINE_TILE[tool]!==undefined){const cells=lineCells(a,b),cost=LINE_COST[tool];let ok=0,broke=false,blocked=0;
-    const isLock=tool==='lock';
+    const isLock=tool==='lock';let spent=0;
     for(const c of cells){const t=tile[c],can=isLock?(t===9||t===2)&&!fixed[c]:t===0&&!fixed[c];if(!can){g.push([c,GBAD]);blocked++;continue}
-      const cc=isLock?cost-(t===9?COST.wave:COST.gitter):cost;if(base+cc>BUDGET){g.push([c,GBAD]);broke=true;continue}base+=cc;ok++;g.push([c,GOK])}
+      const cc=isLock?cost-(t===9?COST.wave:COST.gitter):cost;if(base+cc>BUDGET){g.push([c,GBAD]);broke=true;continue}base+=cc;spent+=cc;ok++;g.push([c,GOK])}
     let dist='';if(tool==='wave'&&cells.length){const mc=cells[cells.length>>1],d=SG[mc];if(isFinite(d)&&d<40){const m=Math.round(d);dist=' · '+m+' m vor der Bühne'+(m>=10&&m<=18?' ✓':m<10?' (zu nah)':'')}}
-    const txt=ok?ok+' m · '+nf.format(ok*cost)+' €'+dist+(broke?' · Budget reicht nicht':''):broke?'Budget reicht nicht':tool==='lock'?'Nur auf Wellenbrecher oder Gitter':'Kein Platz';
+    const txt=ok?ok+' m · '+nf.format(spent)+' €'+dist+(broke?' · Budget reicht nicht':''):broke?'Budget reicht nicht':tool==='lock'?'Nur auf Wellenbrecher oder Gitter':'Kein Platz';
     return{g,cells,ok,txt,bad:!ok||broke}}
   if(tool==='erase'){const del=new Set();
     for(const c0 of lineCells(a,b)){const cx=c0%W,cy=(c0/W)|0;
@@ -1785,7 +1793,8 @@ function showResult(){
   const r=roundResult(),[v,t]=verdict(r);$('rTitle').textContent=S.storm?'Gewitter: '+v:S.aborted?'Abgebrochen: '+v:v;
   $('rText').textContent=t+(S.aborted?(S.abortHot||S.abortHurt>=10?' Der Abbruch war richtig: Es war bereits gefährlich.':' Der Abbruch kam ohne akute Gefahr und hat '+Math.round((1-r.played)*100)+' % der Show gekostet.'):'');
   $('rScore').textContent=nf.format(r.score);$('rBreak').textContent=`Sicherheit ${r.safety} · Show ${r.show} · Räumung ${r.ev} · Versorgung ${r.sup} · Budget ${r.bud}`;
-  {const nd=S.served+S.unmet+S.gaveUp;$('rSupply').textContent=CFG.needs&&nd?Math.round(S.served/nd*100)+' % ('+nf.format(S.served)+' / '+nf.format(nd)+')':'–';$('rRev').textContent=nf.format(S.revenue)+' €'}
+  {const nd=S.served+S.unmet+S.gaveUp;$('rSupply').textContent=CFG.needs&&nd?Math.round(S.served/nd*100)+' % ('+nf.format(S.served)+' / '+nf.format(nd)+')':'–';$('rRev').textContent=nf.format(S.revenue)+' €';
+    const nm=['Getränke','Essen','WC','Merch'],by=[0,1,2,3].map(q=>{const t=S.servedBy[q]+S.unmetBy[q]+S.longBy[q];return t?nm[q]+' '+Math.round(S.servedBy[q]/t*100)+' %':null}).filter(Boolean);$('rSupBy').textContent=CFG.needs&&by.length?by.join(' · '):'';$('rSupBy').hidden=!(CFG.needs&&by.length)}
   $('rHurt').textContent=nf.format(S.hurt);$('rTime').textContent=fmtT(S.egressT);$('rPeak').textContent=fmtD(S.maxPeak)+' P/m²';
   $('rPulled').textContent=nf.format(S.pulled);$('rTips2').textContent=nf.format(S.tips);$('rCost').textContent=nf.format(planCost())+' €';$('rPits').textContent=nf.format(S.pitsTotal);
   const ul=$('rTips');ul.textContent='';for(const tx of analyzeRound()){const li=document.createElement('li');li.textContent=tx;ul.appendChild(li)}
@@ -1801,6 +1810,20 @@ function verdict(r){
   if(S.hurt<=8)return['Fast geschafft','Ein paar Menschen sind gestürzt. Die Karte zeigt, wo.'];
   if(S.hurt<=25)return['Rettungsdienst im Einsatz','Mehrere Menschen sind im Gedränge gestürzt. Wo hat sich der Druck aufgebaut?'];
   return['Zu viele Verletzte',(S.aborted?'Die Lage war außer Kontrolle.':'So hätte das Konzert nicht weiterlaufen dürfen. Wird es so gefährlich, ist „Abbruch“ die richtige Entscheidung.')+(S.tips?' Umgekippte Hamburger Gitter haben die Lage verschärft.':'')]}
+
+// ---------- Schlangen an den Ständen ----------
+const standTags=$('standTags'),stV=new THREE.Vector3();let stT=0,stCounts=[];
+function updateStandTags(dt){
+  const live=CFG.needs&&(S.phase==='ingress'||S.phase==='show');
+  if(!live){if(standTags.childElementCount)standTags.textContent='';return}
+  if((stT-=dt)<=0){stT=0.5;stCounts=stands.map(()=>0);
+    for(let i=0;i<nA;i++){if(st[i]!==1||errand[i]<0)continue;const ty=AM_TYPES[errand[i]];const s=nearStand(ty,ax[i],ay[i]);if(s>=0)stCounts[s]++}
+    while(standTags.childElementCount<stands.length){const d=document.createElement('div');d.className='standTag';standTags.appendChild(d)}
+    while(standTags.childElementCount>stands.length)standTags.lastChild.remove()}
+  stands.forEach((o,k)=>{const el=standTags.children[k];const n=stCounts[k]||0;if(n<3){el.hidden=true;return}
+    stV.set(o.x+o.w/2,o.fixed?4.6:3.9,o.y+o.h/2).project(camera);if(stV.z>1){el.hidden=true;return}el.hidden=false;
+    el.style.transform=`translate(${((stV.x+1)/2*innerWidth).toFixed(0)}px,${((1-stV.y)/2*innerHeight).toFixed(0)}px) translate(-50%,-100%)`;
+    const txt=AM[o.type].name+' · '+n+' warten';if(el.textContent!==txt)el.textContent=txt;el.dataset.hot=n>=15})}
 
 // ---------- Gefahrenstellen: rote Kreise, Pfeile am Rand ----------
 const hotRing=new THREE.InstancedMesh(new THREE.RingGeometry(2.4,3.2,48),new THREE.MeshBasicMaterial({color:0xff3b30,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false,fog:false}),3);
@@ -1964,7 +1987,7 @@ function frame(now){
   if(composer)composer.render();else renderer.render(scene,camera);
   updateFlow(Math.min(rdt,0.05));
   if(waterMesh.visible){waterTex.offset.x=t*0.012;waterTex.offset.y=Math.sin(t*0.3)*0.02}
-  updateHot(rdt,t);coachTick();audioTick();
+  updateHot(rdt,t);updateStandTags(rdt);coachTick();audioTick();
   updateStats(now);requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
