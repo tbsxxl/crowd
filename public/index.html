@@ -306,7 +306,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
 // ---------- Simulation (ohne DOM) ----------
 const W=60,H=100,N=W*H,MAXA=7000,DT=1/30;
 const RB=0.46,K_BODY=120,K_FR=40,A_SOC=0.8,B_SOC=0.15,R_SOC=1.1,LAMBDA=0.35,KW=80;
-const INV_TAU=2,VMAX=2.2,MEDIC_T=20,MEDIC_SANI=8,MEDIC_PIT=5,PUSH_OUT=0.2,PUSH_OUT_STORM=0.35,PUSH_FAN=0.6,SWAY=0.13,SWAY_R=25,SPREAD_D=1.2,SPREAD_V=0.35,WB_PRESS=0.35,FAN_IDLE=0.06,FAN_DENSE=3.2,SURGE_EVERY=[25,45],SURGE_LEN=5,P_CRIT=6,P_TIME=3;
+const INV_TAU=2,VMAX=2.2,MEDIC_T=20,MEDIC_SANI=8,MEDIC_PIT=5,PUSH_OUT=0.2,PUSH_OUT_STORM=0.35,PUSH_FAN=0.6,SWAY=0.13,RELAX_P=0.5,RELAX_V=0.25,COMFORT_D=3.4,SWAY_R=25,SPREAD_D=1.2,SPREAD_V=0.35,WB_PRESS=0.35,FAN_IDLE=0.06,FAN_DENSE=3.2,SURGE_EVERY=[25,45],SURGE_LEN=5,P_CRIT=6,P_TIME=3;
 const GATE_SEE=35,ORD_R=7,PIT_R=4.5,G_TIP=14,G_TIP_T=3,G_CHAIN=2,WATCH_R=16,SANI_R=26,PULL_RATE=0.7;
 let BUDGET=60000;const COST={gitter:15,wave:120,lock:350,tower:3000,sani:5000,gate:1500,ordner:400,lane:800,sign:250};
 // Versorgung: Stände (Ziel 4+Index), Bedienzeit (s), gleichzeitig bediente Gäste, Preis, Anteil am Bedarf
@@ -704,6 +704,8 @@ function step(dt){
       const lc=ly*W+lx,da=wallC(lc)?D[c]:D[lc];
       if(lockShut[lc]&&!egress){want[i]=TGEO[tg][c]+0.5;tgt[i]=tg} // Zone voll: hier stehen bleiben
       let s=spd[i]*Math.max(egress?pushOut:errand[i]>=0?ERR_PUSH:(want[i]<0?(ord[c]?0.22:pushFan):0.12),1-da/5.6);if(tile[c]===8)s*=0.55;if(calm)s*=0.8;
+      // Niemand drückt sich ohne Anlass in eine volle Menge: vor dichter Menge stehen bleiben (außer bei Druckwellen und auf dem Weg zum Stand)
+      if(!egress&&errand[i]<0&&!(S.surge>0&&!calm&&want[i]<0)&&da>=COMFORT_D)s=0;
       dx=sdx*s;dy=sdy*s;
       cheer[i]=Math.max(0,cheer[i]-dt*2);
     }else{
@@ -711,6 +713,8 @@ function step(dt){
       if(P==='show'&&!calm)cheer[i]=Math.min(1,cheer[i]+dt*0.5);else cheer[i]=Math.max(0,cheer[i]-dt);
       // Druckwelle: auch wer steht, schwankt im vorderen Bereich mit nach vorn – über die ganze Tiefe addiert sich der Schub
       if(!egress&&S.surge>0&&!calm&&SG[c]<SWAY_R){surgeDir(x,y);const s3=spd[i]*SWAY*(1-SG[c]/SWAY_R*0.5);dx=sdx*s3;dy=sdy*s3}
+      // Nach der Welle federt die Menge zurück: wer eingeklemmt ist, weicht langsam von der Bühne weg
+      else if(!egress&&pr[i]>P_CRIT*RELAX_P&&SG[c]<SWAY_R+5){surgeDir(x,y);const s4=spd[i]*RELAX_V*Math.min(1,pr[i]/P_CRIT);dx=-sdx*s4;dy=-sdy*s4}
       // Wer steht und es eng hat, rückt seitlich in freiere Bereiche (Abstand zur Bühne bleibt)
       else if(!egress&&D[c]>SPREAD_D){const cx=c%W,cy=(c/W)|0;let gx=0,gy=0;
         if(cx>0&&cx<W-1){const l=c-1,r=c+1;gx=(blk(tile[l])?D[c]:D[l])-(blk(tile[r])?D[c]:D[r])}
