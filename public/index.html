@@ -1548,16 +1548,16 @@ const LEVELS=[
    stars:[{hurt:10},{hurt:5},{hurt:2}]},
   {map:'wiese',title:'Front-Pen',desc:'4.000 Besucher. Grenze den Bereich vor der Bühne als Zone ab und lass nur so viele hinein, wie sicher ist.',
    visitors:4000,mosh:1,lanes:4,budget:30000,showLen:120,events:[],tools:['view','wave','bar','lock','erase'],
-   stars:[{hurt:15},{hurt:8},{hurt:4,frontZone:true}]},
+   stars:[{hurt:40},{hurt:25},{hurt:18,frontZone:true}]},
   {map:'strand',title:'Gewitter',desc:'Strandfestival, 4.500 Besucher. Mitten im Konzert zieht ein Gewitter auf und alle müssen schnell raus, auf einer Seite ist das Meer.',
    visitors:4500,mosh:1,lanes:4,budget:40000,showLen:150,events:[{t:75,type:'storm'}],tools:['view','wave','bar','lock','ordner','gate','erase'],
-   stars:[{hurt:25},{egress:150},{hurt:12,egress:145}]},
+   stars:[{hurt:25},{egress:195},{hurt:12,egress:185}]},
   {map:'steg',title:'Headliner',desc:'5.000 Besucher, viele Moshpits. Der Headliner spielt auf Laufsteg und B-Stage mitten in der Menge, die Druckwellen kommen jetzt von allen Seiten.',
    visitors:5000,mosh:2,lanes:4,budget:50000,showLen:150,events:[{t:30,type:'headliner'}],tools:ALL_TOOLS,
-   stars:[{hurt:50},{hurt:30},{hurt:15}]},
+   stars:[{hurt:80},{hurt:45},{hurt:25}]},
   {map:'stadt',title:'Ausverkauft',desc:'Stadtplatz, 5.500 Besucher. Enge Gassen zwischen den Häuserblöcken, Headliner und Moshpits.',
    visitors:5500,mosh:2,lanes:5,budget:60000,showLen:180,events:[{t:40,type:'headliner'},{t:120,type:'headliner'}],tools:ALL_TOOLS,
-   stars:[{hurt:90},{hurt:50},{hurt:25,score:650}]}
+   stars:[{hurt:120},{hurt:50},{hurt:22,score:650}]}
 ];
 let LV=null,LVi=-1;
 function starGoalText(g,short){const p=[];if(g.hurt!==undefined)p.push(g.hurt===0?'0 Verl.':'≤'+g.hurt+(short?'':' Verletzte'));
