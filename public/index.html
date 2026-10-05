@@ -294,8 +294,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
 // ---------- Simulation (ohne DOM) ----------
 const W=60,H=100,N=W*H,MAXA=7000,DT=1/30;
 const RB=0.46,K_BODY=120,K_FR=40,A_SOC=0.8,B_SOC=0.15,R_SOC=1.1,LAMBDA=0.35,KW=80;
-const INV_TAU=2,VMAX=2.2,MEDIC_T=20,MEDIC_SANI=8,MEDIC_PIT=5,PUSH_OUT=0.4,PUSH_FAN=0.8,SWAY=0.35,SWAY_R=25,SPREAD_D=1.2,SPREAD_V=0.35,WB_PRESS=0.35,FAN_IDLE=0.06,SURGE_EVERY=[25,45],SURGE_LEN=5,P_CRIT=6,P_TIME=3;
-const GATE_SEE=35,ORD_R=7,PIT_R=4.5,G_TIP=17,G_TIP_T=3,G_CHAIN=2,WATCH_R=16,SANI_R=26,PULL_RATE=0.7;
+const INV_TAU=2,VMAX=2.2,MEDIC_T=20,MEDIC_SANI=8,MEDIC_PIT=5,PUSH_OUT=0.2,PUSH_OUT_STORM=0.35,PUSH_FAN=0.5,SWAY=0.1,SWAY_R=25,SPREAD_D=1.2,SPREAD_V=0.35,WB_PRESS=0.35,FAN_IDLE=0.06,FAN_DENSE=3.2,SURGE_EVERY=[25,45],SURGE_LEN=5,P_CRIT=6,P_TIME=3;
+const GATE_SEE=35,ORD_R=7,PIT_R=4.5,G_TIP=14,G_TIP_T=3,G_CHAIN=2,WATCH_R=16,SANI_R=26,PULL_RATE=0.7;
 let BUDGET=60000;const COST={gitter:15,wave:120,lock:350,tower:3000,sani:5000,gate:1500,ordner:400,lane:800};
 const CFG={lanes:4,mosh:1,showLen:0,events:[]}; // showLen: Konzertdauer in s (0 = von Hand beenden), events: [{t,type}] ab Konzertbeginn
 const SHOW_READY=0.95,SHOW_WAIT_MAX=150,MOSH_DELAY=10; // Anteil am Platz, max. Wartezeit nach Einlassende (s), erste Moshpits frühestens nach x s Konzert // Einlass-Spuren je Eingang, Moshpits 0 keine / 1 wenig / 2 viel
@@ -553,9 +553,9 @@ function spawnGroup(){
   const r=rng(),size=r<0.35?1:r<0.7?2:r<0.9?3:4;
   const fan=rng()<0.22;let tg=0,base;const r2=rng();
   if(fan)base=-1;
-  else if(r2<0.16&&tAvail[1]){tg=1;base=0.3}
-  else if(r2<0.34&&tAvail[2]){tg=2;base=0.5+rng()*2}
-  else if(r2<0.48&&tAvail[3]){tg=3;base=0.3+rng()*1.5}
+  else if(r2<0.06&&tAvail[1]){tg=1;base=0.8+rng()*1.5} // ein paar lehnen sich an eine Barriere
+  else if(r2<0.24&&tAvail[2]){tg=2;base=0.5+rng()*2}
+  else if(r2<0.38&&tAvail[3]){tg=3;base=0.3+rng()*1.5}
   else base=rng()<0.55?1+rng()*12:10+rng()*30;
   const x=E.x0+0.5+rng()*(E.x1-E.x0),y=H-1.6;
   if(D[((y|0)*W)+(x|0)]>3.5)return 0;
@@ -636,7 +636,7 @@ function step(dt){
       if(ev.type==='headliner'){S.hype=30;S.surgeIn=Math.min(S.surgeIn,3);emit('headliner')}
       else if(ev.type==='storm'){S.storm=true;emit('storm');startEgress();return}}
     if(CFG.showLen&&st0>=CFG.showLen){emit('showEnd');startEgress();return}}
-  const pushFan=calm?0.12:S.surge>0?PUSH_FAN*(S.hype>0?1.2:1):FAN_IDLE,pushOut=calm?0.18:PUSH_OUT;let onWay=0;
+  const pushFan=calm?0.12:S.surge>0?PUSH_FAN*(S.hype>0?1.2:1):FAN_IDLE,pushOut=calm?0.18:S.storm?PUSH_OUT_STORM:PUSH_OUT;let onWay=0;
   for(let i=0;i<nA;i++){
     const c=acell[i];
     if(st[i]===2){injT[i]+=dt;const cy=(c/W)|0,lim=SG[c]<=2?MEDIC_PIT:medic[c]?MEDIC_SANI:MEDIC_T;if(injT[i]>lim){st[i]=0;S.dirty=true}continue}
@@ -650,7 +650,8 @@ function step(dt){
     let tg=tgt[i];if(tg&&(!tAvail[tg]||!isFinite(TGEO[tg][c]))){tg=tgt[i]=0;want[i]=6+rng()*10}
     // Ziel liegt in einer vollen Zone und man ist draußen: hier stehen bleiben (auch Fans drücken dann nicht mehr)
     if(!egress){const tz=tZone[tg];if(tz>=0&&ZONES[tz].closed&&zoneId[c]!==tz&&(want[i]<0||TGEO[tg][c]>want[i]))want[i]=TGEO[tg][c]+0.3}
-    const moving=egress||TGEO[tg][c]>want[i];
+    // Fans: bei Druckwellen schieben sie, sonst rücken sie nur in lockerer Menge nach vorn (in dichter Menge stehen sie)
+    const moving=egress||(want[i]<0?(S.surge>0&&!calm)||(TGEO[tg][c]>1.5&&D[c]<FAN_DENSE):TGEO[tg][c]>want[i]);
     if(!egress&&moving&&vx[i]*vx[i]+vy[i]*vy[i]>0.16)onWay++; // läuft noch aktiv zu seinem Platz
     if(moving){
       if(egress)sampleDir(x,y,GX[ex[i]],GY[ex[i]]);else if(want[i]<0&&S.surge>0&&!calm)surgeDir(x,y);else sampleDir(x,y,TDX[tg],TDY[tg]);
