@@ -306,7 +306,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
 // ---------- Simulation (ohne DOM) ----------
 const W=60,H=100,N=W*H,MAXA=7000,DT=1/30;
 const RB=0.46,K_BODY=120,K_FR=40,A_SOC=0.8,B_SOC=0.15,R_SOC=1.1,LAMBDA=0.35,KW=80;
-const INV_TAU=2,VMAX=2.2,MEDIC_T=20,MEDIC_SANI=8,MEDIC_PIT=5,PUSH_OUT=0.2,PUSH_OUT_STORM=0.35,PUSH_FAN=0.6,SWAY=0.13,RELAX_P=0.5,RELAX_V=0.25,COMFORT_D=3.4,SWAY_R=25,SPREAD_D=1.2,SPREAD_V=0.35,WB_PRESS=0.35,FAN_IDLE=0.06,FAN_DENSE=3.2,SURGE_EVERY=[25,45],SURGE_LEN=5,P_CRIT=6,P_TIME=3;
+const INV_TAU=2,VMAX=2.2,MEDIC_T=20,MEDIC_SANI=8,MEDIC_PIT=5,PUSH_OUT=0.2,PUSH_OUT_STORM=0.35,PUSH_FAN=0.6,SWAY=0.13,RELAX_P=0.5,RELAX_V=0.25,COMFORT_D=3.4,ADV_D=1.6,ADV_D_ORD=2.6,ADV_V=0.3,ADV_V_ORD=0.55,ADV_R=4,ADV_R_ORD=7,SWAY_R=25,SPREAD_D=1.2,SPREAD_V=0.35,WB_PRESS=0.35,FAN_IDLE=0.06,FAN_DENSE=3.2,SURGE_EVERY=[25,45],SURGE_LEN=5,P_CRIT=6,P_TIME=3;
 const GATE_SEE=35,ORD_R=7,PIT_R=4.5,G_TIP=14,G_TIP_T=3,G_CHAIN=2,WATCH_R=16,SANI_R=26,PULL_RATE=0.7;
 let BUDGET=60000;const COST={gitter:15,wave:120,lock:350,tower:3000,sani:5000,gate:1500,ordner:400,lane:800,sign:250};
 // Versorgung: Stände (Ziel 4+Index), Bedienzeit (s), gleichzeitig bediente Gäste, Preis, Anteil am Bedarf
@@ -445,6 +445,10 @@ const geo=new Float32Array(N),fld=new Float32Array(N),dirX=new Float32Array(N),d
 const STAGE_CX=30,CENTER_PULL=0.15; // Plätze mittig vor der Bühne zählen als näher: die Menge füllt von der Mitte nach außen
 function stageGoals(){const cells=[],dirs=new Map(),init=[];for(const [c,dx,dy] of stageCand)if(!blk(tile[c])){cells.push(c);dirs.set(c,[dx,dy]);init.push(CENTER_PULL*Math.max(0,Math.abs(c%W+0.5-STAGE_CX)-2))}return{cells,dirs,init}}
 const SG=new Float32Array(N); // reine Entfernung zur Bühnenbarriere (für Security, Sanitäter, Auswertung)
+const VIEW=new Float32Array(N); // Sichtentfernung zur Bühne (Luftlinie): danach entscheiden Zuschauer, ob sie nah genug sind
+const tdist=(tg,c)=>tg===0?Math.max(VIEW[c],TGEO[0][c]>1e6?1e9:0):TGEO[tg][c];
+function computeView(){VIEW.fill(1e9);const pts=stageCand.map(([c])=>[c%W+0.5,((c/W)|0)+0.5]);
+  for(let c=0;c<N;c++){if(blk(tile[c]))continue;const x=c%W+0.5,y=((c/W)|0)+0.5;let b=1e9;for(const [px,py] of pts){const d=(px-x)**2+(py-y)**2;if(d<b)b=d}VIEW[c]=Math.sqrt(b)}}
 // Ziele: 0 Bühne, 1 an Wellenbrechern/Gittern anlehnen, 2 vor den Videowänden, 3 an den Delay-Masten, 4–7 Stände (Getränke, Essen, WC, Merch)
 const TG=8,TGEO=[geo],TFLD=[fld],TDX=[dirX],TDY=[dirY],tAvail=[1,0,0,0,0,0,0,0];
 for(let k=1;k<TG;k++){TGEO.push(new Float32Array(N));TFLD.push(new Float32Array(N));TDX.push(new Float32Array(N));TDY.push(new Float32Array(N))}
@@ -503,7 +507,7 @@ function computeCoverage(){
   signCov.fill(0);for(const o of signs)mark(signCov,o.x+0.5,o.y+0.5,SIGN_R);
 }
 const tZone=new Int16Array(TG).fill(-1);
-function computeGeo(){for(let k=0;k<TG;k++){const G=targetGoals(k);tAvail[k]=G.cells.length?1:0;dijkstra(G.cells,TGEO[k],null,G.init);if(k===0)dijkstra(G.cells,SG,null)}computeGeoExits();computeZones();computeCoverage();
+function computeGeo(){for(let k=0;k<TG;k++){const G=targetGoals(k);tAvail[k]=G.cells.length?1:0;dijkstra(G.cells,TGEO[k],null,G.init);if(k===0){dijkstra(G.cells,SG,null);computeView()}}computeGeoExits();computeZones();computeCoverage();
   for(let k=0;k<TG;k++){const G=targetGoals(k);let z=G.cells.length?zoneId[G.cells[0]]:-1;for(const c of G.cells)if(zoneId[c]!==z){z=-1;break}tZone[k]=z}}
 
 // Personen
@@ -512,7 +516,7 @@ const ax=new Float32Array(MAXA),ay=new Float32Array(MAXA),vx=new Float32Array(MA
       acell=new Int32Array(MAXA),injT=new Float32Array(MAXA),ex=new Int8Array(MAXA),home=new Uint8Array(MAXA),gid=new Int32Array(MAXA),
       pr=new Float32Array(MAXA),crT=new Float32Array(MAXA),aph=new Float32Array(MAXA),ayaw=new Float32Array(MAXA),cheer=new Float32Array(MAXA),
       tgt=new Uint8Array(MAXA),mosh=new Uint8Array(MAXA),errand=new Int8Array(MAXA),needT=new Float32Array(MAXA),homeTg=new Uint8Array(MAXA),
-      homeWant=new Float32Array(MAXA),srvT=new Float32Array(MAXA),errT=new Float32Array(MAXA),needN=new Uint8Array(MAXA);
+      homeWant=new Float32Array(MAXA),srvT=new Float32Array(MAXA),errT=new Float32Array(MAXA),needN=new Uint8Array(MAXA),advC=new Int32Array(MAXA).fill(-1);
 const pits=[];
 let nA=0,nGrp=0,agentGen=0; // agentGen: steigt, wenn sich Indizes verschieben (compact/reset)
 const gsx=new Float32Array(MAXA),gsy=new Float32Array(MAXA),gcn=new Uint16Array(MAXA);
@@ -559,7 +563,7 @@ function addAgent(x,y,w,e,g,tg){
   ax[i]=x;ay[i]=y;vx[i]=0;vy[i]=-1;st[i]=1;injT[i]=0;pr[i]=0;crT[i]=0;
   hue[i]=(rng()*12)|0;look[i]=((rng()*6)|0)|(((rng()*5)|0)<<4);spd[i]=1.15+rng()*0.35;
   want[i]=w;home[i]=e;gid[i]=g;ex[i]=e;aph[i]=rng()*6.28;ayaw[i]=Math.PI;cheer[i]=0;tgt[i]=tg||0;mosh[i]=0;
-  errand[i]=-1;srvT[i]=0;errT[i]=0;needN[i]=0;needT[i]=rng()<0.65?40+rng()*300:Infinity; // gut die Hälfte braucht während des Events etwas
+  errand[i]=-1;srvT[i]=0;errT[i]=0;needN[i]=0;advC[i]=-1;needT[i]=rng()<0.65?40+rng()*300:Infinity; // gut die Hälfte braucht während des Events etwas
   S.spawned++;
 }
 let sdx=0,sdy=0;
@@ -570,7 +574,7 @@ function sampleDir(x,y,DXa,DYa){
   if(ws<1e-6){const c=(y|0)*W+(x|0);sx=DXa[c];sy=DYa[c]}
   const l=Math.hypot(sx,sy);if(l>1e-6){sdx=sx/l;sdy=sy/l}else{sdx=0;sdy=0}
 }
-const CA=[ax,ay,vx,vy,want,spd,st,hue,look,injT,ex,home,gid,pr,crT,aph,ayaw,cheer,tgt,mosh,errand,needT,homeTg,homeWant,srvT,errT,needN];
+const CA=[ax,ay,vx,vy,want,spd,st,hue,look,injT,ex,home,gid,pr,crT,aph,ayaw,cheer,tgt,mosh,errand,needT,homeTg,homeWant,srvT,errT,needN,advC];
 function compact(){agentGen++;let j=0;for(let i=0;i<nA;i++){if(!st[i])continue;if(i!==j)for(const a of CA)a[j]=a[i];j++}nA=j;S.dirty=false}
 function relocate(i,c){
   const cx=c%W,cy=(c/W)|0;
@@ -603,6 +607,19 @@ function pitRoom(px,py){const r=PIT_R+1.5;for(let y=Math.floor(py-r);y<=Math.cei
 const srvCnt=new Uint8Array(256);
 function nearStand(ty,x,y){let b=-1,bd=4;for(let s=0;s<stands.length;s++){const o=stands[s];if(o.type!==ty)continue;
   const dx=Math.max(o.x-x,0,x-(o.x+o.w)),dy=Math.max(o.y-y,0,y-(o.y+o.h)),d=Math.hypot(dx,dy);if(d<bd){bd=d;b=s}}return b}
+// Aufrücken: Wer steht, schaut sich ab und zu um. Gibt es in der Nähe einen freieren Platz mit mindestens so guter Sicht,
+// geht er hin. Ordner vergrößern den Umkreis und sorgen auch bei mehr Gedränge fürs Aufrücken.
+function advance(i,x,y,c,tg){
+  if((i+S.tick)%10===0){advC[i]=-1;const o=ord[c],R=o?ADV_R_ORD:ADV_R,lim=o?ADV_D_ORD:ADV_D,cx=c%W,cy=(c/W)|0,my=tdist(tg,c);
+    if(D[c]>0.6||o){let best=-1,bs=0;
+      for(let dy=-R;dy<=R;dy++)for(let dx=-R;dx<=R;dx++){const nx=cx+dx,ny=cy+dy;if((!dx&&!dy)||nx<1||ny<1||nx>=W-1||ny>=H-1)continue;const n=ny*W+nx;
+        if(blk(tile[n])||D[n]>=lim)continue;const dn=tdist(tg,n);if(dn>my+0.5)continue;
+        // freie Sicht auf dem Weg dorthin (keine Barriere dazwischen)
+        const mx=cx+(dx>>1),mz=cy+(dy>>1);if(blk(tile[mz*W+mx]))continue;
+        const sc=(D[c]-D[n])*1.5+(my-dn)*0.4-Math.hypot(dx,dy)*0.15;if(sc>bs){bs=sc;best=n}}
+      if(best>=0&&bs>0.35)advC[i]=best}}
+  const t=advC[i];if(t<0)return false;const tx=t%W+0.5-x,ty=((t/W)|0)+0.5-y,l=Math.hypot(tx,ty);if(l<0.4){advC[i]=-1;return false}
+  const v=spd[i]*(ord[c]?ADV_V_ORD:ADV_V);sdx=tx/l*v;sdy=ty/l*v;return true}
 function injure(i){st[i]=2;injT[i]=0;vx[i]=vy[i]=0;S.hurt++;injLog.push({c:cellOf(i),ph:S.phase,surge:S.surge>0})}
 function tipGitter(c0){ // Hamburger Gitter sind verklammert: kippt eins, gehen die Nachbarn mit
   const q=[[c0,0]],seen=new Set([c0]);const cells=[];
@@ -693,16 +710,16 @@ function step(dt){
         if(done){errand[i]=-1;tgt[i]=homeTg[i];want[i]=homeWant[i]}}}
     let tg=tgt[i];if(tg&&(!tAvail[tg]||!isFinite(TGEO[tg][c]))){if(errand[i]>=0){errand[i]=-1;tg=tgt[i]=homeTg[i];want[i]=homeWant[i]}if(tg&&(!tAvail[tg]||!isFinite(TGEO[tg][c]))){tg=tgt[i]=0;want[i]=6+rng()*10}}
     // Ziel liegt in einer vollen Zone und man ist draußen: hier stehen bleiben (auch Fans drücken dann nicht mehr)
-    if(!egress){const tz=tZone[tg];if(tz>=0&&ZONES[tz].closed&&zoneId[c]!==tz&&(want[i]<0||TGEO[tg][c]>want[i]))want[i]=TGEO[tg][c]+0.3}
+    if(!egress){const tz=tZone[tg];if(tz>=0&&ZONES[tz].closed&&zoneId[c]!==tz&&(want[i]<0||tdist(tg,c)>want[i]))want[i]=tdist(tg,c)+0.3}
     // Fans: bei Druckwellen schieben sie, sonst rücken sie nur in lockerer Menge nach vorn (in dichter Menge stehen sie)
-    const moving=egress||(want[i]<0?(S.surge>0&&!calm)||(TGEO[tg][c]>1.5&&D[c]<FAN_DENSE):TGEO[tg][c]>want[i]);
+    const moving=egress||(want[i]<0?(S.surge>0&&!calm)||(tdist(tg,c)>1.5&&D[c]<FAN_DENSE):tdist(tg,c)>want[i]);
     if(!egress&&moving&&errand[i]<0&&vx[i]*vx[i]+vy[i]*vy[i]>0.16)onWay++; // läuft noch aktiv zu seinem Platz
     if(moving){
       if(egress)sampleDir(x,y,GX[ex[i]],GY[ex[i]]);else if(want[i]<0&&S.surge>0&&!calm)surgeDir(x,y);else sampleDir(x,y,TDX[tg],TDY[tg]);
       hx=sdx;hy=sdy;
       let lx=(x+sdx*0.9)|0,ly=(y+sdy*0.9)|0;if(lx<0)lx=0;if(lx>=W)lx=W-1;if(ly<0)ly=0;if(ly>=H)ly=H-1;
       const lc=ly*W+lx,da=wallC(lc)?D[c]:D[lc];
-      if(lockShut[lc]&&!egress){want[i]=TGEO[tg][c]+0.5;tgt[i]=tg} // Zone voll: hier stehen bleiben
+      if(lockShut[lc]&&!egress){want[i]=tdist(tg,c)+0.5;tgt[i]=tg} // Zone voll: hier stehen bleiben
       let s=spd[i]*Math.max(egress?pushOut:errand[i]>=0?ERR_PUSH:(want[i]<0?(ord[c]?0.22:pushFan):0.12),1-da/5.6);if(tile[c]===8)s*=0.55;if(calm)s*=0.8;
       // Niemand drückt sich ohne Anlass in eine volle Menge: vor dichter Menge stehen bleiben (außer bei Druckwellen und auf dem Weg zum Stand)
       if(!egress&&errand[i]<0&&!(S.surge>0&&!calm&&want[i]<0)&&da>=COMFORT_D)s=0;
@@ -715,6 +732,8 @@ function step(dt){
       if(!egress&&S.surge>0&&!calm&&SG[c]<SWAY_R){surgeDir(x,y);const s3=spd[i]*SWAY*(1-SG[c]/SWAY_R*0.5);dx=sdx*s3;dy=sdy*s3}
       // Nach der Welle federt die Menge zurück: wer eingeklemmt ist, weicht langsam von der Bühne weg
       else if(!egress&&pr[i]>P_CRIT*RELAX_P&&SG[c]<SWAY_R+5){surgeDir(x,y);const s4=spd[i]*RELAX_V*Math.min(1,pr[i]/P_CRIT);dx=-sdx*s4;dy=-sdy*s4}
+      // Aufrücken: ist näher an der Bühne Platz, rückt man nach – Ordner sorgen dafür, dass das zügig und auch im Gedränge passiert
+      else if(!egress&&errand[i]<0&&advance(i,x,y,c,tg)){dx=sdx;dy=sdy}
       // Wer steht und es eng hat, rückt seitlich in freiere Bereiche (Abstand zur Bühne bleibt)
       else if(!egress&&D[c]>SPREAD_D){const cx=c%W,cy=(c/W)|0;let gx=0,gy=0;
         if(cx>0&&cx<W-1){const l=c-1,r=c+1;gx=(blk(tile[l])?D[c]:D[l])-(blk(tile[r])?D[c]:D[r])}
@@ -1394,7 +1413,7 @@ const fmtT=t=>{t=Math.floor(t);return String(Math.floor(t/60)).padStart(2,'0')+'
 const fmtD=d=>d.toFixed(1).replace('.',',');
 const nf=new Intl.NumberFormat('de-DE');
 const HINTS={
-  plan:'Wellenbrecher 10–15 m hinter der Bühne fangen Druckwellen ab. Umschließt du einen Bereich und setzt Zählschleusen als Zugang, entsteht eine Zone mit Personenlimit.',
+  plan:'Wellenbrecher 10–15 m hinter der Bühne fangen Druckwellen ab. Umschließt du einen Bereich und machst Stücke der Absperrung zu Zählschleusen, entsteht eine Zone mit Personenlimit.',
   ingress:'Einlass läuft, Flutlicht an. Das Konzert beginnt, wenn alle ihren Platz gefunden haben. Ist eine Zone voll, schließen ihre Zählschleusen.',
   show:'Das Konzert läuft bis zum Ende. Druck im Publikum? „Durchsage“ beruhigt die Menge. Nur wenn es zu gefährlich wird: „Abbruch“.',
   egress:'Räumung läuft. Notausgänge werden nur genutzt, wenn man sie aus der Nähe sieht.',
@@ -1471,7 +1490,7 @@ const ray=new THREE.Raycaster(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0
 const LINE_TILE={bar:2,wave:9,lock:7},LINE_COST={bar:COST.gitter,wave:COST.wave,lock:COST.lock};
 function noMoney(){flash('Budget aufgebraucht. Radiere etwas weg oder nutze günstigere Teile.')}
 function placeOrd(p){if(planCost()+COST.ordner>BUDGET){noMoney();return false}
-  if(placeOrdner(p.x,p.y)){mapChanged(false);flash('Ordner gesetzt: Im blauen Kreis drängeln Fans weniger und es entstehen keine Moshpits.');return true}flash('Hier ist kein Platz für einen Ordner.');return false}
+  if(placeOrdner(p.x,p.y)){mapChanged(false);flash('Ordner gesetzt: Im blauen Kreis rücken die Leute auf, wo Platz ist, und es entstehen keine Moshpits.');return true}flash('Hier ist kein Platz für einen Ordner.');return false}
 function placeAt(p){const s=tool==='tower'?2:3,cost=tool==='tower'?COST.tower:COST.sani;
   if(planCost()+cost>BUDGET){noMoney();return false}
   const x0=p.x-Math.floor((s-1)/2),y0=p.y-Math.floor((s-1)/2);
@@ -1529,10 +1548,11 @@ function structCells(list,s,x,y){for(const o of list)if(x>=o.x&&x<o.x+s&&y>=o.y&
 function planAction(a,b){
   const g=[];let base=planCost();
   if(LINE_TILE[tool]!==undefined){const cells=lineCells(a,b),cost=LINE_COST[tool];let ok=0,broke=false,blocked=0;
-    for(const c of cells){if(tile[c]!==0||fixed[c]){g.push([c,GBAD]);blocked++;continue}
-      if(base+cost>BUDGET){g.push([c,GBAD]);broke=true;continue}base+=cost;ok++;g.push([c,GOK])}
+    const isLock=tool==='lock';
+    for(const c of cells){const t=tile[c],can=isLock?(t===9||t===2)&&!fixed[c]:t===0&&!fixed[c];if(!can){g.push([c,GBAD]);blocked++;continue}
+      const cc=isLock?cost-(t===9?COST.wave:COST.gitter):cost;if(base+cc>BUDGET){g.push([c,GBAD]);broke=true;continue}base+=cc;ok++;g.push([c,GOK])}
     let dist='';if(tool==='wave'&&cells.length){const mc=cells[cells.length>>1],d=SG[mc];if(isFinite(d)&&d<40){const m=Math.round(d);dist=' · '+m+' m vor der Bühne'+(m>=10&&m<=18?' ✓':m<10?' (zu nah)':'')}}
-    const txt=ok?ok+' m · '+nf.format(ok*cost)+' €'+dist+(broke?' · Budget reicht nicht':''):broke?'Budget reicht nicht':'Kein Platz';
+    const txt=ok?ok+' m · '+nf.format(ok*cost)+' €'+dist+(broke?' · Budget reicht nicht':''):broke?'Budget reicht nicht':tool==='lock'?'Nur auf Wellenbrecher oder Gitter':'Kein Platz';
     return{g,cells,ok,txt,bad:!ok||broke}}
   if(tool==='erase'){const del=new Set();
     for(const c0 of lineCells(a,b)){const cx=c0%W,cy=(c0/W)|0;
@@ -1557,7 +1577,7 @@ function commitAction(a,b){
   const sn=snapshot();let ch=false;
   if(LINE_TILE[tool]!==undefined){const pl=planAction(a,b);for(const [c,col] of pl.g)if(col===GOK){tile[c]=LINE_TILE[tool];ch=true}
     if(pl.bad&&pl.ok)noMoney();if(ch)mapChanged(false);
-    if(ch&&tool==='lock'&&pl.g.some(([c,col])=>col===GOK&&lockOwner[c]<0))flash('Diese Zählschleuse begrenzt noch keine Zone. Umschließe den Bereich ringsum mit Wellenbrechern, die Schleuse ist der Zugang.',5000)}
+    if(ch&&tool==='lock'&&pl.g.some(([c,col])=>col===GOK&&lockOwner[c]<0))flash('Diese Zählschleuse begrenzt noch keine Zone. Der Bereich muss ringsum mit Wellenbrechern oder Gittern geschlossen sein, die Schleuse ist der Zugang.',5000)}
   else if(tool==='erase'){const pl=planAction(a,b);const done=new Set();
     for(const c of pl.del){if(done.has(c))continue;const x=c%W,y=(c/W)|0,t=tile[c];
       if(signs.some(o=>o.x===x&&o.y===y)){removeAt(x,y);ch=true;if(t===0)continue}
@@ -1572,7 +1592,7 @@ function commitAction(a,b){
 }
 const TOUCH=matchMedia('(pointer:coarse)').matches;
 const TOOL_HINT={wave:'Wellenbrecher fangen Druckwellen ab, bevor sie die Menschen vorn zerquetschen. Am besten 10–18 m hinter der Bühne, mit Durchgängen an den Seiten. Ziehen zeichnet, Loslassen baut',bar:'Ziehen zeichnet eine Linie, Loslassen baut. Neue Linien docken am Ende der letzten an.',
-  lock:'Zählschleusen als Lücke in eine geschlossene Wellenbrecher-Linie setzen. Sie zählen, wer in die Zone geht, und schließen, wenn sie voll ist.',ordner:'Antippen und verschieben, Loslassen setzt den Ordner.',tower:'Antippen und verschieben, Loslassen setzt den Hochstand.',
+  lock:'Zieh über einen Wellenbrecher oder ein Hamburger Gitter: Dieses Stück wird zur Zählschleuse. Sie zählt, wer in die Zone geht, und schließt, wenn sie voll ist.',ordner:'Ordner sorgen dafür, dass die Leute aufrücken, wo vorne Platz ist, und verhindern Moshpits. Antippen, verschieben, loslassen.',tower:'Antippen und verschieben, Loslassen setzt den Hochstand.',
   sani:'Antippen und verschieben, Loslassen setzt den Sanitätsposten.',gate:'Tippe auf einen Abschnitt am Bauzaun, um einen Notausgang zu öffnen oder zu schließen.',erase:'Über Bauteile wischen, Loslassen entfernt sie. Kosten werden erstattet.',
   drink:'Getränkebars: Die meisten Besucher wollen irgendwann trinken. Setze sie abseits vom Gedränge und lass Platz für die Schlange.',food:'Essensstände: Wer Hunger hat, verlässt seinen Platz. Lange Schlangen machen unzufrieden.',
   wc:'WC-Container: Fehlen sie, gehen die Leute irgendwohin oder geben auf. Gut erreichbar am Rand.',merch:'Merchstand: Bringt viel Geld, aber Fans drängen sich davor.',sign:'Fluchtweg-Schild: Im Umkreis von 16 m kennen die Leute alle Notausgänge, auch die, die sie nicht sehen.'};
