@@ -298,7 +298,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
   <div class="zHead"><b id="zTitle">Zone</b><button class="btn" id="zClose">Fertig</button></div>
   <div class="zRow"><button class="btn zStep" id="zMinus" aria-label="Weniger">−</button><div class="zNum"><output id="zVal">0</output><small id="zDens"></small></div><button class="btn zStep" id="zPlus" aria-label="Mehr">+</button></div>
   <input type="range" id="zRange" min="0" max="100" value="50" aria-label="Personenlimit">
-  <div class="zPresets"><button class="btn" data-zd="1">1 P/m²</button><button class="btn" data-zd="2">2 P/m² (zulässig)</button><button class="btn" data-zd="3">3 P/m²</button></div>
+  <div class="zPresets"><button class="btn" data-zd="1">1 P/m²</button><button class="btn" data-zd="2">2 P/m²</button><button class="btn" data-zd="3">3 P/m² (üblich)</button></div>
   <button class="btn" id="zShut" hidden>Schleusen jetzt schließen</button>
   <p class="zInfo" id="zInfo"></p>
 </div>
@@ -473,7 +473,7 @@ function recomputeStage(dens){for(let k=0;k<TG;k++)if(tAvail[k])recomputeTarget(
 const watch=new Uint8Array(N),medic=new Uint8Array(N),ord=new Uint8Array(N);
 const zoneId=new Int16Array(N).fill(-1),lockOwner=new Int16Array(N).fill(-1),lockShut=new Uint8Array(N);
 let ZONES=[],zoneVer=0;
-const ZONE_DENS=2,ZONE_MAXD=4; // zulässig 2 P/m² (NVStättVO), einstellbar bis 4 P/m²
+const ZONE_DENS=3,ZONE_MAXD=4.5,ZONE_RISK=4; // Front-Pens mit Security: üblich 3 P/m², ab 4 P/m² gefährlich (NVStättVO rechnet die Gesamtkapazität mit 2 P/m²)
 function computeZones(){
   const old=ZONES,oldId=zoneId.slice();
   zoneId.fill(-1);lockOwner.fill(-1);ZONES=[];zoneVer++;
@@ -1164,7 +1164,7 @@ function updateZoneTags(force){
     el.style.transform=`translate(${((zv.x+1)/2*innerWidth).toFixed(1)}px,${((1-zv.y)/2*innerHeight).toFixed(1)}px) translate(-50%,-50%)`;
     if(force||performance.now()-zoneTagT>200){
       const txt=!z.locks.length?zoneLetter(i)+' · kein Zugang':plan?zoneLetter(i)+' · max. '+nf.format(z.limit):zoneLetter(i)+' · '+nf.format(z.count)+' / '+nf.format(z.limit)+(z.closed?' · voll':'');
-      if(el.textContent!==txt)el.textContent=txt;el.dataset.state=!z.locks.length?'none':z.closed?'full':z.limit>z.legal?'over':''}}
+      if(el.textContent!==txt)el.textContent=txt;el.dataset.state=!z.locks.length?'none':z.closed?'full':z.limit>z.area*ZONE_RISK?'over':''}}
   if(force||performance.now()-zoneTagT>200)zoneTagT=performance.now()}
 // Zonen-Limit einstellen
 let zoneOpen=-1;
@@ -1174,8 +1174,8 @@ function renderZoneSheet(){const z=ZONES[zoneOpen];if(!z){$('zoneSheet').hidden=
   $('zVal').textContent=nf.format(z.limit);const r=$('zRange');if(document.activeElement!==r){r.max=z.area*ZONE_MAXD;r.step=Math.max(1,Math.round(z.area/50));r.value=z.limit}
   $('zDens').textContent=fmtD(z.limit/z.area)+' P/m²';
   $('zInfo').textContent=!z.locks.length?'Noch kein Zugang: Setze eine Zählschleuse in die Begrenzung, sonst bleibt die Zone leer.':
-    z.limit>z.legal?'Über der zulässigen Dichte (NVStättVO: '+nf.format(z.legal)+' Personen bei 2 P/m²).':'Zulässig sind bis '+nf.format(z.legal)+' Personen (2 P/m²). Ist das Limit erreicht, schließen die Zählschleusen dieser Zone.';
-  $('zInfo').dataset.warn=z.limit>z.legal||!z.locks.length;
+    z.limit>z.area*ZONE_RISK?'Ab 4 P/m² wird es gefährlich eng, besonders bei Druckwellen.':'Üblich für einen Front-Pen mit Security sind etwa 3 P/m² ('+nf.format(z.legal)+' Personen). Ist das Limit erreicht, schließen die Zählschleusen. Wer nicht hinein darf, weicht nach außen aus: Plane dort Wellenbrecher.';
+  $('zInfo').dataset.warn=z.limit>z.area*ZONE_RISK||!z.locks.length;
   const live=S.phase==='ingress'||S.phase==='show';$('zShut').hidden=!live||!z.locks.length;$('zShut').textContent=z.manual?'Schleusen wieder öffnen':'Schleusen jetzt schließen';
   if(live)$('zTitle').textContent='Zone '+zoneLetter(zoneOpen)+' · '+nf.format(z.count)+' drin'}
 function setZoneLimit(v){const z=ZONES[zoneOpen];if(!z)return;z.limit=Math.max(0,Math.min(z.area*ZONE_MAXD,Math.round(v)));z.custom=true;renderZoneSheet();updateZoneTags(true)}
