@@ -590,7 +590,6 @@ function spawnGroup(){
   const r=rng(),size=r<0.35?1:r<0.7?2:r<0.9?3:4;
   const fan=rng()<0.22;let tg=0,base;const r2=rng();
   if(fan)base=-1;
-  else if(r2<0.06&&tAvail[1]){tg=1;base=0.8+rng()*1.5} // ein paar lehnen sich an eine Barriere
   else if(r2<0.12&&tAvail[2]){tg=2;base=0.5+rng()*2}
   else if(r2<0.18&&tAvail[3]){tg=3;base=0.3+rng()*1.5}
   else base=2+Math.pow(rng(),1.4)*40; // Wunschabstand zur Bühne: viele nah, nach hinten gleichmäßig auslaufend
@@ -623,7 +622,9 @@ function advance(i,x,y,c,tg){
         if(blk(tile[n])||D[n]>=lim)continue;const dn=tdist(tg,n);if(dn>my+0.5)continue;
         // freie Sicht auf dem Weg dorthin (keine Barriere dazwischen)
         const mx=cx+(dx>>1),mz=cy+(dy>>1);if(blk(tile[mz*W+mx]))continue;
-        const sc=(D[c]-D[n])*1.5+(my-dn)*0.4-Math.hypot(dx,dy)*0.15;if(sc>bs){bs=sc;best=n}}
+        // direkt an einer Barriere zu stehen ist nicht attraktiv, wenn daneben Platz ist
+        let wallNb=0;for(let q=0;q<4;q++){const m=n+NB[q][1]*W+NB[q][0];if(m>=0&&m<N&&blk(tile[m])&&!fob[m])wallNb=1}
+        const sc=(D[c]-D[n])*1.5+(my-dn)*0.4-Math.hypot(dx,dy)*0.15-wallNb*0.8;if(sc>bs){bs=sc;best=n}}
       if(best>=0&&bs>0.35)advC[i]=best}}
   const t=advC[i];if(t<0)return false;const tx=t%W+0.5-x,ty=((t/W)|0)+0.5-y,l=Math.hypot(tx,ty);if(l<0.4){advC[i]=-1;return false}
   const v=spd[i]*(ord[c]?ADV_V_ORD:ADV_V);sdx=tx/l*v;sdy=ty/l*v;return true}
