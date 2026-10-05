@@ -1462,6 +1462,7 @@ onPhase=p=>{
   $('abort').hidden=!(p==='ingress'||p==='show');$('abort').dataset.armed=false;$('abort').textContent='Abbruch';
   $('visRow').hidden=p!=='plan'||!!LV;$('more').hidden=p!=='plan'||!!LV;$('undo').hidden=p!=='plan';$('pa').hidden=p==='plan';$('flow').hidden=p!=='plan';$('heat').hidden=p==='plan';$('speed').hidden=p==='plan';if(typeof updateUndo==='function')updateUndo();
   ledMode=p==='egress'||p==='done'?'egress':p==='plan'?'plan':'show';
+  if(p==='plan'||p==='done'){speed=speed||1;$('speed').textContent=speed+'×';$('speed').setAttribute('aria-pressed',false)}
   if(p==='plan'){rebuildBarriers();rebuildStructures();updatePlanInfo()}else if(p==='ingress')rebuildStructures();
 
   if(p==='done')showResult();else $('result').hidden=true;
@@ -1472,7 +1473,8 @@ $('main').addEventListener('click',()=>{const p=S.phase;
   if(p==='plan'){
     if(CFG.needs&&!m_warned){const miss=['drink','wc','food'].filter(t=>!stands.some(o=>o.type===t)).map(t=>AM[t].name);
       if(miss.length){m_warned=true;toast('Versorgung fehlt',`Es gibt noch nichts für: ${miss.join(', ')}. Die Leute werden es suchen. Trotzdem starten? Tippe noch einmal auf „Einlass öffnen“.`);return}}
-    m_warned=false;S.target=LV?LV.visitors:+$('visitors').value;savePlanAuto();startIngress()}
+    m_warned=false;S.target=LV?LV.visitors:+$('visitors').value;if(LV)seed=7919*(LVi+1); // fester Zufall je Level: gleicher Plan, gleiches Ergebnis
+    savePlanAuto();startIngress()}
 
   else if(p==='done')resetRound()});
 let m_warned=false;
@@ -1501,7 +1503,8 @@ $('heat').addEventListener('click',e=>{heatOn=!heatOn;e.currentTarget.setAttribu
 $('legend').hidden=true;
 $('more').addEventListener('click',e=>{const o=$('visRow').classList.toggle('open');e.currentTarget.setAttribute('aria-expanded',o)});
 document.querySelector('.hint').addEventListener('click',e=>e.currentTarget.classList.toggle('open'));
-let speed=1;$('speed').addEventListener('click',e=>{speed=speed===1?2:speed===2?4:speed===4?8:1;e.currentTarget.textContent=speed+'×'});
+let speed=1;$('speed').addEventListener('click',e=>{speed=speed===1?2:speed===2?4:speed===4?8:speed===8?0:1;e.currentTarget.textContent=speed?speed+'×':'Pause';e.currentTarget.setAttribute('aria-pressed',speed===0);
+  if(!speed)flash('Pausiert: Du kannst jetzt bauen, Zonen ändern oder eine Durchsage vorbereiten. Tippe auf „Pause“, um weiterzuspielen.',5000)});
 $('cam').addEventListener('click',e=>{camIdx=1-camIdx;Object.assign(cam,camPresets[camIdx]);e.currentTarget.textContent=camIdx?'Schräg':'Draufsicht';applyCam()});
 $('visitors').addEventListener('input',e=>{$('visOut').textContent=nf.format(+e.target.value)});
 let tool='view';
