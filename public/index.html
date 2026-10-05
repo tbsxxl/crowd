@@ -66,6 +66,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
 .sw.lock{background:linear-gradient(90deg,var(--exit) 0 50%,var(--signal) 50% 100%);border-radius:50%}
 .sw.tower{border:2px solid var(--hazard);background:linear-gradient(var(--hazard),var(--hazard)) center/2px 100% no-repeat}
 .sw.sani{background:linear-gradient(#e33,#e33) center/4px 100% no-repeat,linear-gradient(#e33,#e33) center/100% 4px no-repeat,#f2f2ee;border-radius:2px}
+.sw.drink{background:linear-gradient(#3dd6ff 0 45%,#1d6f8a 45%);border-radius:3px}.sw.food{background:linear-gradient(#ff8a2a 0 45%,#8a4a1a 45%);border-radius:3px}
+.sw.wc{background:#2f6fd6;border-radius:3px;box-shadow:inset 0 0 0 3px #e8e8e8}.sw.merch{background:linear-gradient(#b07cff 0 45%,#5a3a8a 45%);border-radius:3px}
+.sw.signx{background:#0f9a4f;border:2px solid #e8fff0;border-radius:2px}
+.cats{display:flex;gap:4px}.cats button{flex:1;background:var(--glass-2);border-radius:7px;padding:5px 4px;font-size:12px;font-weight:600;color:var(--muted)}.cats button[aria-pressed="true"]{background:var(--ink);color:var(--night)}
 .sw.ord{border-radius:50%;background:radial-gradient(circle at 50% 35%,#f2c230 0 35%,transparent 36%),radial-gradient(circle at 50% 100%,#f2c230 0 50%,transparent 51%)}
 .chip{font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:.04em;padding:4px 9px;border-radius:999px;background:var(--glass-2);color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
 .chip[data-low="true"]{color:var(--signal)}
@@ -199,16 +203,22 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
   <div class="bottom">
     <p class="hint panel"><span id="hint"></span><span class="chip" id="pen" hidden></span><span class="legend" id="legend">1<i></i>6+ P/m²</span></p>
     <div class="dock panel">
+      <div class="cats" role="tablist" aria-label="Werkzeuggruppe"><button data-cat="safe" aria-pressed="true">Sicherheit</button><button data-cat="supply" aria-pressed="false">Versorgung</button></div>
       <div class="tools" role="group" aria-label="Werkzeug">
-        <button class="tool" data-tool="view" aria-pressed="true"><span class="sw view"></span>Ansicht<small>drehen</small></button>
-        <button class="tool" data-tool="wave" aria-pressed="false"><span class="sw wave"></span>Wellen&shy;brecher<small>120 €/m</small></button>
-        <button class="tool" data-tool="bar" aria-pressed="false"><span class="sw bar"></span>Hamburger Gitter<small>15 €/m</small></button>
-        <button class="tool" data-tool="lock" aria-pressed="false"><span class="sw lock"></span>Zähl&shy;schleuse<small>350 €/m</small></button>
-        <button class="tool" data-tool="ordner" aria-pressed="false"><span class="sw ord"></span>Ordner<small>400 €</small></button>
-        <button class="tool" data-tool="tower" aria-pressed="false"><span class="sw tower"></span>Hoch&shy;stand<small>3.000 €</small></button>
-        <button class="tool" data-tool="sani" aria-pressed="false"><span class="sw sani"></span>Sani&shy;täter<small>5.000 €</small></button>
-        <button class="tool" data-tool="gate" aria-pressed="false"><span class="sw gate"></span>Not&shy;ausgang<small>1.500 €</small></button>
-        <button class="tool" data-tool="erase" aria-pressed="false"><span class="sw erase"></span>Radieren<small>erstattet</small></button>
+        <button class="tool" data-tool="view" data-cat="all" aria-pressed="true"><span class="sw view"></span>Ansicht<small>drehen</small></button>
+        <button class="tool" data-tool="wave" data-cat="safe" aria-pressed="false"><span class="sw wave"></span>Wellen&shy;brecher<small>120 €/m</small></button>
+        <button class="tool" data-tool="bar" data-cat="safe" aria-pressed="false"><span class="sw bar"></span>Hamburger Gitter<small>15 €/m</small></button>
+        <button class="tool" data-tool="lock" data-cat="safe" aria-pressed="false"><span class="sw lock"></span>Zähl&shy;schleuse<small>350 €/m</small></button>
+        <button class="tool" data-tool="ordner" data-cat="safe" aria-pressed="false"><span class="sw ord"></span>Ordner<small>400 €</small></button>
+        <button class="tool" data-tool="tower" data-cat="safe" aria-pressed="false"><span class="sw tower"></span>Hoch&shy;stand<small>3.000 €</small></button>
+        <button class="tool" data-tool="sani" data-cat="safe" aria-pressed="false"><span class="sw sani"></span>Sani&shy;täter<small>5.000 €</small></button>
+        <button class="tool" data-tool="gate" data-cat="safe" aria-pressed="false"><span class="sw gate"></span>Not&shy;ausgang<small>1.500 €</small></button>
+        <button class="tool" data-tool="drink" data-cat="supply" aria-pressed="false"><span class="sw drink"></span>Getränke&shy;bar<small>2.000 €</small></button>
+        <button class="tool" data-tool="food" data-cat="supply" aria-pressed="false"><span class="sw food"></span>Essens&shy;stand<small>2.500 €</small></button>
+        <button class="tool" data-tool="wc" data-cat="supply" aria-pressed="false"><span class="sw wc"></span>WC-Container<small>1.500 €</small></button>
+        <button class="tool" data-tool="merch" data-cat="supply" aria-pressed="false"><span class="sw merch"></span>Merch&shy;stand<small>2.000 €</small></button>
+        <button class="tool" data-tool="sign" data-cat="safe" aria-pressed="false"><span class="sw signx"></span>Flucht&shy;weg-Schild<small>250 €</small></button>
+        <button class="tool" data-tool="erase" data-cat="all" aria-pressed="false"><span class="sw erase"></span>Radieren<small>erstattet</small></button>
       </div>
       <div class="row">
         <button class="btn" id="flow" aria-pressed="true">Wege: rein</button>
@@ -255,6 +265,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
       <dt>Umgekippte Gitter</dt><dd id="rTips2">0</dd>
       <dt>Moshpits</dt><dd id="rPits">0</dd>
       <dt>Planungskosten</dt><dd id="rCost">0 €</dd>
+      <dt>Versorgt</dt><dd id="rSupply">–</dd>
+      <dt>Einnahmen an den Ständen</dt><dd id="rRev">0 €</dd>
     </dl>
     <div class="actions">
       <button class="primary" id="next" hidden>Nächstes Level</button>
@@ -296,14 +308,20 @@ const W=60,H=100,N=W*H,MAXA=7000,DT=1/30;
 const RB=0.46,K_BODY=120,K_FR=40,A_SOC=0.8,B_SOC=0.15,R_SOC=1.1,LAMBDA=0.35,KW=80;
 const INV_TAU=2,VMAX=2.2,MEDIC_T=20,MEDIC_SANI=8,MEDIC_PIT=5,PUSH_OUT=0.2,PUSH_OUT_STORM=0.35,PUSH_FAN=0.6,SWAY=0.13,SWAY_R=25,SPREAD_D=1.2,SPREAD_V=0.35,WB_PRESS=0.35,FAN_IDLE=0.06,FAN_DENSE=3.2,SURGE_EVERY=[25,45],SURGE_LEN=5,P_CRIT=6,P_TIME=3;
 const GATE_SEE=35,ORD_R=7,PIT_R=4.5,G_TIP=14,G_TIP_T=3,G_CHAIN=2,WATCH_R=16,SANI_R=26,PULL_RATE=0.7;
-let BUDGET=60000;const COST={gitter:15,wave:120,lock:350,tower:3000,sani:5000,gate:1500,ordner:400,lane:800};
-const CFG={lanes:4,mosh:1,showLen:0,events:[]}; // showLen: Konzertdauer in s (0 = von Hand beenden), events: [{t,type}] ab Konzertbeginn
+let BUDGET=60000;const COST={gitter:15,wave:120,lock:350,tower:3000,sani:5000,gate:1500,ordner:400,lane:800,sign:250};
+// Versorgung: Stände (Ziel 4+Index), Bedienzeit (s), gleichzeitig bediente Gäste, Preis, Anteil am Bedarf
+const AM_TYPES=['drink','food','wc','merch'];
+const AM={drink:{cost:2000,svc:3,cap:5,price:5,w:0.45,name:'Getränke'},food:{cost:2500,svc:5,cap:4,price:9,w:0.27,name:'Essen'},
+  wc:{cost:1500,svc:6,cap:5,price:0,w:0.2,name:'WC'},merch:{cost:2000,svc:5,cap:3,price:25,w:0.08,name:'Merch'}};
+const STAND_W=3,STAND_H=2,LANE_RATE=2.4,SIGN_R=16,ERR_LONG=60,ERR_GIVEUP=150,ERR_PUSH=0.4;
+let stands=[],signs=[];const signCov=new Uint8Array(N);
+const CFG={lanes:4,mosh:1,showLen:0,events:[],needs:true}; // showLen: Konzertdauer in s (0 = von Hand beenden), events: [{t,type}] ab Konzertbeginn
 const SHOW_READY=0.95,SHOW_WAIT_MAX=150,MOSH_DELAY=10; // Anteil am Platz, max. Wartezeit nach Einlassende (s), erste Moshpits frühestens nach x s Konzert // Einlass-Spuren je Eingang, Moshpits 0 keine / 1 wenig / 2 viel
 // Kacheln: 0 frei,1 Bau,2 Hamburger Gitter,3 Notausgang zu,4 Bühne,5 Notausgang offen,6 Ein-/Ausgang,
-// 7 Zählschleuse,8 Gitter umgekippt,9 Barrier/Wellenbrecher,10 Bühnengraben,11 Hochstand,12 Sanitätsposten,13 Podest,14 Delay-Mast,15 Ordner,16 Wasser
+// 7 Zählschleuse,8 Gitter umgekippt,9 Barrier/Wellenbrecher,10 Bühnengraben,11 Hochstand,12 Sanitätsposten,13 Podest,14 Delay-Mast,15 Ordner,16 Wasser,17 Stand
 const tile=new Uint8Array(N),fixed=new Uint8Array(N);
-const BLKP=new Uint8Array(17);[1,2,3,4,9,10,11,12,13,14,15,16].forEach(t=>BLKP[t]=1);
-const BLKF=new Uint8Array(17);BLKF.set(BLKP);
+const BLKP=new Uint8Array(18);[1,2,3,4,9,10,11,12,13,14,15,16,17].forEach(t=>BLKP[t]=1);
+const BLKF=new Uint8Array(18);BLKF.set(BLKP);
 const blk=t=>BLKP[t]===1;      // für Wegberechnung (Schleuse gilt als passierbar)
 const wall=t=>BLKF[t]===1;     // physisch
 const wallC=c=>BLKF[tile[c]]===1||lockShut[c]===1; // physisch je Zelle (geschlossene Schleuse blockiert)
@@ -328,7 +346,7 @@ function rect(x0,y0,x1,y1,t,fx){for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){t
 function setMap(id){MAP=MAPS[id]?id:'wiese';MAPDEF=MAPS[MAP]}
 function buildMap(example){
   const M=MAPDEF;
-  tile.fill(0);fixed.fill(0);fob.fill(0);towers=[];sanis=[];ordner=[];tipped=[];
+  tile.fill(0);fixed.fill(0);fob.fill(0);towers=[];sanis=[];ordner=[];tipped=[];stands=[];signs=[];
   rect(0,0,W-1,0,1,1);rect(0,H-1,W-1,H-1,1,1);rect(0,0,0,H-1,1,1);rect(W-1,0,W-1,H-1,1,1);
   rect(16,0,43,9,4,1);                         // Bühne
   rect(16,10,43,11,10,1);                      // Bühnengraben
@@ -341,10 +359,10 @@ function buildMap(example){
     for(let y=10;y<=40;y++)for(let x=20;x<=40;x++){const d=Math.hypot(x+0.5-bx,y+0.5-by);
       if(x>=28&&x<=31&&y<=30||d<=ri){tile[y*W+x]=4;fixed[y*W+x]=1;fob[y*W+x]=0}}}
   rect(27,48,32,53,9,1);rect(28,49,31,52,1,1); // FOH-Insel mit stabiler Absperrung
-  if(M.foodtrucks){rect(1,56,6,63,1,1);rect(53,56,58,63,1,1)}   // Foodtrucks
-  if(M.wc)rect(53,80,58,86,1,1);                                // WC
+  if(M.foodtrucks){rect(1,56,6,63,1,1);rect(53,56,58,63,1,1);stands.push({type:'food',x:1,y:56,w:6,h:8,fixed:true},{type:'drink',x:53,y:56,w:6,h:8,fixed:true})}   // Foodtrucks
+  if(M.wc){rect(53,80,58,86,1,1);stands.push({type:'wc',x:53,y:80,w:6,h:7,fixed:true})}         // WC
   if(M.podest)rect(2,38,8,43,13,1);                             // Rollstuhlpodest
-  if(M.bar)rect(M.bar[0],M.bar[1],M.bar[2],M.bar[3],1,1);       // Strandbar
+  if(M.bar){rect(M.bar[0],M.bar[1],M.bar[2],M.bar[3],1,1);stands.push({type:'drink',x:M.bar[0],y:M.bar[1],w:M.bar[2]-M.bar[0]+1,h:M.bar[3]-M.bar[1]+1,fixed:true})} // Strandbar
   for(const b of M.blocks||[])rect(b[0],b[1],b[2],b[3],1,1);    // Häuserblöcke
   if(M.water)for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(isWater(x,y)){tile[y*W+x]=16;fixed[y*W+x]=1}
   for(const m of MASTS)rect(m.x,m.y,m.x+1,m.y+1,14,1); // Delay-Masten mit Lautsprechern und Bildschirm
@@ -363,17 +381,23 @@ function canPlace(x0,y0,w,h){for(let y=y0;y<y0+h;y++)for(let x=x0;x<x0+w;x++){if
 function placeOrdner(x,y){if(!canPlace(x,y,1,1))return false;tile[y*W+x]=15;ordner.push({x,y});return true}
 function placeStruct(kind,x0,y0){const s=kind==='tower'?2:3;if(!canPlace(x0,y0,s,s))return false;
   rect(x0,y0,x0+s-1,y0+s-1,kind==='tower'?11:12);(kind==='tower'?towers:sanis).push({x:x0,y:y0});return true}
+function placeStand(type,x0,y0){if(!canPlace(x0,y0,STAND_W,STAND_H))return false;rect(x0,y0,x0+STAND_W-1,y0+STAND_H-1,17);stands.push({type,x:x0,y:y0,w:STAND_W,h:STAND_H});return true}
+function placeSign(x,y){if(x<1||y<1||x>=W-1||y>=H-1||tile[y*W+x]!==0||signs.some(o=>o.x===x&&o.y===y))return false;signs.push({x,y});return true}
+function standAt(x,y){return stands.findIndex(o=>x>=o.x&&x<o.x+o.w&&y>=o.y&&y<o.y+o.h)}
 function removeAt(x,y){
+  {const k=signs.findIndex(o=>o.x===x&&o.y===y);if(k>=0){signs.splice(k,1);return true}}
   const c=y*W+x;if(fixed[c])return false;const t=tile[c];
   if(t===2||t===7||t===8||t===9){tile[c]=0;return true}
   if(t===15){tile[c]=0;ordner=ordner.filter(o=>!(o.x===x&&o.y===y));return true}
+  if(t===17){const k=standAt(x,y);if(k>=0&&!stands[k].fixed){const o=stands[k];rect(o.x,o.y,o.x+o.w-1,o.y+o.h-1,0);stands.splice(k,1);return true}return false}
   for(const [list,s,tt] of [[towers,2,11],[sanis,3,12]]){const k=list.findIndex(o=>x>=o.x&&x<o.x+s&&y>=o.y&&y<o.y+s);
     if(k>=0){const o=list[k];rect(o.x,o.y,o.x+s-1,o.y+s-1,0);list.splice(k,1);return true}}
   return false;
 }
 function planCost(){
   let c=0;for(let i=0;i<N;i++){if(fixed[i])continue;const t=tile[i];if(t===2||t===8)c+=COST.gitter;else if(t===9)c+=COST.wave;else if(t===7)c+=COST.lock}
-  c+=towers.length*COST.tower+sanis.length*COST.sani+ordner.length*COST.ordner+gates.filter(g=>g.open).length*COST.gate+Math.max(0,CFG.lanes-2)*exits.length*COST.lane;return c;
+  c+=towers.length*COST.tower+sanis.length*COST.sani+ordner.length*COST.ordner+gates.filter(g=>g.open).length*COST.gate+Math.max(0,CFG.lanes-2)*exits.length*COST.lane;
+  for(const o of stands)if(!o.fixed)c+=AM[o.type].cost;c+=signs.length*COST.sign;return c;
 }
 function legalCapacity(){let a=0;for(let i=0;i<N;i++){const t=tile[i];if(t===0||t===7||t===8)a++}return Math.floor(a*2)}
 
@@ -421,14 +445,16 @@ const geo=new Float32Array(N),fld=new Float32Array(N),dirX=new Float32Array(N),d
 const STAGE_CX=30,CENTER_PULL=0.15; // Plätze mittig vor der Bühne zählen als näher: die Menge füllt von der Mitte nach außen
 function stageGoals(){const cells=[],dirs=new Map(),init=[];for(const [c,dx,dy] of stageCand)if(!blk(tile[c])){cells.push(c);dirs.set(c,[dx,dy]);init.push(CENTER_PULL*Math.max(0,Math.abs(c%W+0.5-STAGE_CX)-2))}return{cells,dirs,init}}
 const SG=new Float32Array(N); // reine Entfernung zur Bühnenbarriere (für Security, Sanitäter, Auswertung)
-// Ziele: 0 Bühne, 1 an Wellenbrechern/Gittern anlehnen, 2 vor den Videowänden, 3 an den Delay-Masten
-const TG=4,TGEO=[geo],TFLD=[fld],TDX=[dirX],TDY=[dirY],tAvail=[1,0,0,0];
+// Ziele: 0 Bühne, 1 an Wellenbrechern/Gittern anlehnen, 2 vor den Videowänden, 3 an den Delay-Masten, 4–7 Stände (Getränke, Essen, WC, Merch)
+const TG=8,TGEO=[geo],TFLD=[fld],TDX=[dirX],TDY=[dirY],tAvail=[1,0,0,0,0,0,0,0];
 for(let k=1;k<TG;k++){TGEO.push(new Float32Array(N));TFLD.push(new Float32Array(N));TDX.push(new Float32Array(N));TDY.push(new Float32Array(N))}
 function targetGoals(k){
   if(k===0)return stageGoals();const cells=[],dirs=new Map();
   if(k===1){for(let y=STAGE_ROW+1;y<H-1;y++)for(let x=1;x<W-1;x++){const c=y*W+x;if(blk(tile[c]))continue;
     for(let q=0;q<4;q++){const n=c+NB[q][1]*W+NB[q][0],t=tile[n];if((t===9||t===2)&&!fob[n]&&!(fixed[n]&&((n/W)|0)<=STAGE_ROW)){cells.push(c);break}}}}
   else if(k===2){for(const sc of SCREENS)for(let y=sc.y0;y<=sc.y1;y++)for(let x=sc.x0;x<=sc.x1;x++){const c=y*W+x;if(!blk(tile[c]))cells.push(c)}}
+  else if(k>=4){const ty=AM_TYPES[k-4];for(const o of stands){if(o.type!==ty)continue;
+    for(let y=o.y-1;y<=o.y+o.h;y++)for(let x=o.x-1;x<=o.x+o.w;x++){if(x<0||y<0||x>=W||y>=H)continue;const c=y*W+x;if(!blk(tile[c])&&!cells.includes(c))cells.push(c)}}}
   else{for(const m of MASTS)for(let y=m.y-3;y<=m.y+4;y++)for(let x=m.x-3;x<=m.x+4;x++){const c=y*W+x;if(!blk(tile[c]))cells.push(c)}}
   return{cells,dirs};
 }
@@ -474,6 +500,7 @@ function computeCoverage(){
   for(const o of towers)mark(watch,o.x+1,o.y+1,WATCH_R);
   for(const o of sanis)mark(medic,o.x+1.5,o.y+1.5,SANI_R);
   for(const o of ordner)mark(ord,o.x+0.5,o.y+0.5,ORD_R);
+  signCov.fill(0);for(const o of signs)mark(signCov,o.x+0.5,o.y+0.5,SIGN_R);
 }
 const tZone=new Int16Array(TG).fill(-1);
 function computeGeo(){for(let k=0;k<TG;k++){const G=targetGoals(k);tAvail[k]=G.cells.length?1:0;dijkstra(G.cells,TGEO[k],null,G.init);if(k===0)dijkstra(G.cells,SG,null)}computeGeoExits();computeZones();computeCoverage();
@@ -484,30 +511,31 @@ const ax=new Float32Array(MAXA),ay=new Float32Array(MAXA),vx=new Float32Array(MA
       want=new Float32Array(MAXA),spd=new Float32Array(MAXA),st=new Uint8Array(MAXA),hue=new Uint8Array(MAXA),look=new Uint8Array(MAXA),
       acell=new Int32Array(MAXA),injT=new Float32Array(MAXA),ex=new Int8Array(MAXA),home=new Uint8Array(MAXA),gid=new Int32Array(MAXA),
       pr=new Float32Array(MAXA),crT=new Float32Array(MAXA),aph=new Float32Array(MAXA),ayaw=new Float32Array(MAXA),cheer=new Float32Array(MAXA),
-      tgt=new Uint8Array(MAXA),mosh=new Uint8Array(MAXA);
+      tgt=new Uint8Array(MAXA),mosh=new Uint8Array(MAXA),errand=new Int8Array(MAXA),needT=new Float32Array(MAXA),homeTg=new Uint8Array(MAXA),
+      homeWant=new Float32Array(MAXA),srvT=new Float32Array(MAXA),errT=new Float32Array(MAXA),needN=new Uint8Array(MAXA);
 const pits=[];
 let nA=0,nGrp=0,agentGen=0; // agentGen: steigt, wenn sich Indizes verschieben (compact/reset)
 const gsx=new Float32Array(MAXA),gsy=new Float32Array(MAXA),gcn=new Uint16Array(MAXA);
 const cnt=new Int32Array(N),start=new Int32Array(N+1),fillp=new Int32Array(N),order=new Int32Array(MAXA),D=new Float32Array(N);
 const gAcc=new Float32Array(N),gLoad=new Float32Array(N),gT=new Float32Array(N);
 let seed=12345;function rng(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}
-const S0={moshAcc:0,pitsTotal:0,tr:0,t:0,spawned:0,hurt:0,left:0,pulled:0,tips:0,peak:0,maxPeak:0,maxP:0,active:0,egressStart:0,egressT:0,fieldTimer:0,spawnAcc:0,dirty:false,rr:0,tick:0,calm:0,calmCd:0,pullAcc:0,paUsed:0,mapDirty:false,showStart:0,allInT:0,settled:0,surge:0,surgeIn:20,surges:0,hype:0,dangerT:0,evI:0,storm:false,aborted:false,abortHurt:0,abortHot:0,showEndT:0};
+const S0={moshAcc:0,pitsTotal:0,tr:0,t:0,spawned:0,hurt:0,left:0,pulled:0,tips:0,peak:0,maxPeak:0,maxP:0,active:0,egressStart:0,egressT:0,fieldTimer:0,spawnAcc:0,dirty:false,rr:0,tick:0,calm:0,calmCd:0,pullAcc:0,paUsed:0,mapDirty:false,showStart:0,allInT:0,settled:0,surge:0,surgeIn:20,surges:0,hype:0,dangerT:0,evI:0,storm:false,aborted:false,abortHurt:0,abortHot:0,showEndT:0,served:0,unmet:0,gaveUp:0,longWait:0,revenue:0,unmetBy:null,longBy:null};
 const maxD=new Float32Array(N),injLog=[]; // für die Auswertung: höchste Dichte je Zelle, Orte der Verletzungen
-const S=Object.assign({phase:'plan',target:5000},S0);
+const S=Object.assign({phase:'plan',target:5000},S0);S.unmetBy=[0,0,0,0];S.longBy=[0,0,0,0];
 let onPhase=null,onEvent=null;
 function setPhase(p){S.phase=p;if(onPhase)onPhase(p)}
 function emit(type,data){if(onEvent)onEvent(type,data)}
 function resetRound(){
   for(const c of tipped)if(tile[c]===8)tile[c]=2;tipped=[];
   nA=0;nGrp=0;agentGen++;pits.length=0;D.fill(0);gLoad.fill(0);gT.fill(0);zonesOpen();
-  Object.assign(S,S0);maxD.fill(0);injLog.length=0;computeGeo();setPhase('plan');
+  Object.assign(S,S0);S.unmetBy=[0,0,0,0];S.longBy=[0,0,0,0];maxD.fill(0);injLog.length=0;computeGeo();setPhase('plan');
 }
 function startIngress(){computeGeo();recomputeStage(null);S.fieldTimer=0.5;setPhase('ingress')}
 function cellOf(i){let cx=ax[i]|0,cy=ay[i]|0;if(cx<0)cx=0;if(cx>=W)cx=W-1;if(cy<0)cy=0;if(cy>=H)cy=H-1;return cy*W+cx}
 function chooseExit(i,dyn){
   const c=cellOf(i);let best=-1,bc=Infinity;
   for(let g=0;g<groupCount();g++){if(!groupOpen(g))continue;const d=GEO[g][c];if(!isFinite(d))continue;
-    if(g>=exits.length&&d>GATE_SEE)continue;const cost=dyn?FL[g][c]:d;if(cost<bc){bc=cost;best=g}}
+    if(g>=exits.length&&d>GATE_SEE&&!signCov[c])continue;const cost=dyn?FL[g][c]:d;if(cost<bc){bc=cost;best=g}}
   if(!dyn&&rng()<0.6&&isFinite(GEO[home[i]][c]))best=home[i]; // die meisten nehmen den Weg, den sie kennen
   if(best<0){best=GEO[0][c]<=GEO[1][c]?0:1}
   ex[i]=best;
@@ -531,6 +559,7 @@ function addAgent(x,y,w,e,g,tg){
   ax[i]=x;ay[i]=y;vx[i]=0;vy[i]=-1;st[i]=1;injT[i]=0;pr[i]=0;crT[i]=0;
   hue[i]=(rng()*12)|0;look[i]=((rng()*6)|0)|(((rng()*5)|0)<<4);spd[i]=1.15+rng()*0.35;
   want[i]=w;home[i]=e;gid[i]=g;ex[i]=e;aph[i]=rng()*6.28;ayaw[i]=Math.PI;cheer[i]=0;tgt[i]=tg||0;mosh[i]=0;
+  errand[i]=-1;srvT[i]=0;errT[i]=0;needN[i]=0;needT[i]=rng()<0.65?40+rng()*300:Infinity; // gut die Hälfte braucht während des Events etwas
   S.spawned++;
 }
 let sdx=0,sdy=0;
@@ -541,7 +570,7 @@ function sampleDir(x,y,DXa,DYa){
   if(ws<1e-6){const c=(y|0)*W+(x|0);sx=DXa[c];sy=DYa[c]}
   const l=Math.hypot(sx,sy);if(l>1e-6){sdx=sx/l;sdy=sy/l}else{sdx=0;sdy=0}
 }
-const CA=[ax,ay,vx,vy,want,spd,st,hue,look,injT,ex,home,gid,pr,crT,aph,ayaw,cheer,tgt,mosh];
+const CA=[ax,ay,vx,vy,want,spd,st,hue,look,injT,ex,home,gid,pr,crT,aph,ayaw,cheer,tgt,mosh,errand,needT,homeTg,homeWant,srvT,errT,needN];
 function compact(){agentGen++;let j=0;for(let i=0;i<nA;i++){if(!st[i])continue;if(i!==j)for(const a of CA)a[j]=a[i];j++}nA=j;S.dirty=false}
 function relocate(i,c){
   const cx=c%W,cy=(c/W)|0;
@@ -571,6 +600,9 @@ function surgeDir(x,y){let bx=Math.min(44.5,Math.max(15.5,x)),by=12.5,bd=(bx-x)*
 // Ein Circle-Pit braucht freie Fläche: keine Barriere im Umkreis
 function pitRoom(px,py){const r=PIT_R+1.5;for(let y=Math.floor(py-r);y<=Math.ceil(py+r);y++)for(let x=Math.floor(px-r);x<=Math.ceil(px+r);x++){
   if(x<0||y<0||x>=W||y>=H)return false;if((x+0.5-px)**2+(y+0.5-py)**2>r*r)continue;if(blk(tile[y*W+x]))return false}return true}
+const srvCnt=new Uint8Array(256);
+function nearStand(ty,x,y){let b=-1,bd=4;for(let s=0;s<stands.length;s++){const o=stands[s];if(o.type!==ty)continue;
+  const dx=Math.max(o.x-x,0,x-(o.x+o.w)),dy=Math.max(o.y-y,0,y-(o.y+o.h)),d=Math.hypot(dx,dy);if(d<bd){bd=d;b=s}}return b}
 function injure(i){st[i]=2;injT[i]=0;vx[i]=vy[i]=0;S.hurt++;injLog.push({c:cellOf(i),ph:S.phase,surge:S.surge>0})}
 function tipGitter(c0){ // Hamburger Gitter sind verklammert: kippt eins, gehen die Nachbarn mit
   const q=[[c0,0]],seen=new Set([c0]);const cells=[];
@@ -591,7 +623,8 @@ function step(dt){
   if(S.calm>0)S.calm-=dt;if(S.calmCd>0)S.calmCd-=dt;
   const calm=S.calm>0;
   if(P==='ingress'){
-    S.spawnAcc+=CFG.lanes*exits.length*8.75*dt;let guard=0;
+    // je Spur ~2,4 Personen/s (Ticket + Taschenkontrolle)
+    S.spawnAcc+=CFG.lanes*exits.length*LANE_RATE*dt;let guard=0;
     while(S.spawnAcc>=1&&S.spawned<S.target&&guard++<12){const n=spawnGroup();if(!n){S.spawnAcc=Math.min(S.spawnAcc,3);break}S.spawnAcc-=n}
     // Das Konzert beginnt erst, wenn alle drin sind und (fast) alle ihren Platz gefunden haben
     if(S.spawned>=S.target){S.allInT+=dt;if(S.settled>=SHOW_READY||S.allInT>SHOW_WAIT_MAX){S.showStart=S.t;setPhase('show')}}
@@ -625,7 +658,7 @@ function step(dt){
         if(D[c]<2.2||D[c]>5||ord[c]||SG[c]>32||SG[c]<3||!pitRoom(ax[i],ay[i]))continue;
         pits.push({x:ax[i],y:ay[i],t:0,dur:14+rng()*10});S.pitsTotal++;emit('pit',pits[pits.length-1]);break}}}
   for(let k=pits.length-1;k>=0;k--){pits[k].t+=dt;if(pits[k].t>pits[k].dur||egress||calm)pits.splice(k,1)}
-  gAcc.fill(0);S.pullAcc=Math.min(3,S.pullAcc+PULL_RATE*dt);
+  gAcc.fill(0);srvCnt.fill(0);S.pullAcc=Math.min(3,S.pullAcc+PULL_RATE*dt);
   const sm=Math.min(1,dt/0.5);let maxP=0;
   // Druckwellen: während der Show drücken die Fans in Schüben nach vorn (Drop, Hit), sonst stehen sie
   if(P==='show'&&!calm){if(S.surge>0)S.surge-=dt;else if((S.surgeIn-=dt*(S.hype>0?2:1))<=0){S.surge=SURGE_LEN;S.surges++;S.surgeIn=SURGE_EVERY[0]+rng()*(SURGE_EVERY[1]-SURGE_EVERY[0]);emit('surge')}}else S.surge=0;
@@ -644,22 +677,33 @@ function step(dt){
     const x=ax[i],y=ay[i];
     if(blk(tile[c])){relocate(i,c);continue}
     if(egress&&(i+S.tick)%120===0){const cur=ex[i];let alt=-1,ac=FL[cur][c]-12;
-      for(let g=0;g<groupCount();g++){if(g===cur||!groupOpen(g))continue;if(g>=exits.length&&GEO[g][c]>GATE_SEE)continue;if(FL[g][c]<ac){ac=FL[g][c];alt=g}}
+      for(let g=0;g<groupCount();g++){if(g===cur||!groupOpen(g))continue;if(g>=exits.length&&GEO[g][c]>GATE_SEE&&!signCov[c])continue;if(FL[g][c]<ac){ac=FL[g][c];alt=g}}
       if(alt>=0)ex[i]=alt}
     let dx=0,dy=0,hx=0,hy=0;
-    let tg=tgt[i];if(tg&&(!tAvail[tg]||!isFinite(TGEO[tg][c]))){tg=tgt[i]=0;want[i]=6+rng()*10}
+    // Bedürfnisse: Getränke, Essen, WC, Merch – hingehen, anstehen, bedient werden, zurück an den Platz
+    if(!egress&&CFG.needs){
+      if(errand[i]<0){if((needT[i]-=dt)<=0){needT[i]=needN[i]<1&&rng()<0.4?120+rng()*200:Infinity;needN[i]++;
+          let r=rng()*0.92+(needN[i]>1?0.08:0),ty=0;for(let q=0;q<4;q++){r-=AM[AM_TYPES[q]].w;if(r<=0){ty=q;break}}
+          const k=4+ty;if(tAvail[k]&&isFinite(TGEO[k][c])){errand[i]=ty;homeTg[i]=tgt[i];homeWant[i]=want[i];tgt[i]=k;want[i]=0.9;errT[i]=0;srvT[i]=0}
+          else{S.unmet++;S.unmetBy[ty]++}}}
+      else{const ty=errand[i],k=4+ty,A=AM[AM_TYPES[ty]];errT[i]+=dt;let done=false;
+        if(TGEO[k][c]<=1.3){const s=nearStand(AM_TYPES[ty],x,y);if(s>=0&&srvCnt[s]<(stands[s].fixed?A.cap+2:A.cap)){srvCnt[s]++;srvT[i]+=dt;
+          if(srvT[i]>=A.svc){S.served++;S.revenue+=A.price;if(errT[i]>ERR_LONG){S.longWait++;S.longBy[ty]++}done=true}}}
+        if(!done&&errT[i]>ERR_GIVEUP){S.gaveUp++;S.longBy[ty]++;done=true}
+        if(done){errand[i]=-1;tgt[i]=homeTg[i];want[i]=homeWant[i]}}}
+    let tg=tgt[i];if(tg&&(!tAvail[tg]||!isFinite(TGEO[tg][c]))){if(errand[i]>=0){errand[i]=-1;tg=tgt[i]=homeTg[i];want[i]=homeWant[i]}if(tg&&(!tAvail[tg]||!isFinite(TGEO[tg][c]))){tg=tgt[i]=0;want[i]=6+rng()*10}}
     // Ziel liegt in einer vollen Zone und man ist draußen: hier stehen bleiben (auch Fans drücken dann nicht mehr)
     if(!egress){const tz=tZone[tg];if(tz>=0&&ZONES[tz].closed&&zoneId[c]!==tz&&(want[i]<0||TGEO[tg][c]>want[i]))want[i]=TGEO[tg][c]+0.3}
     // Fans: bei Druckwellen schieben sie, sonst rücken sie nur in lockerer Menge nach vorn (in dichter Menge stehen sie)
     const moving=egress||(want[i]<0?(S.surge>0&&!calm)||(TGEO[tg][c]>1.5&&D[c]<FAN_DENSE):TGEO[tg][c]>want[i]);
-    if(!egress&&moving&&vx[i]*vx[i]+vy[i]*vy[i]>0.16)onWay++; // läuft noch aktiv zu seinem Platz
+    if(!egress&&moving&&errand[i]<0&&vx[i]*vx[i]+vy[i]*vy[i]>0.16)onWay++; // läuft noch aktiv zu seinem Platz
     if(moving){
       if(egress)sampleDir(x,y,GX[ex[i]],GY[ex[i]]);else if(want[i]<0&&S.surge>0&&!calm)surgeDir(x,y);else sampleDir(x,y,TDX[tg],TDY[tg]);
       hx=sdx;hy=sdy;
       let lx=(x+sdx*0.9)|0,ly=(y+sdy*0.9)|0;if(lx<0)lx=0;if(lx>=W)lx=W-1;if(ly<0)ly=0;if(ly>=H)ly=H-1;
       const lc=ly*W+lx,da=wallC(lc)?D[c]:D[lc];
       if(lockShut[lc]&&!egress){want[i]=TGEO[tg][c]+0.5;tgt[i]=tg} // Zone voll: hier stehen bleiben
-      let s=spd[i]*Math.max(egress?pushOut:(want[i]<0?(ord[c]?0.22:pushFan):0.12),1-da/5.6);if(tile[c]===8)s*=0.55;if(calm)s*=0.8;
+      let s=spd[i]*Math.max(egress?pushOut:errand[i]>=0?ERR_PUSH:(want[i]<0?(ord[c]?0.22:pushFan):0.12),1-da/5.6);if(tile[c]===8)s*=0.55;if(calm)s*=0.8;
       dx=sdx*s;dy=sdy*s;
       cheer[i]=Math.max(0,cheer[i]-dt*2);
     }else{
@@ -1246,8 +1290,25 @@ function rebuildStructures(){
   for(const o of ordner){crew.push({x:o.x+0.5,z:o.y+0.5,yaw:Math.PI-0.0,shirt:0xf2c230});
     if(S.phase==='plan'){const r=new THREE.Mesh(new THREE.RingGeometry(ORD_R-0.2,ORD_R,56),new THREE.MeshBasicMaterial({color:0x7fd0ff,transparent:true,opacity:0.4,depthWrite:false}));
       r.rotation.x=-Math.PI/2;r.position.set(o.x+0.5,0.25,o.y+0.5);r.userData.own=true;structGroup.add(r)}}
+  // Versorgungsstände (eigene) und Fluchtweg-Schilder
+  for(const o of stands){if(o.fixed)continue;const cx=o.x+o.w/2,cz=o.y+o.h/2,M=standMats(o.type);
+    gbox(o.w-0.4,2.1,o.h-0.4,M.body,cx,1.05,cz);gbox(o.w+0.5,0.16,o.h+0.5,M.roof,cx,2.7,cz);
+    for(const k of [-1,1]){const pl=new THREE.Mesh(STAND_SIGN_GEO,M.sign);pl.position.set(cx,3.25,cz+k*(o.h/2+0.26));pl.rotation.y=k>0?0:Math.PI;pl.userData.own=false;structGroup.add(pl)}
+    gbox(o.w-0.2,0.12,0.5,lampMat,cx,1.95,cz+o.h/2-0.05);gbox(o.w-0.2,0.12,0.5,lampMat,cx,1.95,cz-o.h/2+0.05);
+    crew.push({x:cx-0.6,z:cz,yaw:0,shirt:M.shirt},{x:cx+0.6,z:cz,yaw:Math.PI,shirt:M.shirt})}
+  for(const o of signs){const cx=o.x+0.5,cz=o.y+0.5;gbox(0.1,2.6,0.1,truss,cx,1.3,cz);
+    for(const r of [0,Math.PI/2]){const pl=new THREE.Mesh(EXIT_SIGN_GEO,EXIT_SIGN_MAT);pl.position.set(cx,2.8,cz);pl.rotation.y=r;pl.userData.own=false;structGroup.add(pl)}
+    if(S.phase==='plan'){const r=new THREE.Mesh(new THREE.RingGeometry(SIGN_R-0.25,SIGN_R,80),new THREE.MeshBasicMaterial({color:0x3ddc84,transparent:true,opacity:0.35,depthWrite:false}));
+      r.rotation.x=-Math.PI/2;r.position.set(cx,0.25,cz);r.userData.own=true;structGroup.add(r)}}
   if(crew.length)structGroup.add(staticCrowd(crew));
 }
+const STAND_LOOK={drink:[0x1d7fa8,0x3dd6ff,'BAR','#06222c'],food:[0xb4561c,0xff9a3c,'FOOD','#2a1204'],wc:[0x2f6fd6,0xe8e8e8,'WC','#ffffff'],merch:[0x6a3fb0,0xc89cff,'MERCH','#1a0a33']};
+const standMatCache={};
+function standMats(ty){if(standMatCache[ty])return standMatCache[ty];const [b,r,t,ink]=STAND_LOOK[ty];
+  return standMatCache[ty]={body:new THREE.MeshLambertMaterial({color:b}),roof:new THREE.MeshLambertMaterial({color:r,emissive:r,emissiveIntensity:0.25}),
+    sign:new THREE.MeshBasicMaterial({map:signTex(t,ty==='wc'?'#2f6fd6':ink,ty==='wc'?'#ffffff':'#'+r.toString(16).padStart(6,'0'),256,96,64),side:THREE.DoubleSide,toneMapped:false}),shirt:r}}
+const STAND_SIGN_GEO=new THREE.PlaneGeometry(2.6,0.9),EXIT_SIGN_GEO=new THREE.PlaneGeometry(1.4,0.55);
+const EXIT_SIGN_MAT=new THREE.MeshBasicMaterial({map:signTex('⇦ NOTAUSGANG ⇨','#ffffff','#0f9a4f',384,128,58),side:THREE.DoubleSide,toneMapped:false});
 
 // ---------- Orte: Boden, Meer, Laufsteg, Häuserblöcke, Strandbar ----------
 const plazaTex=canvasTex(512,512,(g,w,h)=>{g.fillStyle='#9a9ea3';g.fillRect(0,0,w,h);
@@ -1396,7 +1457,7 @@ $('heat').addEventListener('click',e=>{heatOn=!heatOn;e.currentTarget.setAttribu
 $('legend').hidden=true;
 $('more').addEventListener('click',e=>{const o=$('visRow').classList.toggle('open');e.currentTarget.setAttribute('aria-expanded',o)});
 document.querySelector('.hint').addEventListener('click',e=>e.currentTarget.classList.toggle('open'));
-let speed=1;$('speed').addEventListener('click',e=>{speed=speed===1?2:speed===2?4:1;e.currentTarget.textContent=speed+'×'});
+let speed=1;$('speed').addEventListener('click',e=>{speed=speed===1?2:speed===2?4:speed===4?8:1;e.currentTarget.textContent=speed+'×'});
 $('cam').addEventListener('click',e=>{camIdx=1-camIdx;Object.assign(cam,camPresets[camIdx]);e.currentTarget.textContent=camIdx?'Schräg':'Draufsicht';applyCam()});
 $('visitors').addEventListener('input',e=>{$('visOut').textContent=nf.format(+e.target.value)});
 let tool='view';
@@ -1421,11 +1482,11 @@ function toggleGate(p){let best=null,bd=5;
   flash('Tippe auf einen grünen Abschnitt am Bauzaun.');return false}
 // Rückgängig: Planstand vor jeder Bauaktion merken
 const undoStack=[];
-function snapshot(){return{tile:tile.slice(),towers:towers.map(o=>({...o})),sanis:sanis.map(o=>({...o})),ordner:ordner.map(o=>({...o})),gates:gates.map(g=>g.open)}}
+function snapshot(){return{stands:stands.map(o=>({...o})),signs:signs.map(o=>({...o})),tile:tile.slice(),towers:towers.map(o=>({...o})),sanis:sanis.map(o=>({...o})),ordner:ordner.map(o=>({...o})),gates:gates.map(g=>g.open)}}
 function pushUndo(sn){undoStack.push(sn);if(undoStack.length>40)undoStack.shift();updateUndo()}
 function updateUndo(){$('undo').disabled=!undoStack.length||S.phase!=='plan'}
 function undo(){if(S.phase!=='plan'||!undoStack.length)return;const sn=undoStack.pop();
-  tile.set(sn.tile);towers=sn.towers;sanis=sn.sanis;ordner=sn.ordner;gates.forEach((g,i)=>g.open=sn.gates[i]);
+  tile.set(sn.tile);stands=sn.stands;signs=sn.signs;towers=sn.towers;sanis=sn.sanis;ordner=sn.ordner;gates.forEach((g,i)=>g.open=sn.gates[i]);
   mapChanged(true);updateUndo();buzz();flash('Letzter Schritt rückgängig gemacht.')}
 $('undo').addEventListener('click',undo);
 $('zClose').addEventListener('click',()=>{$('zoneSheet').hidden=true;zoneOpen=-1});
@@ -1458,7 +1519,7 @@ function snapEnd(a,b){const dx=b.x-a.x,dy=b.y-a.y,ax=Math.abs(dx),ay=Math.abs(dy
   if(Math.abs(ang-Math.PI/4)<T){const l=Math.max(ax,ay);return{x:a.x+Math.sign(dx)*l,y:a.y+Math.sign(dy)*l}}return b}
 function lineCells(a,b){const out=[],seen=new Set(),n=Math.max(Math.abs(b.x-a.x),Math.abs(b.y-a.y));
   for(let k=0;k<=n;k++){const t=n?k/n:0,c=Math.round(a.y+(b.y-a.y)*t)*W+Math.round(a.x+(b.x-a.x)*t);if(!seen.has(c)){seen.add(c);out.push(c)}}return out}
-const eraseable=c=>{const t=tile[c];return !fixed[c]&&(t===2||t===7||t===8||t===9||t===11||t===12||t===15)};
+const eraseable=c=>{const t=tile[c];return !fixed[c]&&(t===2||t===7||t===8||t===9||t===11||t===12||t===15||t===17)};
 function structCells(list,s,x,y){for(const o of list)if(x>=o.x&&x<o.x+s&&y>=o.y&&y<o.y+s){const r=[];for(let j=0;j<s;j++)for(let i=0;i<s;i++)r.push((o.y+j)*W+o.x+i);return r}return null}
 // Plant eine Bauaktion, ohne etwas zu verändern
 function planAction(a,b){
@@ -1472,10 +1533,18 @@ function planAction(a,b){
   if(tool==='erase'){const del=new Set();
     for(const c0 of lineCells(a,b)){const cx=c0%W,cy=(c0/W)|0;
       for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const x=cx+dx,y=cy+dy;if(x<0||y<0||x>=W||y>=H)continue;const c=y*W+x;const t=tile[c];
-        if(t===11||t===12){if(dx||dy)continue;for(const k of structCells(t===11?towers:sanis,t===11?2:3,x,y)||[])del.add(k)}
+        if(!dx&&!dy&&signs.some(o=>o.x===x&&o.y===y))del.add(c);
+        if(t===17){if(dx||dy)continue;const k=standAt(x,y);if(k>=0&&!stands[k].fixed){const o=stands[k];for(let yy=o.y;yy<o.y+o.h;yy++)for(let xx=o.x;xx<o.x+o.w;xx++)del.add(yy*W+xx)}}
+        else if(t===11||t===12){if(dx||dy)continue;for(const k of structCells(t===11?towers:sanis,t===11?2:3,x,y)||[])del.add(k)}
         else if(t===15){if(!dx&&!dy)del.add(c)}else if(eraseable(c))del.add(c)}}
     for(const c of del)g.push([c,GDEL]);
     return{g,ok:del.size,del,txt:del.size?'Entfernen':'Hier ist nichts zu entfernen',bad:!del.size}}
+  if(AM[tool]){const cost=AM[tool].cost,x0=b.x-1,y0=b.y,fits=canPlace(x0,y0,STAND_W,STAND_H),money=base+cost<=BUDGET;
+    for(let j=0;j<STAND_H;j++)for(let i=0;i<STAND_W;i++){const x=x0+i,y=y0+j;if(x>=0&&y>=0&&x<W&&y<H)g.push([y*W+x,fits&&money?GOK:GBAD])}
+    const d=SG[b.y*W+b.x];const hint=isFinite(d)&&d<12?' · nah an der Bühne: Gedränge!':'';
+    return{g,ok:fits&&money?1:0,txt:!money?'Budget reicht nicht':!fits?'Kein Platz':AM[tool].name+' · '+nf.format(cost)+' €'+hint,bad:!(fits&&money)}}
+  if(tool==='sign'){const fits=b.x>0&&b.y>0&&b.x<W-1&&b.y<H-1&&tile[b.y*W+b.x]===0&&!signs.some(o=>o.x===b.x&&o.y===b.y),money=base+COST.sign<=BUDGET;
+    g.push([b.y*W+b.x,fits&&money?GOK:GBAD]);return{g,ok:fits&&money?1:0,txt:!money?'Budget reicht nicht':!fits?'Kein Platz':'Schild · 250 € · zeigt Notausgänge im Umkreis von 16 m',bad:!(fits&&money)}}
   const s=tool==='tower'?2:tool==='sani'?3:1,cost=tool==='tower'?COST.tower:tool==='sani'?COST.sani:COST.ordner;
   const x0=b.x-Math.floor((s-1)/2),y0=b.y-Math.floor((s-1)/2),fits=canPlace(x0,y0,s,s),money=base+cost<=BUDGET;
   for(let j=0;j<s;j++)for(let i=0;i<s;i++){const x=x0+i,y=y0+j;if(x>=0&&y>=0&&x<W&&y<H)g.push([y*W+x,fits&&money?GOK:GBAD])}
@@ -1487,16 +1556,22 @@ function commitAction(a,b){
     if(ch&&tool==='lock'&&pl.g.some(([c,col])=>col===GOK&&lockOwner[c]<0))flash('Diese Zählschleuse begrenzt noch keine Zone. Umschließe den Bereich ringsum mit Wellenbrechern, die Schleuse ist der Zugang.',5000)}
   else if(tool==='erase'){const pl=planAction(a,b);const done=new Set();
     for(const c of pl.del){if(done.has(c))continue;const x=c%W,y=(c/W)|0,t=tile[c];
-      if(t===11||t===12){for(const k of structCells(t===11?towers:sanis,t===11?2:3,x,y)||[])done.add(k);removeAt(x,y)}else if(t===15)removeAt(x,y);else tile[c]=0;ch=true}
+      if(signs.some(o=>o.x===x&&o.y===y)){removeAt(x,y);ch=true;if(t===0)continue}
+      if(t===17){const k=standAt(x,y);if(k>=0){const o=stands[k];for(let yy=o.y;yy<o.y+o.h;yy++)for(let xx=o.x;xx<o.x+o.w;xx++)done.add(yy*W+xx)}removeAt(x,y)}
+      else if(t===11||t===12){for(const k of structCells(t===11?towers:sanis,t===11?2:3,x,y)||[])done.add(k);removeAt(x,y)}else if(t===15)removeAt(x,y);else tile[c]=0;ch=true}
     if(ch)mapChanged(false)}
   else if(tool==='ordner')ch=placeOrd(b);
+  else if(AM[tool]){const pl=planAction(a,b);if(pl.ok&&placeStand(tool,b.x-1,b.y)){mapChanged(false);ch=true;flash(AM[tool].name+' gebaut. Die Besucher kommen bei Bedarf hierher und stehen an: Lass Platz für die Schlange.')}else if(!pl.ok)flash(pl.txt)}
+  else if(tool==='sign'){const pl=planAction(a,b);if(pl.ok&&placeSign(b.x,b.y)){mapChanged(false);ch=true;flash('Fluchtweg-Schild gesetzt: Im grünen Kreis kennen die Leute die Notausgänge.')}else if(!pl.ok)flash(pl.txt)}
   else ch=placeAt(b);
   if(ch){pushUndo(sn);buzz();lastEnd=LINE_TILE[tool]!==undefined?b:null}
 }
 const TOUCH=matchMedia('(pointer:coarse)').matches;
 const TOOL_HINT={wave:'Wellenbrecher fangen Druckwellen ab, bevor sie die Menschen vorn zerquetschen. Am besten 10–18 m hinter der Bühne, mit Durchgängen an den Seiten. Ziehen zeichnet, Loslassen baut',bar:'Ziehen zeichnet eine Linie, Loslassen baut. Neue Linien docken am Ende der letzten an.',
   lock:'Zählschleusen als Lücke in eine geschlossene Wellenbrecher-Linie setzen. Sie zählen, wer in die Zone geht, und schließen, wenn sie voll ist.',ordner:'Antippen und verschieben, Loslassen setzt den Ordner.',tower:'Antippen und verschieben, Loslassen setzt den Hochstand.',
-  sani:'Antippen und verschieben, Loslassen setzt den Sanitätsposten.',gate:'Tippe auf einen Abschnitt am Bauzaun, um einen Notausgang zu öffnen oder zu schließen.',erase:'Über Bauteile wischen, Loslassen entfernt sie. Kosten werden erstattet.'};
+  sani:'Antippen und verschieben, Loslassen setzt den Sanitätsposten.',gate:'Tippe auf einen Abschnitt am Bauzaun, um einen Notausgang zu öffnen oder zu schließen.',erase:'Über Bauteile wischen, Loslassen entfernt sie. Kosten werden erstattet.',
+  drink:'Getränkebars: Die meisten Besucher wollen irgendwann trinken. Setze sie abseits vom Gedränge und lass Platz für die Schlange.',food:'Essensstände: Wer Hunger hat, verlässt seinen Platz. Lange Schlangen machen unzufrieden.',
+  wc:'WC-Container: Fehlen sie, gehen die Leute irgendwohin oder geben auf. Gut erreichbar am Rand.',merch:'Merchstand: Bringt viel Geld, aber Fans drängen sich davor.',sign:'Fluchtweg-Schild: Im Umkreis von 16 m kennen die Leute alle Notausgänge, auch die, die sie nicht sehen.'};
 let camGoal=null;const BUILD_DIST=MOBILE?78:70;
 function setTool(t){tool=t;if((TOUCH||MOBILE)&&t!=='view'&&t!=='gate'&&cam.dist>BUILD_DIST+4)camGoal={dist:BUILD_DIST,tilt:Math.min(cam.tilt,0.45)};document.querySelectorAll('.tool').forEach(o=>o.setAttribute('aria-pressed',o.dataset.tool===t));if(TOOL_HINT[t])flash(TOOL_HINT[t]+(TOUCH?' Zweiter Finger bricht ab.':''),6000)}
 document.querySelectorAll('.tool').forEach(b=>b.addEventListener('click',()=>setTool(tool===b.dataset.tool&&tool!=='view'?'view':b.dataset.tool)));
@@ -1541,7 +1616,7 @@ const store={get(k,d){try{const v=localStorage.getItem('gp.'+k);return v===null?
   set(k,v){try{localStorage.setItem('gp.'+k,JSON.stringify(v))}catch(e){}}};
 
 // ---------- Level ----------
-const ALL_TOOLS=['view','wave','bar','lock','ordner','tower','sani','gate','erase'];
+const ALL_TOOLS=['view','wave','bar','lock','ordner','tower','sani','gate','sign','drink','food','wc','merch','erase'];
 const LEVELS=[
   {map:'wiese',title:'Erste Schritte',desc:'3.500 Besucher, keine Moshpits. Lerne, wie Wellenbrecher die Druckwellen abfangen, bevor sie die Menschen vorn zerquetschen.',
    visitors:3500,mosh:0,lanes:4,budget:20000,showLen:90,events:[],tools:['view','wave','bar','erase'],
@@ -1549,14 +1624,14 @@ const LEVELS=[
   {map:'wiese',title:'Front-Pen',desc:'4.000 Besucher. Grenze den Bereich vor der Bühne als Zone ab und lass nur so viele hinein, wie sicher ist.',
    visitors:4000,mosh:1,lanes:4,budget:30000,showLen:120,events:[],tools:['view','wave','bar','lock','erase'],
    stars:[{hurt:40},{hurt:25},{hurt:18,frontZone:true}]},
-  {map:'strand',title:'Gewitter',desc:'Strandfestival, 4.500 Besucher. Mitten im Konzert zieht ein Gewitter auf und alle müssen schnell raus, auf einer Seite ist das Meer.',
-   visitors:4500,mosh:1,lanes:4,budget:40000,showLen:150,events:[{t:75,type:'storm'}],tools:['view','wave','bar','lock','ordner','gate','erase'],
+  {map:'strand',title:'Gewitter',desc:'Strandfestival, 4.500 Besucher. Mitten im Konzert zieht ein Gewitter auf und alle müssen schnell raus, auf einer Seite ist das Meer. Plane auch Bars, Essen und WCs.',
+   visitors:4500,mosh:1,lanes:4,budget:45000,showLen:150,events:[{t:75,type:'storm'}],needs:true,tools:['view','wave','bar','lock','ordner','gate','sign','drink','food','wc','erase'],
    stars:[{hurt:25},{egress:195},{hurt:12,egress:185}]},
-  {map:'steg',title:'Headliner',desc:'5.000 Besucher, viele Moshpits. Der Headliner spielt auf Laufsteg und B-Stage mitten in der Menge, die Druckwellen kommen jetzt von allen Seiten.',
-   visitors:5000,mosh:2,lanes:4,budget:50000,showLen:150,events:[{t:30,type:'headliner'}],tools:ALL_TOOLS,
+  {map:'steg',title:'Headliner',desc:'5.000 Besucher, viele Moshpits. Der Headliner spielt auf Laufsteg und B-Stage mitten in der Menge, die Druckwellen kommen von allen Seiten. Versorgung und Merch gehören dazu.',
+   visitors:5000,mosh:2,lanes:4,budget:60000,showLen:150,events:[{t:30,type:'headliner'}],needs:true,tools:ALL_TOOLS,
    stars:[{hurt:80},{hurt:45},{hurt:25}]},
   {map:'stadt',title:'Ausverkauft',desc:'Stadtplatz, 5.500 Besucher. Enge Gassen zwischen den Häuserblöcken, Headliner und Moshpits.',
-   visitors:5500,mosh:2,lanes:5,budget:60000,showLen:180,events:[{t:40,type:'headliner'},{t:120,type:'headliner'}],tools:ALL_TOOLS,
+   visitors:5500,mosh:2,lanes:5,budget:70000,showLen:180,needs:true,events:[{t:40,type:'headliner'},{t:120,type:'headliner'}],tools:ALL_TOOLS,
    stars:[{hurt:120},{hurt:50},{hurt:22,score:650}]}
 ];
 let LV=null,LVi=-1;
@@ -1572,9 +1647,14 @@ function renderMenu(){const box=$('levels');box.textContent='';const prog=store.
 let started=false;
 function openMenu(){renderMenu();$('menu').hidden=false}
 function closeMenu(){$('menu').hidden=true}
-function applyTools(list){document.querySelectorAll('.tool').forEach(b=>b.hidden=!list.includes(b.dataset.tool));if(!list.includes(tool))setTool('view')}
+let toolCat='safe',toolList=null;
+function filterTools(){document.querySelectorAll('.tool').forEach(b=>b.hidden=(toolList&&!toolList.includes(b.dataset.tool))||(b.dataset.cat!=='all'&&b.dataset.cat!==toolCat));
+  const sup=!toolList||toolList.some(t=>AM[t]);document.querySelector('.cats').hidden=!sup;if(!sup&&toolCat!=='safe'){toolCat='safe';filterTools()}
+document.querySelectorAll('.cats button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.cat===toolCat))}
+document.querySelectorAll('.cats button').forEach(b=>b.addEventListener('click',()=>{toolCat=b.dataset.cat;filterTools();if(tool!=='view'&&tool!=='erase'){const tb=document.querySelector(`.tool[data-tool="${tool}"]`);if(tb&&tb.hidden)setTool('view')}}));
+function applyTools(list){toolList=list;filterTools();if(!list.includes(tool))setTool('view')}
 function startLevel(i){
-  LVi=i;LV=LEVELS[i];started=true;BUDGET=LV.budget;setMap(LV.map);CFG.mosh=LV.mosh;CFG.lanes=LV.lanes;CFG.showLen=LV.showLen;CFG.events=LV.events;
+  LVi=i;LV=LEVELS[i];started=true;BUDGET=LV.budget;setMap(LV.map);CFG.needs=!!LV.needs;CFG.mosh=LV.mosh;CFG.lanes=LV.lanes;CFG.showLen=LV.showLen;CFG.events=LV.events;
   resetRound();loadPlan(store.get('lvl'+i,null));undoStack.length=0;updateUndo();applyTools(LV.tools);
   Object.assign(cam,camPresets[0]);camIdx=0;$('cam').textContent='Draufsicht';applyCam();
   $('goals').hidden=false;renderGoals();closeMenu();
@@ -1582,7 +1662,7 @@ function startLevel(i){
   if(i===0&&!store.get('tut',false))startCoach();
 }
 function startFree(){
-  LV=null;LVi=-1;started=true;BUDGET=60000;CFG.mosh=+document.querySelector('[data-mosh][aria-pressed="true"]').dataset.mosh;CFG.lanes=+$('lanes').value;
+  LV=null;LVi=-1;started=true;BUDGET=60000;CFG.needs=true;CFG.mosh=+document.querySelector('[data-mosh][aria-pressed="true"]').dataset.mosh;CFG.lanes=+$('lanes').value;
   CFG.showLen=150;CFG.events=[{t:60,type:'headliner'}];
   resetRound();const sv=fromHash()||store.get('free',null);if(sv)loadPlan(sv);else{buildMap(true);if(sceneMap!==MAP)applyMapScene();mapChanged(true);resetRound()}
   undoStack.length=0;updateUndo();applyTools(ALL_TOOLS);$('goals').hidden=true;closeMenu();
@@ -1591,7 +1671,7 @@ function renderGoals(){if(!LV){$('goals').hidden=true;return}
   $('goals').innerHTML='<span>Ziele:</span>'+LV.stars.map((g,i)=>`<span><b>${'★'.repeat(i+1)}</b> ${starGoalText(g,true)}</span>`).join('')}
 $('menuBtn').addEventListener('click',openMenu);
 document.querySelectorAll('[data-map]').forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.map;if(id===MAP||S.phase!=='plan'||LV)return;
-  const busy=towers.length||sanis.length||ordner.length||[...tile].some((t,i)=>!fixed[i]&&(t===2||t===7||t===9));
+  const busy=towers.length||sanis.length||ordner.length||stands.some(o=>!o.fixed)||signs.length||[...tile].some((t,i)=>!fixed[i]&&(t===2||t===7||t===9));
   if(busy&&!confirm('Ort wechseln? Der aktuelle Plan wird verworfen.'))return;
   setMap(id);buildMap(false);applyMapScene();mapChanged(true);resetRound();undoStack.length=0;updateUndo();savePlanAuto();flash('Ort: '+MAPS[id].name)}));$('menuClose').addEventListener('click',closeMenu);
 $('freeBtn').addEventListener('click',startFree);$('tutBtn').addEventListener('click',()=>{store.set('tut',false);startLevel(0);startCoach()});
@@ -1602,11 +1682,12 @@ $('next').addEventListener('click',()=>{$('result').hidden=true;if(LVi+1<LEVELS.
 function planToObj(){const t=[];let i=0;
   while(i<N){const v0=tile[i],v=v0===8?2:v0;if(!fixed[i]&&(v===2||v===7||v===9)){let j=i;while(j+1<N&&!fixed[j+1]&&(tile[j+1]===8?2:tile[j+1])===v)j++;t.push(v,i,j-i+1);i=j+1}else i++}
   const zl=[];for(const z of ZONES)if(z.custom){let c=-1;for(let k=0;k<N;k++)if(zoneId[k]===z.id){c=k;break}if(c>=0)zl.push([c,z.limit])}
-  return{v:1,m:MAP,t,tw:towers.map(o=>[o.x,o.y]),sa:sanis.map(o=>[o.x,o.y]),or:ordner.map(o=>[o.x,o.y]),g:gates.map(g=>g.open?1:0),l:CFG.lanes,z:zl}}
+  return{v:1,m:MAP,am:stands.filter(o=>!o.fixed).map(o=>[AM_TYPES.indexOf(o.type),o.x,o.y]),sg:signs.map(o=>[o.x,o.y]),t,tw:towers.map(o=>[o.x,o.y]),sa:sanis.map(o=>[o.x,o.y]),or:ordner.map(o=>[o.x,o.y]),g:gates.map(g=>g.open?1:0),l:CFG.lanes,z:zl}}
 function loadPlan(o){
   const want=LV?LV.map:o&&o.m&&MAPS[o.m]?o.m:MAP;if(want!==MAP)setMap(want);
   buildMap(false);
   if(o&&o.v===1){for(let k=0;k+2<o.t.length;k+=3){const v=o.t[k],a=o.t[k+1],n=o.t[k+2];for(let c=a;c<a+n&&c<N;c++)if(!fixed[c]&&tile[c]===0)tile[c]=v}
+    for(const [ty,x,y] of o.am||[])placeStand(AM_TYPES[ty],x,y);for(const [x,y] of o.sg||[])placeSign(x,y);
     for(const [x,y] of o.tw||[])placeStruct('tower',x,y);for(const [x,y] of o.sa||[])placeStruct('sani',x,y);for(const [x,y] of o.or||[])placeOrdner(x,y);
     (o.g||[]).forEach((v,i)=>{if(gates[i])setGate(gates[i],!!v)});if(!LV&&o.l){CFG.lanes=o.l;$('lanes').value=o.l;$('lanesOut').textContent=o.l+' je Eingang'}}
   computeGeo();
@@ -1631,8 +1712,9 @@ $('share').addEventListener('click',async()=>{const url=location.origin+location
 function roundResult(){
   const hurt=S.hurt,egress=S.egressT,left=Math.max(0,BUDGET-planCost());
   const played=!S.aborted?1:S.showStart&&CFG.showLen?Math.min(1,Math.max(0,(S.showEndT-S.showStart)/CFG.showLen)):0;
-  const safety=Math.round(550*Math.max(0,1-hurt/50)),show=Math.round(100*played),ev=Math.round(200*Math.min(1,Math.max(0,(270-egress)/180))),bud=Math.round(150*left/BUDGET);
-  return{hurt,egress,played,score:safety+show+ev+bud,safety,show,ev,bud,frontZone:ZONES.some(z=>z.front&&z.locks.length)}}
+  const needs=S.served+S.unmet+S.gaveUp,supRate=!CFG.needs||!needs?1:Math.max(0,(S.served-0.5*S.longWait)/needs);
+  const safety=Math.round(500*Math.max(0,1-hurt/50)),show=Math.round(100*played),ev=Math.round(150*Math.min(1,Math.max(0,(270-egress)/180))),sup=Math.round(150*supRate),bud=Math.round(100*left/BUDGET);
+  return{hurt,egress,played,supRate,score:safety+show+ev+sup+bud,safety,show,ev,sup,bud,frontZone:ZONES.some(z=>z.front&&z.locks.length)}}
 function regionName(c){const x=c%W,y=(c/W)|0;
   for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const xx=x+dx,yy=y+dy;if(xx>=0&&yy>=0&&xx<W&&yy<H&&tile[yy*W+xx]===7)return'an den Zählschleusen'}
   if(SG[c]<=3){if(MAPDEF.runway&&y>14)return y>=27?'an der B-Stage':'am Laufsteg';return x<22?'links direkt vor der Bühne':x>37?'rechts direkt vor der Bühne':'direkt vor der Bühne'}
@@ -1656,6 +1738,11 @@ function analyzeRound(){
           :`${n} Verletzte ${r}: Die Druckwellen kamen noch durch. Eine zweite, versetzte Reihe Wellenbrecher${zoneTip} bricht sie weiter.`})());
     else tips.push(`${n} Verletzte ${r}: Hier wurde es gefährlich eng. Ein Wellenbrecher${hasTool('ordner')?' oder Ordner':''} in der Nähe hilft.`)}
   if(S.tips)tips.push('Umgekippte Hamburger Gitter wurden zur Stolperfalle. Wo Druck entsteht, nur Wellenbrecher einsetzen.');
+  if(CFG.needs&&tips.length<3){const nm=['Getränke','Essen','WC','Merch'],tool=['Getränkebars','Essensstände','WC-Container','Merchstände'];
+    let wu=-1,wv=0;for(let q=0;q<4;q++)if(S.unmetBy[q]>wv){wv=S.unmetBy[q];wu=q}
+    let wl=-1,lv=0;for(let q=0;q<4;q++)if(S.longBy[q]>lv){lv=S.longBy[q];wl=q}
+    if(wu>=0&&wv>=20)tips.push(`${nf.format(wv)} Besucher wollten ${nm[wu]}, aber es gab nichts. Bau ${tool[wu]}.`);
+    else if(wl>=0&&lv>=40)tips.push(`${nf.format(lv)} Besucher standen zu lange an oder gaben auf (${nm[wl]}). Mehr ${tool[wl]} oder näher an der Menge, aber nicht im Gedränge.`)}
   if(S.egressT>180&&hasTool('gate')&&gates.some(g=>!g.open))tips.push(`Die Räumung dauerte ${fmtT(S.egressT)}. Mit dem Notausgang-Werkzeug öffnest du zusätzliche Wege am Bauzaun.`);
   if(S.hurt>0&&hasTool('sani')&&!sanis.length&&tips.length<3)tips.push('Ohne Sanitätsposten dauert die Versorgung länger und Verletzte blockieren den Platz.');
   if(S.pitsTotal>1&&hasTool('ordner')&&!ordner.length&&tips.length<3)tips.push('Ordner verhindern Moshpits in ihrem Umkreis.');
@@ -1673,7 +1760,8 @@ function drawResultMap(){const cv=$('rMap'),g=cv.getContext('2d'),img=g.createIm
 function showResult(){
   const r=roundResult(),[v,t]=verdict(r);$('rTitle').textContent=S.storm?'Gewitter: '+v:S.aborted?'Abgebrochen: '+v:v;
   $('rText').textContent=t+(S.aborted?(S.abortHot||S.abortHurt>=10?' Der Abbruch war richtig: Es war bereits gefährlich.':' Der Abbruch kam ohne akute Gefahr und hat '+Math.round((1-r.played)*100)+' % der Show gekostet.'):'');
-  $('rScore').textContent=nf.format(r.score);$('rBreak').textContent=`Sicherheit ${r.safety} · Show ${r.show} · Räumung ${r.ev} · Budget ${r.bud}`;
+  $('rScore').textContent=nf.format(r.score);$('rBreak').textContent=`Sicherheit ${r.safety} · Show ${r.show} · Räumung ${r.ev} · Versorgung ${r.sup} · Budget ${r.bud}`;
+  {const nd=S.served+S.unmet+S.gaveUp;$('rSupply').textContent=CFG.needs&&nd?Math.round(S.served/nd*100)+' % ('+nf.format(S.served)+' / '+nf.format(nd)+')':'–';$('rRev').textContent=nf.format(S.revenue)+' €'}
   $('rHurt').textContent=nf.format(S.hurt);$('rTime').textContent=fmtT(S.egressT);$('rPeak').textContent=fmtD(S.maxPeak)+' P/m²';
   $('rPulled').textContent=nf.format(S.pulled);$('rTips2').textContent=nf.format(S.tips);$('rCost').textContent=nf.format(planCost())+' €';$('rPits').textContent=nf.format(S.pitsTotal);
   const ul=$('rTips');ul.textContent='';for(const tx of analyzeRound()){const li=document.createElement('li');li.textContent=tx;ul.appendChild(li)}
@@ -1739,16 +1827,16 @@ function coachTick(){if(coachI<0)return;if(COACH[coachI].done())nextCoach()}
 $('coachNext').addEventListener('click',nextCoach);$('coachSkip').addEventListener('click',()=>{coachI=COACH.length-1;nextCoach()});
 
 // ---------- Ton (synthetisch, ohne Dateien) ----------
-let AU_ON=store.get('sound',true),AC=null,AM=null,crowdG=null,musicG=null,noiseBuf=null,nextBeat=0,beatN=0;
+let AU_ON=store.get('sound',true),AC=null,AMG=null,crowdG=null,musicG=null,noiseBuf=null,nextBeat=0,beatN=0;
 function audioInit(){if(AC||!AU_ON)return;try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){return}
-  AM=AC.createGain();AM.gain.value=0.55;AM.connect(AC.destination);
+  AMG=AC.createGain();AMG.gain.value=0.55;AMG.connect(AC.destination);
   noiseBuf=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
   const src=AC.createBufferSource();src.buffer=noiseBuf;src.loop=true;const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=520;bp.Q.value=0.6;
-  crowdG=AC.createGain();crowdG.gain.value=0;src.connect(bp).connect(crowdG).connect(AM);src.start();
-  musicG=AC.createGain();musicG.gain.value=0;musicG.connect(AM);nextBeat=AC.currentTime+0.1}
+  crowdG=AC.createGain();crowdG.gain.value=0;src.connect(bp).connect(crowdG).connect(AMG);src.start();
+  musicG=AC.createGain();musicG.gain.value=0;musicG.connect(AMG);nextBeat=AC.currentTime+0.1}
 function env(g,t,a,peak,dec){g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(peak,t+a);g.gain.exponentialRampToValueAtTime(0.0001,t+a+dec)}
-function tone(type,f0,f1,t,dur,peak,dest){const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f0,t);if(f1)o.frequency.exponentialRampToValueAtTime(f1,t+dur);env(g,t,0.005,peak,dur);o.connect(g).connect(dest||AM);o.start(t);o.stop(t+dur+0.05)}
-function noise(t,dur,peak,ftype,freq,q,dest){const s=AC.createBufferSource();s.buffer=noiseBuf;const f=AC.createBiquadFilter();f.type=ftype;f.frequency.value=freq;if(q)f.Q.value=q;const g=AC.createGain();env(g,t,0.01,peak,dur);s.connect(f).connect(g).connect(dest||AM);s.start(t,Math.random());s.stop(t+dur+0.1)}
+function tone(type,f0,f1,t,dur,peak,dest){const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f0,t);if(f1)o.frequency.exponentialRampToValueAtTime(f1,t+dur);env(g,t,0.005,peak,dur);o.connect(g).connect(dest||AMG);o.start(t);o.stop(t+dur+0.05)}
+function noise(t,dur,peak,ftype,freq,q,dest){const s=AC.createBufferSource();s.buffer=noiseBuf;const f=AC.createBiquadFilter();f.type=ftype;f.frequency.value=freq;if(q)f.Q.value=q;const g=AC.createGain();env(g,t,0.01,peak,dur);s.connect(f).connect(g).connect(dest||AMG);s.start(t,Math.random());s.stop(t+dur+0.1)}
 function sfx(type){if(!AC||!AU_ON)return;const t=AC.currentTime;
   if(type==='surge'){noise(t,1.6,0.35,'bandpass',1100,0.8);noise(t+0.1,1.2,0.2,'bandpass',2200,1)}
   else if(type==='calm'){tone('sine',659,0,t,0.5,0.25);tone('sine',523,0,t+0.55,0.7,0.25)}
@@ -1766,7 +1854,7 @@ function audioTick(){if(!AC)return;const t=AC.currentTime,ph=S.phase;
     if(mus>0){tone('sine',140,42,bt,0.28,0.9,musicG);noise(bt+0.238,0.05,0.12,'highpass',7000,0,musicG);
       const bn=[55,55,65.4,49][(beatN>>3)%4];tone('sawtooth',bn,0,bt+0.238,0.2,0.12,musicG)}
     nextBeat+=60/126}}
-function setSound(on){AU_ON=on;store.set('sound',on);$('snd').setAttribute('aria-pressed',on);$('snd').setAttribute('aria-label',on?'Ton aus':'Ton an');if(on)audioInit();if(AC)AM.gain.setTargetAtTime(on?0.55:0,AC.currentTime,0.05)}
+function setSound(on){AU_ON=on;store.set('sound',on);$('snd').setAttribute('aria-pressed',on);$('snd').setAttribute('aria-label',on?'Ton aus':'Ton an');if(on)audioInit();if(AC)AMG.gain.setTargetAtTime(on?0.55:0,AC.currentTime,0.05)}
 $('snd').addEventListener('click',()=>setSound(!AU_ON));
 addEventListener('pointerdown',()=>{audioInit();if(AC&&AC.state==='suspended')AC.resume()},{capture:true});
 setSound(AU_ON);
@@ -1831,7 +1919,7 @@ function frame(now){
   if(camGoal){const k=Math.min(1,rdt*5),g=camGoal;cam.dist+=(g.dist-cam.dist)*k;cam.tilt+=(g.tilt-cam.tilt)*k;
     if(g.tx!==undefined){cam.tx+=(g.tx-cam.tx)*k;cam.tz+=(g.tz-cam.tz)*k}applyCam();
     if(Math.abs(cam.dist-g.dist)<0.5&&(g.tx===undefined||Math.hypot(g.tx-cam.tx,g.tz-cam.tz)<0.5))camGoal=null}
-  acc+=rdt*speed;let n=0;while(acc>=DT&&n<6){step(DT);acc-=DT;n++}if(n>=6)acc=0;
+  acc+=rdt*speed;let n=0;while(acc>=DT&&n<10){step(DT);acc-=DT;n++}if(n>=10)acc=0;
   updatePeople(rdt,t);updatePits(t);
   if(heatOn)updateHeat();
   const calmNow=S.calm>0&&(S.phase==='show'||S.phase==='ingress');
