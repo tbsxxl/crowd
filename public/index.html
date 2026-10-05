@@ -294,7 +294,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--hazard);outline
 // ---------- Simulation (ohne DOM) ----------
 const W=60,H=100,N=W*H,MAXA=7000,DT=1/30;
 const RB=0.46,K_BODY=120,K_FR=40,A_SOC=0.8,B_SOC=0.15,R_SOC=1.1,LAMBDA=0.35,KW=80;
-const INV_TAU=2,VMAX=2.2,MEDIC_T=20,MEDIC_SANI=8,MEDIC_PIT=5,PUSH_OUT=0.2,PUSH_OUT_STORM=0.35,PUSH_FAN=0.5,SWAY=0.1,SWAY_R=25,SPREAD_D=1.2,SPREAD_V=0.35,WB_PRESS=0.35,FAN_IDLE=0.06,FAN_DENSE=3.2,SURGE_EVERY=[25,45],SURGE_LEN=5,P_CRIT=6,P_TIME=3;
+const INV_TAU=2,VMAX=2.2,MEDIC_T=20,MEDIC_SANI=8,MEDIC_PIT=5,PUSH_OUT=0.2,PUSH_OUT_STORM=0.35,PUSH_FAN=0.6,SWAY=0.13,SWAY_R=25,SPREAD_D=1.2,SPREAD_V=0.35,WB_PRESS=0.35,FAN_IDLE=0.06,FAN_DENSE=3.2,SURGE_EVERY=[25,45],SURGE_LEN=5,P_CRIT=6,P_TIME=3;
 const GATE_SEE=35,ORD_R=7,PIT_R=4.5,G_TIP=14,G_TIP_T=3,G_CHAIN=2,WATCH_R=16,SANI_R=26,PULL_RATE=0.7;
 let BUDGET=60000;const COST={gitter:15,wave:120,lock:350,tower:3000,sani:5000,gate:1500,ordner:400,lane:800};
 const CFG={lanes:4,mosh:1,showLen:0,events:[]}; // showLen: Konzertdauer in s (0 = von Hand beenden), events: [{t,type}] ab Konzertbeginn
@@ -709,7 +709,7 @@ function step(dt){
     // Security im Graben zieht Bedrängte über die Barriere
     if(stageAdj[c]&&pr[i]>P_CRIT*0.8&&S.pullAcc>=1){S.pullAcc-=1;st[i]=0;S.pulled++;S.dirty=true;continue}
     const crit=tile[c]===8?P_CRIT*0.6:P_CRIT;
-    if(pr[i]>crit&&injT[i]>8){crT[i]+=dt*(ord[c]?0.4:1)*(watch[c]?0.5:1);if(crT[i]>P_TIME&&rng()<dt*0.4){injure(i);continue}}else crT[i]=Math.max(0,crT[i]-dt);
+    if(pr[i]>crit&&injT[i]>8){crT[i]+=dt*(ord[c]?0.4:1)*(watch[c]?0.5:1);if(crT[i]>P_TIME&&rng()<dt*0.08){injure(i);continue}}else crT[i]=Math.max(0,crT[i]-dt);
     let nvx=vx[i]+fx*dt,nvy=vy[i]+fy*dt;const sp=Math.hypot(nvx,nvy);if(sp>VMAX){nvx*=VMAX/sp;nvy*=VMAX/sp}
     let nx=x+nvx*dt;{const nc=(y|0)*W+(nx|0);if(nx<0.05||nx>W-0.05||(nc!==c&&wallC(nc))){nx=x;nvx*=-0.2}}
     let ny=y+nvy*dt;{const nc=(ny|0)*W+(nx|0);if(ny<0.05||ny>H-0.05||(nc!==c&&wallC(nc))){ny=y;nvy*=-0.2}}
@@ -1329,7 +1329,7 @@ const fmtT=t=>{t=Math.floor(t);return String(Math.floor(t/60)).padStart(2,'0')+'
 const fmtD=d=>d.toFixed(1).replace('.',',');
 const nf=new Intl.NumberFormat('de-DE');
 const HINTS={
-  plan:'Umschließe Bereiche mit Wellenbrechern und setze Zählschleusen als Zugang: So entstehen Zonen. Tippe auf das Zonen-Etikett, um festzulegen, wie viele hinein dürfen.',
+  plan:'Wellenbrecher 10–15 m hinter der Bühne fangen Druckwellen ab. Umschließt du einen Bereich und setzt Zählschleusen als Zugang, entsteht eine Zone mit Personenlimit.',
   ingress:'Einlass läuft, Flutlicht an. Das Konzert beginnt, wenn alle ihren Platz gefunden haben. Ist eine Zone voll, schließen ihre Zählschleusen.',
   show:'Das Konzert läuft bis zum Ende. Druck im Publikum? „Durchsage“ beruhigt die Menge. Nur wenn es zu gefährlich wird: „Abbruch“.',
   egress:'Räumung läuft. Notausgänge werden nur genutzt, wenn man sie aus der Nähe sieht.',
@@ -1466,7 +1466,8 @@ function planAction(a,b){
   if(LINE_TILE[tool]!==undefined){const cells=lineCells(a,b),cost=LINE_COST[tool];let ok=0,broke=false,blocked=0;
     for(const c of cells){if(tile[c]!==0||fixed[c]){g.push([c,GBAD]);blocked++;continue}
       if(base+cost>BUDGET){g.push([c,GBAD]);broke=true;continue}base+=cost;ok++;g.push([c,GOK])}
-    const txt=ok?ok+' m · '+nf.format(ok*cost)+' €'+(broke?' · Budget reicht nicht':''):broke?'Budget reicht nicht':'Kein Platz';
+    let dist='';if(tool==='wave'&&cells.length){const mc=cells[cells.length>>1],d=SG[mc];if(isFinite(d)&&d<40){const m=Math.round(d);dist=' · '+m+' m vor der Bühne'+(m>=10&&m<=18?' ✓':m<10?' (zu nah)':'')}}
+    const txt=ok?ok+' m · '+nf.format(ok*cost)+' €'+dist+(broke?' · Budget reicht nicht':''):broke?'Budget reicht nicht':'Kein Platz';
     return{g,cells,ok,txt,bad:!ok||broke}}
   if(tool==='erase'){const del=new Set();
     for(const c0 of lineCells(a,b)){const cx=c0%W,cy=(c0/W)|0;
@@ -1493,7 +1494,7 @@ function commitAction(a,b){
   if(ch){pushUndo(sn);buzz();lastEnd=LINE_TILE[tool]!==undefined?b:null}
 }
 const TOUCH=matchMedia('(pointer:coarse)').matches;
-const TOOL_HINT={wave:'Ziehen zeichnet eine gerade Linie, Loslassen baut. Linien rasten waagerecht, senkrecht und diagonal ein.',bar:'Ziehen zeichnet eine Linie, Loslassen baut. Neue Linien docken am Ende der letzten an.',
+const TOOL_HINT={wave:'Wellenbrecher fangen Druckwellen ab, bevor sie die Menschen vorn zerquetschen. Am besten 10–18 m hinter der Bühne, mit Durchgängen an den Seiten. Ziehen zeichnet, Loslassen baut',bar:'Ziehen zeichnet eine Linie, Loslassen baut. Neue Linien docken am Ende der letzten an.',
   lock:'Zählschleusen als Lücke in eine geschlossene Wellenbrecher-Linie setzen. Sie zählen, wer in die Zone geht, und schließen, wenn sie voll ist.',ordner:'Antippen und verschieben, Loslassen setzt den Ordner.',tower:'Antippen und verschieben, Loslassen setzt den Hochstand.',
   sani:'Antippen und verschieben, Loslassen setzt den Sanitätsposten.',gate:'Tippe auf einen Abschnitt am Bauzaun, um einen Notausgang zu öffnen oder zu schließen.',erase:'Über Bauteile wischen, Loslassen entfernt sie. Kosten werden erstattet.'};
 let camGoal=null;const BUILD_DIST=MOBILE?78:70;
@@ -1649,7 +1650,10 @@ function analyzeRound(){
     const zoneTip=hasTool('lock')?' oder eine Zone mit Limit':'';
     if(r==='an den Zählschleusen')tips.push(`${n} Verletzte ${r}: Dort hat sich der Andrang gestaut. Mehr oder breitere Schleusen verteilen ihn.`);
     else if(r.includes('vor der Bühne')||r==='am Laufsteg'||r==='an der B-Stage')tips.push(ZONES.some(z=>z.front)?`${n} Verletzte ${r}: Senke das Limit der Bühnenzone oder setze Wellenbrecher hinein, die die Druckwellen brechen.`
-      :`${n} Verletzte ${r}: Die Druckwellen drücken alle gegen die Barriere. Wellenbrecher dahinter${zoneTip} fangen das ab.`);
+      :(()=>{let wb=0,near=0;for(let c=0;c<N;c++)if(tile[c]===9&&!fixed[c]){wb++;if(SG[c]<9)near++}
+        return !wb?`${n} Verletzte ${r}: Jede Druckwelle hat die ganze Menge gegen die Barriere geschoben. Ein Wellenbrecher 10–15 m hinter der Bühne fängt den Schub ab${zoneTip}.`
+          :near>wb/2?`${n} Verletzte ${r}: Deine Wellenbrecher stehen zu nah an der Bühne, davor staut es sich. Setze sie 10–15 m nach hinten.`
+          :`${n} Verletzte ${r}: Die Druckwellen kamen noch durch. Eine zweite, versetzte Reihe Wellenbrecher${zoneTip} bricht sie weiter.`})());
     else tips.push(`${n} Verletzte ${r}: Hier wurde es gefährlich eng. Ein Wellenbrecher${hasTool('ordner')?' oder Ordner':''} in der Nähe hilft.`)}
   if(S.tips)tips.push('Umgekippte Hamburger Gitter wurden zur Stolperfalle. Wo Druck entsteht, nur Wellenbrecher einsetzen.');
   if(S.egressT>180&&hasTool('gate')&&gates.some(g=>!g.open))tips.push(`Die Räumung dauerte ${fmtT(S.egressT)}. Mit dem Notausgang-Werkzeug öffnest du zusätzliche Wege am Bauzaun.`);
@@ -1722,7 +1726,7 @@ let userCam=false,coachI=-1,coachT0=0;
 const COACH=[
   {t:'Willkommen! Wisch mit einem Finger über das Gelände, um die Kamera zu drehen. Mit zwei Fingern zoomst und verschiebst du.',done:()=>userCam,sel:null,finger:false},
   {t:'Bei Druckwellen schiebt die Menge gegen die Bühne. Wähle den Wellenbrecher.',done:()=>tool==='wave',sel:'[data-tool="wave"]'},
-  {t:'Zieh eine Linie quer über das Feld, ein paar Meter hinter der Bühne. Beim Loslassen wird gebaut, ein zweiter Finger bricht ab.',done:()=>{let n=0;for(let i=0;i<N;i++)if(!fixed[i]&&tile[i]===9)n++;return n>=6},sel:null,finger:true},
+  {t:'Zieh eine Linie quer über das Feld, etwa 12 m hinter der Bühne (die Vorschau zeigt den Abstand). Bei einer Druckwelle schiebt die Menge gerade nach vorn: Der Wellenbrecher fängt den Schub ab. Beim Loslassen wird gebaut.',done:()=>{let n=0;for(let i=0;i<N;i++)if(!fixed[i]&&tile[i]===9)n++;return n>=6},sel:null,finger:true},
   {t:'Gut! Ein zweiter Wellenbrecher mit Lücke dazwischen fängt noch mehr ab. Wenn du fertig bist: Einlass öffnen.',done:()=>S.phase!=='plan',sel:'#main'},
   {t:'Achte auf rote Kreise: Dort wird es gefährlich. Liegen sie außerhalb des Bildes, tippe auf den roten Pfeil am Rand.',done:()=>performance.now()-coachT0>9000,sel:null}];
 function startCoach(){coachI=-1;nextCoach()}
