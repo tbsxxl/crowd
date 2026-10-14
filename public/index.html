@@ -863,7 +863,7 @@ renderer.setClearColor(0xe9e6e0);
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene=new THREE.Scene();
 scene.fog=new THREE.FogExp2(0xe9e6e0,0.0004);
-const camera=new THREE.PerspectiveCamera(30,1,0.5,1100);
+const camera=new THREE.PerspectiveCamera(30,1,3,1100);
 const CAM_K=Math.tan(21*Math.PI/180)/Math.tan(15*Math.PI/180); // gleicher Bildausschnitt wie früher mit 42°
 
 // ---------- Hilfen ----------
@@ -909,7 +909,7 @@ let flood=1,day=1;const SKY_N=new THREE.Color(0x5a6c96),SKY_D=new THREE.Color(0x
 // ---------- Boden & Stadt ----------
 const asphalt=canvasTex(256,256,(g,w,h)=>{g.fillStyle='#55585e';g.fillRect(0,0,w,h);for(let i=0;i<5000;i++){const v=70+rnd()*30|0;g.fillStyle=`rgb(${v},${v+2},${v+6})`;g.fillRect(rnd()*w,rnd()*h,1.5,1.5)}},true);
 // Diorama: das Gelände samt Ringstraße als freigestellter Block mit Erdschichten an den Schnittkanten
-const DIORAMA=true,DX0=-18,DX1=78,DZ0=-18,DZ1=122,DDEPTH=12;
+const DIORAMA=true,DX0=-18,DX1=78,DZ0=-18,DZ1=122,DDEPTH=12,DTOP=-0.35; // Oberseite deutlich unter dem Gelände: der Tiefenpuffer der Effekte hat nur 16 Bit
 asphalt.repeat.set((DX1-DX0)/500*60,(DZ1-DZ0)/500*60);
 function strataTex(len){return canvasTex(Math.round(len*10),128,(g,w,h)=>{
   const L=[[0,'#5b5d60'],[.06,'#efe6d2'],[.24,'#e2d1ad'],[.5,'#cfb68a'],[.76,'#a9875b']];
@@ -919,7 +919,7 @@ function strataTex(len){return canvasTex(Math.round(len*10),128,(g,w,h)=>{
 const outside=(()=>{const sx=new THREE.MeshLambertMaterial({map:strataTex(DZ1-DZ0),color:0xd2c9b8}),sz=new THREE.MeshLambertMaterial({map:strataTex(DX1-DX0),color:0xd2c9b8});
   const top=new THREE.MeshPhongMaterial({map:asphalt,shininess:30,specular:0x111111}),bot=new THREE.MeshLambertMaterial({color:0x7d6a4f});
   const m=new THREE.Mesh(new THREE.BoxGeometry(DX1-DX0,DDEPTH,DZ1-DZ0),[sx,sx,top,bot,sz,sz]);
-  m.position.set((DX0+DX1)/2,-0.05-DDEPTH/2,(DZ0+DZ1)/2);m.receiveShadow=true;scene.add(m);return m})();
+  m.position.set((DX0+DX1)/2,DTOP-DDEPTH/2,(DZ0+DZ1)/2);m.receiveShadow=true;scene.add(m);return m})();
 // weicher Kontaktschatten unter dem Block
 {const t=canvasTex(256,256,(g,w,h)=>{const r=g.createRadialGradient(w/2,h/2,w*0.18,w/2,h/2,w/2);r.addColorStop(0,'rgba(36,39,43,.32)');r.addColorStop(1,'rgba(36,39,43,0)');g.fillStyle=r;g.fillRect(0,0,w,h)});
  const m=new THREE.Mesh(new THREE.PlaneGeometry((DX1-DX0)*1.5,(DZ1-DZ0)*1.4),new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false,fog:false}));
@@ -927,7 +927,12 @@ const outside=(()=>{const sx=new THREE.MeshLambertMaterial({map:strataTex(DZ1-DZ
 const pave=canvasTex(128,128,(g,w,h)=>{g.fillStyle='#b4b2ab';g.fillRect(0,0,w,h);g.strokeStyle='#a09e97';g.lineWidth=2;for(let i=0;i<=4;i++){g.beginPath();g.moveTo(i*32,0);g.lineTo(i*32,h);g.moveTo(0,i*32);g.lineTo(w,i*32);g.stroke()}
   for(let i=0;i<600;i++){const v=160+rnd()*25|0;g.fillStyle=`rgb(${v},${v},${v-4})`;g.fillRect(rnd()*w,rnd()*h,1,1)}},true);
 pave.repeat.set(19,29);
-const walk=new THREE.Mesh(new THREE.BoxGeometry(76,0.12,116),new THREE.MeshPhongMaterial({map:pave,shininess:5}));walk.position.set(30,0,50);walk.receiveShadow=true;scene.add(walk);
+const shoreXJs=z=>z<28?-9:Math.min(12.4,3+(z-28)*0.13);
+const SEA_U={uSea:{value:0}},SEA_GLSL='float shoreX(float z){return z<28.0?-9.0:min(12.4,3.0+(z-28.0)*0.13);}\n';
+function seaCut(m){m.onBeforeCompile=sh=>{sh.uniforms.uSea=SEA_U.uSea; // Fläche verschwindet, wo am Strand Meer ist
+  sh.vertexShader='varying vec3 vCutW;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvCutW=(modelMatrix*vec4(transformed,1.0)).xyz;');
+  sh.fragmentShader='varying vec3 vCutW;uniform float uSea;\n'+SEA_GLSL+sh.fragmentShader.replace('void main() {','void main() {\nif(uSea>0.5&&vCutW.x<shoreX(vCutW.z))discard;')};return m}
+const walk=new THREE.Mesh(new THREE.BoxGeometry(76,0.06-DTOP,116),seaCut(new THREE.MeshPhongMaterial({map:pave,shininess:5})));walk.position.set(30,(0.06+DTOP)/2,50);walk.receiveShadow=true;scene.add(walk);
 // Festivalwiese: zertrampeltes Gras, Trampelpfade, Müll
 const meadow=canvasTex(600,1000,(g,w,h)=>{
   g.fillStyle='#2b3a22';g.fillRect(0,0,w,h);
@@ -939,13 +944,14 @@ const meadow=canvasTex(600,1000,(g,w,h)=>{
   const lit=['#e8604c','#f0b23a','#4fb0c6','#ffffff','#e57fb0','#7cc56b','#c9c9c9'];
   for(let i=0;i<700;i++){g.fillStyle=lit[(rnd()*lit.length)|0];g.globalAlpha=0.35+rnd()*0.4;g.fillRect(rnd()*w,rnd()*h,2+rnd()*3,1.5+rnd()*2)}g.globalAlpha=1;
 });
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(W,H),new THREE.MeshPhongMaterial({map:meadow,shininess:2}));
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(W,H),seaCut(new THREE.MeshPhongMaterial({map:meadow,shininess:2})));
 ground.rotation.x=-Math.PI/2;ground.position.set(W/2,0.07,H/2);ground.receiveShadow=true;scene.add(ground);
 // Fahrbahnmarkierung am Ring
+let ringDash=null;
 {const dash=new THREE.InstancedMesh(new THREE.PlaneGeometry(0.25,3),new THREE.MeshBasicMaterial({color:0xb8b8a8}),200);let n=0;const o=new THREE.Object3D();
-  const put=(x,z,r)=>{o.position.set(x,-0.03,z);o.rotation.set(-Math.PI/2,0,r);o.updateMatrix();dash.setMatrixAt(n++,o.matrix)};
+  const put=(x,z,r)=>{o.position.set(x,DTOP+0.02,z);o.rotation.set(-Math.PI/2,0,r);o.updateMatrix();dash.setMatrixAt(n++,o.matrix)};
   for(let z=-20;z<=120;z+=7){put(-14,z,0);put(74,z,0)}for(let x=-20;x<=80;x+=7){put(x,-14,Math.PI/2);put(x,114,Math.PI/2)}
-  dash.count=n;scene.add(dash)}
+  dash.count=n;scene.add(dash);ringDash=dash}
 // Fassaden mit erleuchteten Fenstern
 function facade(seedv,warm){rs=seedv;const map=canvasTex(256,256,(g,w,h)=>{g.fillStyle=['#2a2d33','#33302d','#2c3038'][seedv%3];g.fillRect(0,0,w,h);
     for(let r=0;r<8;r++)for(let c=0;c<4;c++){g.fillStyle='#14161b';g.fillRect(c*64+12,r*32+8,40,18)}
@@ -999,9 +1005,10 @@ const pools=[];// [x,z,r,color]
 
 // Flutlichtmasten an den Ecken des Geländes
 const floodHeadMat=new THREE.MeshBasicMaterial({color:0xfff6e8,toneMapped:false});
+const floodMasts=[];
 for(const [x,z,ry] of [[-4.5,4,-Math.PI*0.3],[64.5,4,Math.PI*0.3],[-4.5,96,-Math.PI*0.7],[64.5,96,Math.PI*0.7]]){
   const mast=new THREE.Mesh(new THREE.BoxGeometry(0.5,20,0.5),new THREE.MeshLambertMaterial({color:0x8d939b}));mast.position.set(x,10,z);mast.castShadow=true;scene.add(mast);
-  const frame=new THREE.Mesh(new THREE.BoxGeometry(3.6,1.8,0.35),new THREE.MeshLambertMaterial({color:0x2a2b31}));frame.position.set(x,20.4,z);frame.rotation.set(-0.55,ry+Math.PI,0,'YXZ');scene.add(frame);
+  const frame=new THREE.Mesh(new THREE.BoxGeometry(3.6,1.8,0.35),new THREE.MeshLambertMaterial({color:0x2a2b31}));frame.position.set(x,20.4,z);frame.rotation.set(-0.55,ry+Math.PI,0,'YXZ');scene.add(frame);floodMasts.push({mast,frame,x,z});
   const head=new THREE.Mesh(new THREE.PlaneGeometry(3.2,1.4),floodHeadMat);head.position.set(0,0,0.18);frame.add(head);
   pools.push([x+(x<30?9:-9),z+(z<50?9:-9),9,0xfff2d8,0.3]);}
 
@@ -1420,12 +1427,53 @@ const sandTex=canvasTex(512,512,(g,w,h)=>{g.fillStyle='#d9c393';g.fillRect(0,0,w
 sandTex.repeat.set(W/24,H/24);
 const meadowTex=ground.material.map;
 // Meer am Strand: links vom Gelände und als Bucht ins Feld
-const waterTex=canvasTex(256,256,(g,w,h)=>{g.fillStyle='#1b5f7d';g.fillRect(0,0,w,h);for(let i=0;i<220;i++){g.strokeStyle=`rgba(${140+rnd()*80|0},${200+rnd()*55|0},255,${0.15+rnd()*0.25})`;g.lineWidth=1+rnd()*2;
-  const x=rnd()*w,y=rnd()*h,l=10+rnd()*30;g.beginPath();g.moveTo(x,y);g.quadraticCurveTo(x+l/2,y-3,x+l,y);g.stroke()}},true);waterTex.repeat.set(30,30);
-const waterMesh=(()=>{const sh=new THREE.Shape();const pts=[[DX0,DZ0],[-9,DZ0],[-9,28]];for(let y=28;y<=100;y+=2)pts.push([3+(y-28)*0.13,y]);pts.push([12.4,112],[12.4,DZ1],[DX0,DZ1]);
-  sh.moveTo(pts[0][0],-pts[0][1]);for(const [x,y] of pts.slice(1))sh.lineTo(x,-y);
-  const m=new THREE.Mesh(new THREE.ShapeGeometry(sh),new THREE.MeshPhongMaterial({map:waterTex,color:0x8cc6de,shininess:40,specular:0x3a5a70,transparent:true,opacity:0.95}));
-  m.rotation.x=-Math.PI/2;m.position.y=0.16;m.receiveShadow=true;m.visible=false;scene.add(m);return m})();
+const SEA_TOP=0.12,SEA_FLOOR=-3.2,SEA_T={value:0},SEA_DAY={value:1};
+const CAUSTIC_GLSL=`float caustic(vec2 uv,float time){vec2 p=mod(uv*6.28318,6.28318)-250.0;vec2 i=p;float c=1.0;float inten=.005;
+  for(int n=0;n<4;n++){float t=time*(1.0-(3.5/float(n+1)));i=p+vec2(cos(t-i.x)+sin(t+i.y),sin(t-i.y)+cos(t+i.x));c+=1.0/length(vec2(p.x/(sin(i.x+t)/inten),p.y/(cos(i.y+t)/inten)));}
+  c/=4.0;c=1.17-pow(c,1.4);return clamp(pow(abs(c),8.0),0.0,1.0);}\n`;
+const WAVE_GLSL=`void addW(inout vec3 r,vec2 p,vec2 d,float k,float a,float ph0){d=normalize(d);float ph=dot(d,p)*k+ph0;float c=cos(ph);r+=vec3(a*sin(ph),a*k*c*d.x,a*k*c*d.y);}
+vec3 waves(vec2 p,float t){vec3 r=vec3(0.0);addW(r,p,vec2(1.0,0.3),0.27,0.11,t*1.1);addW(r,p,vec2(-0.4,1.0),0.4,0.07,t*1.4);addW(r,p,vec2(0.7,-0.8),0.55,0.05,t*1.8);
+  addW(r,p,vec2(-1.0,-0.2),0.77,0.035,t*2.2);addW(r,p,vec2(0.2,1.0),1.02,0.025,t*2.6);addW(r,p,vec2(0.9,0.6),1.38,0.018,t*3.1);return r;}\n`;
+// Meer wie ein Block Gelee: Wasserkörper mit Wellen, Glanz und Schaum, darunter Sandboden mit Lichtmustern, an den Schnittkanten sichtbar
+const waterMesh=(()=>{const grp=new THREE.Group();grp.visible=false;scene.add(grp);
+  const seaPts=[[DX0,DZ0],[-9,DZ0],[-9,28]];for(let y=28;y<=100;y+=2)seaPts.push([3+(y-28)*0.13,y]);seaPts.push([12.4,112],[12.4,DZ1],[DX0,DZ1]);
+  const shape=pts=>{const sh=new THREE.Shape();sh.moveTo(pts[0][0],-pts[0][1]);for(const [x,y] of pts.slice(1))sh.lineTo(x,-y);return sh};
+  const extr=(pts,y0,y1,mats)=>{const g=new THREE.ExtrudeGeometry(shape(pts),{depth:y1-y0,bevelEnabled:false});const m=new THREE.Mesh(g,mats);m.rotation.x=-Math.PI/2;m.position.y=y0;grp.add(m);return m};
+  const strata=()=>{const t=strataTex(40);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t};
+  const sideTex=(t,h)=>{t.repeat.set(1/40,-1/h);t.offset.set(0,1/h);return t};
+  // Land: Block ohne Meeresbucht
+  const landPts=[[-9,DZ0],[DX1,DZ0],[DX1,DZ1],[12.4,DZ1],[12.4,112]];for(let y=100;y>=28;y-=2)landPts.push([3+(y-28)*0.13,y]);landPts.push([-9,28]);
+  const asph=asphalt.clone();asph.needsUpdate=true;asph.repeat.set(60/500,60/500);
+  const land=extr(landPts,DTOP-DDEPTH,DTOP,[new THREE.MeshPhongMaterial({map:asph,shininess:30,specular:0x111111}),new THREE.MeshLambertMaterial({map:sideTex(strata(),DDEPTH),color:0xd2c9b8})]);land.receiveShadow=true;
+  // Meeresboden: Sand mit wandernden Lichtmustern
+  const sand=sandTex.clone();sand.needsUpdate=true;sand.repeat.set(1/24,1/24);
+  const floorMat=new THREE.MeshPhongMaterial({map:sand,color:0xd8d0bd,shininess:0});
+  floorMat.onBeforeCompile=sh=>{sh.uniforms.uTime=SEA_T;
+    sh.vertexShader='varying vec3 vFW;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvFW=(modelMatrix*vec4(transformed,1.0)).xyz;');
+    sh.fragmentShader='varying vec3 vFW;uniform float uTime;\n'+CAUSTIC_GLSL+sh.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
+      if(vNormal.y>-2.0&&vFW.y>${(SEA_FLOOR-0.2).toFixed(2)}){vec2 q=vFW.xz*0.045;float tt=uTime*0.45;
+        vec3 c=vec3(caustic(q+vec2(0.004,0.002),tt),caustic(q,tt),caustic(q-vec2(0.004,0.002),tt));c+=caustic(vFW.xz*0.07+vec2(3.1,1.7),uTime*0.37+4.0)*0.45;
+        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.42,0.72,0.74),0.35)*(0.62+c*1.25);}`)};
+  const floor=extr(seaPts,DTOP-DDEPTH,SEA_FLOOR,[floorMat,new THREE.MeshLambertMaterial({map:sideTex(strata(),DDEPTH+SEA_FLOOR+DTOP),color:0xd2c9b8})]);floor.receiveShadow=true;
+  // Wasserkörper
+  const wmat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,uniforms:{uTime:SEA_T,uDay:SEA_DAY},
+    vertexShader:`varying vec3 vW;varying vec3 vN;void main(){vec4 w=modelMatrix*vec4(position,1.0);vW=w.xyz;vN=normalize(mat3(modelMatrix)*normal);gl_Position=projectionMatrix*viewMatrix*w;}`,
+    fragmentShader:`uniform float uTime,uDay;varying vec3 vW;varying vec3 vN;\n${SEA_GLSL}${WAVE_GLSL}${CAUSTIC_GLSL}
+      void main(){float d=max(shoreX(vW.z)-vW.x,0.0);vec3 deep=vec3(0.11,0.40,0.70),shallow=vec3(0.50,0.86,0.80);float lit=mix(0.22,1.0,uDay);
+        if(vN.y<-0.5)discard;
+        if(vN.y<0.5){float f=clamp((${SEA_TOP.toFixed(2)}-vW.y)/${(SEA_TOP-SEA_FLOOR).toFixed(2)},0.0,1.0);vec3 col=mix(shallow*0.95,deep*0.8,pow(f,0.7));
+          col+=caustic(vec2((vW.x+vW.z)*0.035,vW.y*0.18),uTime*0.4)*0.35*(1.0-f);float rim=smoothstep(0.35,0.0,${SEA_TOP.toFixed(2)}-vW.y);col=mix(col,vec3(1.0),rim*0.55);
+          gl_FragColor=vec4(col*lit,0.82);return;}
+        vec3 w=waves(vW.xz,uTime);vec3 n=normalize(vec3(-w.y,1.0,-w.z));vec3 V=normalize(cameraPosition-vW);
+        vec3 base=mix(shallow,deep,smoothstep(0.0,16.0,d));float F=0.02+0.98*pow(1.0-max(dot(V,n),0.0),5.0);
+        vec3 R=reflect(-V,n);vec3 env=mix(vec3(0.78,0.86,0.92),vec3(1.0),smoothstep(-0.1,0.8,R.y));vec3 col=mix(base,env,clamp(F*1.8,0.0,0.7));
+        vec3 L=normalize(vec3(-0.47,0.7,0.7));float g=max(dot(R,L),0.0);float spec=pow(g,220.0)*2.2+pow(g,18.0)*0.08;
+        float band=sin(d*1.6-uTime*1.4+sin(vW.z*0.25)*1.5);float foam=(1.0-smoothstep(0.0,1.3,d+0.35*sin(vW.z*0.6+uTime*1.3)))+smoothstep(0.9,1.0,band)*(1.0-smoothstep(1.0,7.0,d))*0.75;
+        foam=clamp(foam,0.0,1.0);col=mix(col,vec3(0.98,0.99,1.0),foam);
+        float a=mix(0.5,0.86,smoothstep(0.0,12.0,d))+F*0.12;a=max(a,foam);
+        gl_FragColor=vec4(col*lit+spec*mix(0.6,1.0,uDay),clamp(a,0.0,1.0));}`});
+  const water=extr(seaPts,SEA_FLOOR,SEA_TOP,wmat);water.renderOrder=1;
+  return grp})();
 function cityBlock([x0,y0,x1,y1]){ // Häuserblock aus mehreren Gebäuden
   const w=x1-x0+1,d=y1-y0+1,nx=Math.max(1,Math.round(w/9)),nz=Math.max(1,Math.round(d/10));
   for(let i=0;i<nx;i++)for(let j=0;j<nz;j++){const bw=w/nx,bd=d/nz,h=10+rnd()*22,bx=x0+i*bw,bz=y0+j*bd;
@@ -1475,7 +1523,8 @@ function applyMapScene(){const M=MAPDEF;sceneMap=MAP;
   G.trucks.visible=!!M.foodtrucks;G.wc.visible=!!M.wc;G.podest.visible=!!M.podest;G.cable.visible=!M.runway;
   while(G.map.children.length){const c=G.map.children.pop();c.traverse(o=>{if(o.geometry)o.geometry.dispose()})}
   addTo=G.map;buildGates();buildEntrances();if(M.runway)buildRunway();for(const b of M.blocks||[])cityBlock(b);if(M.bar)beachBar(M.bar);if(M.stadium)buildStadium();addTo=null;
-  waterMesh.visible=!!M.water;setLeftSide(!M.water&&!M.stadium,!M.stadium);
+  waterMesh.visible=!!M.water;outside.visible=!M.water;
+  for(const f of floodMasts)f.mast.visible=f.frame.visible=!(M.water&&f.x<shoreXJs(f.z)); // kein Mast im MeerSEA_U.uSea.value=M.water?1:0;if(ringDash)ringDash.visible=!M.water;setLeftSide(!M.water&&!M.stadium,!M.stadium);
   ground.material.map=M.ground==='plaza'?plazaTex:M.ground==='sand'?sandTex:M.ground==='pitch'?pitchTex:meadowTex;ground.material.color.set(M.ground==='plaza'?0x5c6066:M.ground==='sand'?0x7d6e52:M.ground==='pitch'?0xaebfa6:0xffffff);ground.material.needsUpdate=true;
   rebuildFence();rebuildTurnstiles();rebuildPools();zoneDrawn=-1;
   document.querySelectorAll('[data-map]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.map===MAP))}
@@ -1494,7 +1543,8 @@ function applyCam(){
 // ---------- Post-Processing ----------
 let composer=null,bloom=null,gradePass=null;
 if(THREE.EffectComposer&&THREE.RenderPass&&THREE.UnrealBloomPass){
-  try{composer=new THREE.EffectComposer(renderer);composer.addPass(new THREE.RenderPass(scene,camera));
+  try{ // eigenes Ziel mit Stencil: sonst nimmt three.js nur 16 Bit Tiefe, und Boden und Gehweg flimmern ineinander
+    composer=new THREE.EffectComposer(renderer,new THREE.WebGLRenderTarget(2,2,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat,stencilBuffer:true}));composer.addPass(new THREE.RenderPass(scene,camera));
     bloom=new THREE.UnrealBloomPass(new THREE.Vector2(256,256),0.85,0.55,0.62);composer.addPass(bloom);
     if(THREE.ShaderPass){gradePass=new THREE.ShaderPass({uniforms:{tDiffuse:{value:null},amt:{value:0},time:{value:0}},
       vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
@@ -2106,7 +2156,7 @@ function frame(now){
    if(gradePass){gradePass.uniforms.amt.value=night;gradePass.uniforms.time.value=t%10}}
   if(composer)composer.render();else renderer.render(scene,camera);
   updateFlow(Math.min(rdt,0.05));
-  if(waterMesh.visible){waterTex.offset.x=t*0.012;waterTex.offset.y=Math.sin(t*0.3)*0.02}
+  if(waterMesh.visible){SEA_T.value=t%600;SEA_DAY.value=Math.max(day,flood*0.55)}
   updateHot(rdt,t);updateStandTags(rdt);updateLoadViz(rdt);coachTick();audioTick();
   updateStats(now);requestAnimationFrame(frame);
 }
