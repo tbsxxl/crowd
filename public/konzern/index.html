@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Gründerzeit</title>
+<meta name="description" content="Wirtschaftssimulation: Vom Start-up zum Konzern">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: Vollbild-Diorama der Stadt, Titel links oben, Kennzahlen-Leiste oben, Steuerpult rechts (mobil: Bottom-Sheet). Ein helles Studio-Thema: Papier, Tinte, Serifen. */
+:root{
+  --bg:#ebe9e4;--bg-2:#f5f4f0;--ink:#24272b;--muted:#73746f;--line:rgba(36,39,43,.12);--card:rgba(250,249,246,.92);
+  --accent:#2f6fd0;--good:#3f9b62;--bad:#d63c3c;--warn:#c4761c;--gold:#d4a72c;
+  --f-display:"Newsreader","Iowan Old Style","Palatino Linotype",Georgia,serif;--f-ui:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;--f-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  color-scheme:light}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:13px/1.4 var(--f-ui);overflow:hidden;-webkit-tap-highlight-color:transparent}
+#stage{position:fixed;inset:0;background:radial-gradient(110% 90% at 40% 40%,var(--bg-2) 0%,var(--bg) 60%,#e2dfd8 100%)}
+#gl{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+.eyebrow{font-size:9.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--f-mono);font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.title{position:fixed;top:calc(22px + env(safe-area-inset-top,0px));left:calc(max(16px,env(safe-area-inset-left,0px)) + 10px);pointer-events:none;width:min(300px,40vw)}
+.title h1{font-family:var(--f-display);font-style:italic;font-weight:400;font-size:clamp(40px,4.6vw,66px);line-height:.9;letter-spacing:-.015em;margin:.18em 0 .16em}
+.title hr{width:22px;border:0;border-top:1px solid var(--ink);margin:0 0 10px}
+.title p{font-family:var(--f-display);font-size:15px;line-height:1.35;margin:0;color:#4a4c4a}
+.panel{background:var(--card);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.95);box-shadow:0 1px 0 #fff inset,0 16px 40px -22px rgba(36,39,43,.4);border-radius:6px}
+/* Kennzahlen-Leiste */
+.top{display:grid;grid-template-columns:1.25fr 1.2fr 1.3fr .6fr;gap:6px 10px;align-items:end;padding:10px 12px}
+.top .speed{grid-column:1/-1;justify-self:stretch;display:grid;grid-template-columns:repeat(4,1fr)}
+.kpi{display:flex;flex-direction:column;min-width:0}
+.kpi b{font-family:var(--f-display);font-weight:500;font-size:19px;line-height:1.05;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kpi b.neg{color:var(--bad)}
+.speed{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.speed button{all:unset;cursor:pointer;text-align:center;font-family:var(--f-mono);font-size:11px;padding:5px 9px;color:var(--muted);background:rgba(255,255,255,.55)}
+.speed button+button{border-left:1px solid var(--line)}
+.speed button[aria-pressed="true"]{background:var(--ink);color:#fff}
+/* Steuerpult */
+.side{position:fixed;top:calc(16px + env(safe-area-inset-top,0px));right:calc(max(16px,env(safe-area-inset-right,0px)));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:380px;display:flex;flex-direction:column;gap:8px;z-index:3}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--card)}
+.tabs button{all:unset;cursor:pointer;text-align:center;font-weight:600;font-size:12px;padding:9px 2px;color:var(--muted)}
+.tabs button+button{border-left:1px solid var(--line)}
+.tabs button[aria-selected="true"]{background:var(--ink);color:#fff}
+#pane{flex:1;min-height:0;overflow:auto;padding:14px 14px 18px;display:flex;flex-direction:column;gap:14px;overscroll-behavior:contain}
+#pane section{display:flex;flex-direction:column;gap:8px}
+#pane section+section{border-top:1px solid var(--line);padding-top:12px}
+h2{font-family:var(--f-display);font-style:italic;font-weight:400;font-size:28px;line-height:1;margin:2px 0 0;letter-spacing:-.01em}
+h3{font-family:var(--f-display);font-style:italic;font-weight:500;font-size:17px;margin:0}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 6px}
+.stats div{display:flex;flex-direction:column;gap:1px;min-width:0}
+.stats b{font-family:var(--f-display);font-weight:500;font-size:20px;line-height:1.05;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stats span{font-size:10px;color:var(--muted)}
+.pos{color:var(--good)}.neg{color:var(--bad)}.warnc{color:var(--warn)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px}
+.row label{font-weight:600}
+.item{border:1px solid var(--line);border-radius:4px;background:rgba(255,255,255,.62);padding:9px 10px;display:flex;flex-direction:column;gap:6px}
+.item .hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.item .hd b{font-weight:700;font-size:12.5px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--f-mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:var(--card);border:1px solid var(--line);white-space:nowrap}
+.chip i{width:7px;height:7px;border-radius:50%;display:inline-block}
+button.chip{cursor:pointer;font:inherit;font-family:var(--f-mono);font-size:9.5px}
+button.chip[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.seg{display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg button{all:unset;cursor:pointer;text-align:center;font-size:10.5px;font-weight:600;padding:5px 8px;color:var(--muted);background:rgba(255,255,255,.5)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.seg button:disabled{opacity:.35;cursor:default}
+.step{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:rgba(255,255,255,.6)}
+.step button{all:unset;cursor:pointer;width:26px;text-align:center;font-weight:700;padding:4px 0;color:var(--ink)}
+.step button:hover{background:#fff}
+.step output{min-width:44px;text-align:center;font-family:var(--f-mono);font-size:11px;border-left:1px solid var(--line);border-right:1px solid var(--line);padding:4px 4px}
+.btn{all:unset;cursor:pointer;text-align:center;font-size:11px;font-weight:600;padding:7px 10px;border:1px solid var(--line);border-radius:4px;background:rgba(255,255,255,.7)}
+.btn:hover{background:#fff}.btn.ink{background:var(--ink);color:#fff;border-color:var(--ink)}.btn.ink:hover{background:#000}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.4;cursor:default}
+.btns{display:flex;flex-wrap:wrap;gap:6px}
+.bar{height:5px;border-radius:3px;background:rgba(36,39,43,.1);overflow:hidden}.bar i{display:block;height:100%;background:var(--ink)}
+.bar.good i{background:var(--good)}.bar.warn i{background:var(--warn)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:18px;background:transparent;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:rgba(36,39,43,.22)}
+input[type=range]::-moz-range-track{height:2px;background:rgba(36,39,43,.22)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;border:1.5px solid var(--ink);margin-top:-6px}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:#fff;border:1.5px solid var(--ink)}
+input[type=text]{font:inherit;border:1px solid var(--line);border-radius:4px;padding:7px 9px;background:#fff;width:100%}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+td,th{padding:4px 0;text-align:right;font-size:11.5px;white-space:nowrap}
+th{font-family:var(--f-mono);font-weight:500;font-size:9.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+td:first-child,th:first-child{text-align:left;white-space:normal}
+tr.sum td{border-top:1px solid var(--ink);font-weight:700}
+tr.sub td{color:var(--muted)}
+.hint{font-size:12px;color:#4a4c4a;background:rgba(47,111,208,.07);border-left:2px solid var(--accent);padding:7px 9px;border-radius:0 4px 4px 0}
+.lock{color:var(--muted)}
+canvas.chart{width:100%;height:120px;display:block}
+/* Grundstückskarte */
+.plotCard{position:fixed;left:calc(max(16px,env(safe-area-inset-left,0px)) + 10px);bottom:calc(96px + env(safe-area-inset-bottom,0px));width:300px;padding:12px;display:flex;flex-direction:column;gap:8px;z-index:4}
+.plotCard .x{all:unset;cursor:pointer;position:absolute;right:10px;top:8px;font-size:16px;color:var(--muted)}
+/* Nachrichten */
+.news{position:fixed;left:calc(max(16px,env(safe-area-inset-left,0px)) + 10px);bottom:calc(16px + env(safe-area-inset-bottom,0px));width:min(430px,calc(100vw - 440px));display:flex;flex-direction:column;gap:3px;pointer-events:none;z-index:2}
+.news div{font-size:11.5px;color:#4a4c4a;display:flex;gap:7px;align-items:baseline;text-shadow:0 1px 0 rgba(255,255,255,.7)}
+.news div i{width:6px;height:6px;border-radius:50%;flex:none;background:var(--muted);transform:translateY(-1px)}
+.k-good i{background:var(--good)!important}.k-bad i{background:var(--bad)!important}.k-ms i{background:var(--gold)!important}.k-fin i{background:var(--accent)!important}.k-comp i{background:#8a6a52!important}.k-market i{background:var(--warn)!important}
+.toast{position:fixed;left:50%;top:calc(84px + env(safe-area-inset-top,0px));transform:translateX(-50%);padding:9px 14px;z-index:8;font-size:12.5px;max-width:min(460px,calc(100vw - 32px))}
+.toast.bad{border-left:3px solid var(--bad)}.toast.ms{border-left:3px solid var(--gold)}
+.tags{position:fixed;inset:0;pointer-events:none;z-index:1;overflow:hidden}
+.tag{position:absolute;transform:translate(-50%,-100%);font-family:var(--f-mono);font-size:9.5px;letter-spacing:.04em;padding:3px 7px;border-radius:999px;background:var(--card);border:1px solid var(--line);white-space:nowrap}
+.tag i{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px}
+/* Start */
+.menu{position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:16px;background:radial-gradient(110% 90% at 45% 30%,rgba(245,244,240,.9),rgba(235,233,228,.96) 60%,rgba(226,223,216,.98));overflow:auto}
+.menuCard{width:min(720px,100%);display:flex;flex-direction:column;gap:16px;padding:22px}
+.menuCard h1{font-family:var(--f-display);font-style:italic;font-weight:400;font-size:clamp(44px,8vw,78px);line-height:.9;margin:4px 0 0;letter-spacing:-.02em}
+.menuCard p.lead{font-family:var(--f-display);font-size:17px;margin:0;color:#4a4c4a;max-width:52ch}
+.pick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pick button{all:unset;cursor:pointer;border:1px solid var(--line);border-radius:6px;background:rgba(255,255,255,.6);padding:12px;display:flex;flex-direction:column;gap:6px}
+.pick button[aria-pressed="true"]{background:#fff;border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.pick b{font-family:var(--f-display);font-style:italic;font-weight:500;font-size:20px}
+.pick span{font-size:11.5px;color:var(--muted)}
+.pick i{width:14px;height:14px;border-radius:50%;display:block;box-shadow:inset -2px -3px 4px rgba(0,0,0,.18),inset 2px 2px 3px rgba(255,255,255,.6)}
+.over{position:fixed;inset:0;z-index:9;display:grid;place-items:center;background:rgba(36,39,43,.25)}
+@media (max-width:760px){
+  .title{top:calc(10px + env(safe-area-inset-top,0px));width:auto}.title h1{font-size:30px}.title hr,.title p{display:none}
+  .top{grid-template-columns:1.2fr 1.1fr .6fr auto;margin:0 8px 6px;padding:7px 9px;gap:2px 8px}
+  .top .speed{grid-column:auto}.speed button{padding:5px 6px}
+  .kpi b{font-size:16px}.kpi .eyebrow{font-size:8.5px;letter-spacing:.1em}.kpi.opt{display:none}
+  .side{top:auto;left:0;right:0;bottom:0;width:auto;height:54%;gap:0}
+  .tabs{border-radius:10px 10px 0 0;border-bottom:0}
+  #pane{border-radius:0;padding:12px max(14px,env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px))}
+  .plotCard{left:8px;right:8px;width:auto;bottom:calc(54% + 8px);padding:10px;gap:6px}.plotCard .stats b{font-size:16px}
+  .news{display:none}
+  .pick{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style></head>
+<body>
+<div id="stage"><canvas id="gl" aria-label="Die Stadt als Diorama. Tippe auf ein Grundstück."></canvas></div>
+<div class="tags" id="tags"></div>
+<header class="title"><div class="eyebrow">Wirtschaftssimulation</div><h1>Gründerzeit.</h1><hr><p id="subtitle">Vom ersten Produkt zum Konzern.</p></header>
+<aside class="side">
+<div class="top panel" id="top">
+  <div class="kpi"><span class="eyebrow">Datum</span><b id="kDate">1. Jan 2027</b></div>
+  <div class="kpi"><span class="eyebrow">Kasse</span><b id="kCash">0 €</b></div>
+  <div class="kpi opt"><span class="eyebrow">Wert</span><b id="kVal">0 €</b></div>
+  <div class="kpi"><span class="eyebrow">Team</span><b id="kStaff">1</b></div>
+  <div class="speed" role="group" aria-label="Tempo"><button data-speed="0" aria-pressed="false" aria-label="Pause">II</button><button data-speed="1" aria-pressed="true">1×</button><button data-speed="4" aria-pressed="false">4×</button><button data-speed="12" aria-pressed="false">12×</button></div>
+</div>
+  <div class="tabs" role="tablist"><button data-tab="firm" aria-selected="true">Firma</button><button data-tab="fin" aria-selected="false">Finanzen</button><button data-tab="market" aria-selected="false">Markt</button><button data-tab="group" aria-selected="false">Konzern</button></div>
+  <div class="panel" id="pane"></div>
+</aside>
+<div class="plotCard panel" id="plotCard" hidden></div>
+<div class="news" id="news"></div>
+<div class="toast panel" id="toast" hidden></div>
+<div class="menu" id="menu" hidden></div>
+<div class="over" id="over" hidden></div>
+
+<script src="../vendor/three-r128-bloom.js"></script>
+<script src="sim.js"></script>
+<script src="world.js"></script>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id),fe=K.fmtE,fn=K.fmtN,pct=v=>Math.round(v*100)+' %';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let G=null,tab='firm',finView={fid:null,sub:'pl'},speed=1,acc=0,lastT=0,dirty=true,selPlot=null,newBranch='cafe',newFin='own',busy=false,lastRender=0,lastDay=-1,lastNews=0,mobile=matchMedia('(max-width:760px)').matches;
+const SAVE='gz.save.v1';
+const store={get(){try{const s=localStorage.getItem(SAVE);return s?JSON.parse(s):null}catch(e){return null}},set(v){try{localStorage.setItem(SAVE,JSON.stringify(v))}catch(e){}},del(){try{localStorage.removeItem(SAVE)}catch(e){}}};
+const cur=()=>K.firm(G,G.cur)||G.firms[0];
+
+// ---------- Start ----------
+function showMenu(){const saved=store.get();const m=$('menu');m.hidden=false;
+  m.innerHTML=`<div class="menuCard panel"><div><div class="eyebrow">Wirtschaftssimulation</div><h1>Gründerzeit.</h1></div>
+  <p class="lead">Du gründest ein kleines Start-up mit begrenztem Kapital. Aus der ersten Firma wächst Schritt für Schritt ein Konzern mit tausenden Mitarbeitenden in mehreren Städten.</p>
+  ${saved?`<div class="btns"><button class="btn ink" data-a="continue">Weiterspielen · ${esc(saved.firms[0].name)}, ${K.dateStr(saved)}</button></div><div class="eyebrow">Oder neu beginnen</div>`:''}
+  <div><div class="eyebrow" style="margin-bottom:6px">Branche</div><div class="pick">${Object.entries(K.BRANCHES).map(([k,b])=>`<button data-a="pickBranch" data-k="${k}" aria-pressed="${k===newBranch}"><i style="background:${b.color}"></i><b>${b.long}</b><span>${b.desc}</span></button>`).join('')}</div></div>
+  <div><div class="eyebrow" style="margin-bottom:6px">Finanzierung</div><div class="pick">
+    <button data-a="pickFin" data-k="own" aria-pressed="${newFin==='own'}"><b>Eigenkapital</b><span>50.000 € aus eigener Tasche. Du behältst 100 % der Anteile.</span></button>
+    <button data-a="pickFin" data-k="loan" aria-pressed="${newFin==='loan'}"><b>Bankkredit</b><span>Dazu ${newBranch==='prod'?'120.000':'60.000'} € Kredit zu 6,5 % über fünf Jahre. Monatliche Raten.</span></button>
+    <button data-a="pickFin" data-k="angel" aria-pressed="${newFin==='angel'}"><b>Business Angel</b><span>Dazu 150.000 € gegen 20 % deiner Anteile. Keine Zinsen.</span></button></div></div>
+  <div class="row" style="gap:10px;flex-wrap:wrap"><input type="text" id="fname" maxlength="28" value="${esc(defaultName())}" aria-label="Name der Firma" style="flex:1;min-width:200px"><button class="btn ink" data-a="start" style="padding:10px 18px">Firma gründen</button></div>
+  <p class="mono" style="margin:0">Tipp: ${newBranch==='prod'?'Produktion braucht viel Startkapital. Ohne Kredit reicht es kaum für die erste Linie.':newBranch==='soft'?'Software verdient lange nichts. Ein Investor verlängert die Zeit bis zum ersten Release.':'Ein Café trägt sich schnell, wenn die Lage stimmt.'}</p></div>`}
+function defaultName(){return{cafe:'Bohnenglück',soft:'Codewerk',prod:'Werkbank Nord'}[newBranch]}
+function start(){const name=($('fname').value||defaultName()).trim().slice(0,28);G=K.newGame({branch:newBranch,name,finance:newFin,seed:(Date.now()%1e9)|0});afterLoad();toast('Willkommen bei '+name+'.','')}
+function afterLoad(){$('menu').hidden=true;setTimeout(header,0);$('over').hidden=true;World.setCity(G,G.cityCur);World.sync(G,true);selPlot=null;World.select(null);$('plotCard').hidden=true;tab='firm';setTab('firm');dirty=true;save()}
+function save(){if(G)store.set(G)}
+
+// ---------- Kopfzeile ----------
+function header(){const v=K.valuation(G);$('kDate').textContent=K.dateStr(G);const c=$('kCash');c.textContent=fe(G.cash);c.classList.toggle('neg',G.cash<0);
+  $('kVal').textContent=fe(v.total);$('kStaff').textContent=fn(K.totalStaff(G));const st=K.stage(G);$('subtitle').textContent=cur().name+' · '+st.n}
+
+// ---------- Bereiche ----------
+function setTab(t){tab=t;document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));render(true)}
+function render(force){if(!G)return;const pane=$('pane');
+  if(!force&&(busy||pane.contains(document.activeElement)&&document.activeElement.tagName==='INPUT'))return;
+  const y=pane.scrollTop;pane.innerHTML=tab==='firm'?firmPane():tab==='fin'?finPane():tab==='market'?marketPane():groupPane();pane.scrollTop=y;
+  if(tab==='fin')drawCharts();lastRender=performance.now();dirty=false}
+const stepper=(a,val,attrs)=>`<span class="step"><button data-a="${a}" data-d="-1" ${attrs||''} aria-label="weniger">−</button><output>${val}</output><button data-a="${a}" data-d="1" ${attrs||''} aria-label="mehr">+</button></span>`;
+const seg=(a,opts,curv,attrs)=>`<span class="seg">${opts.map(([v,l,dis])=>`<button data-a="${a}" data-v="${v}" ${attrs||''} aria-pressed="${String(v)===String(curv)}" ${dis?'disabled':''}>${l}</button>`).join('')}</span>`;
+const bar=(v,cls)=>`<div class="bar ${cls||''}"><i style="width:${Math.max(0,Math.min(100,v*100)).toFixed(1)}%"></i></div>`;
+function monthPL(fid,back){const ms=G.months;const m=back?ms[ms.length-back]:K.curMonth(G);return m?K.pl(m,fid):null}
+function firmSwitch(){return G.firms.length>1?`<div class="chips">${G.firms.map(f=>`<button class="chip" data-a="selFirm" data-id="${f.id}" aria-pressed="${f.id===G.cur}"><i style="background:${f.color}"></i>${esc(f.name)}</button>`).join('')}</div>`:''}
+function nextTip(f){
+  if(f.branch==='cafe'&&!f.shops.length)return'Tippe auf ein Grundstück mit gelbem Schild in der Innenstadt oder im Wohnviertel und eröffne deine erste Filiale. Viele Passanten bringen viel Kundschaft, kosten aber auch Miete.';
+  if(f.branch==='cafe'&&f.shops.some(s=>s.stat&&s.stat.dem>s.stat.cap*1.05))return'Eine Filiale kommt nicht hinterher: Die Nachfrage ist größer als die Kapazität. Stell mehr Baristas ein.';
+  if(f.branch==='soft'&&f.jr+f.sr===0)return'Stelle zuerst ein oder zwei Entwickler ein und starte dann ein Projekt. Kleine Projekte sind schnell fertig, große erreichen mehr Nutzer.';
+  if(f.branch==='soft'&&!G.apps.some(a=>a.owner===f.id))return'Starte unten ein neues Projekt. Dein Team arbeitet dann täglich daran.';
+  if(f.branch==='prod'&&!f.plants.length)return'Tippe auf ein Grundstück im Gewerbegebiet (unten in der Stadt) und miete eine Halle. Danach kaufst du eine Produktionslinie.';
+  if(f.branch==='prod'&&!f.plants.some(p=>p.lines.length))return'Kaufe jetzt eine Produktionslinie für deine Halle. Die Rösterei ist am günstigsten.';
+  if(f.branch==='prod'&&!f.contracts.length&&G.offers.contracts.some(c=>c.fid===f.id))return'Nimm Aufträge an, die zu deiner Produktion passen. Was übrig bleibt, geht günstiger an den Großhandel.';
+  if(G.cash<0)return'Dein Konto ist im Minus. Senke Kosten, nimm einen Kredit auf (Finanzen) oder hol Investoren an Bord.';
+  return null}
+function firmPane(){const f=cur(),plN=monthPL(f.id,1),plC=monthPL(f.id,0),tip=nextTip(f);
+  let h=`<section>${firmSwitch()}<div><div class="eyebrow">${K.BRANCHES[f.branch].long}</div><h2>${esc(f.name)}</h2></div>
+  <div class="stats"><div><b>${fe(plC.rev+plC.revInt)}</b><span>Umsatz lfd. Monat</span></div><div><b class="${plN&&plN.net<0?'neg':'pos'}">${plN?fe(plN.ebitda):'–'}</b><span>EBITDA Vormonat</span></div><div><b>${fn(K.staffOf(G,f)+K.adminOf(G,f))}</b><span>Mitarbeitende</span></div>
+  <div><b>${pct(f.rep)}</b><span>Ruf</span></div><div><b>${pct(f.aware)}</b><span>Bekanntheit</span></div><div><b class="${f.morale<0.5?'neg':''}">${pct(f.morale)}</b><span>Stimmung</span></div></div>
+  ${tip?`<div class="hint">${tip}</div>`:''}</section>`;
+  h+=`<section><div class="eyebrow">Marketing & Personal</div>
+  <div class="row"><label for="mkt">Werbebudget</label><span class="mono" id="mktV">${fe(f.mkt)} / Monat</span></div><input type="range" id="mkt" min="0" max="${Math.max(30000,Math.ceil(f.mkt/10000)*10000)}" step="250" value="${f.mkt}" data-in="mkt">
+  <div class="row"><label for="wage">Gehaltsniveau</label><span class="mono" id="wageV">${pct(f.wage)} vom Tarif</span></div><input type="range" id="wage" min="0.85" max="1.4" step="0.05" value="${f.wage}" data-in="wage">
+  ${K.adminOf(G,f)?`<div class="mono">Dazu ${K.adminOf(G,f)} in der Verwaltung (je 15 Mitarbeitende eine Stelle). Eine Zentrale mit Controlling spart das.</div>`:''}</section>`;
+  h+=f.branch==='cafe'?cafePane(f):f.branch==='soft'?softPane(f):prodPane(f);
+  h+=researchPane(f);return h}
+function cafePane(f){const ms=K.menuStats(G,f);
+  let h=`<section><div class="row"><span class="eyebrow">Filialen · ${f.shops.length}</span><span class="mono">Neue Filiale: Grundstück antippen</span></div>`;
+  for(const s of f.shops){const p=K.plot(G,s.plot),st=s.stat||{cust:0,dem:0,cap:0,rev:0};
+    h+=`<div class="item"><div class="hd"><b>${K.ZONES[p.zone].n}, ${K.cityName(p.city)}</b><span class="mono">${K.LEVELS[s.level].n}</span></div>
+    <div class="row"><span>${fn(st.cust)} Gäste/Tag · ${fe(st.rev)}/Tag</span><span class="mono">Nachfrage ${fn(st.dem)} · Kapazität ${fn(st.cap)}</span></div>
+    ${bar(st.cap?Math.min(1,st.dem/st.cap):0,st.dem>st.cap*1.02?'warn':'good')}
+    <div class="row"><span>Baristas ${stepper('shopStaff',s.staff,`data-id="${s.id}"`)}</span><span class="btns">${s.level<3?`<button class="btn" data-a="upgrade" data-id="${s.id}">Umbauen · ${fe(K.LEVELS[s.level+1].cost)}</button>`:''}<button class="btn" data-a="closeShop" data-id="${s.id}">Schließen</button></span></div></div>`}
+  if(!f.shops.length)h+=`<div class="mono">Noch keine Filiale.</div>`;
+  h+=`</section><section><div class="row"><span class="eyebrow">Speisekarte</span><span class="mono">Qualität ${pct(ms.quality)} · Wirkung ${ms.score.toFixed(2).replace('.',',')}</span></div><table><tr><th>Produkt</th><th>Qualität</th><th>Preis</th><th>Kosten</th></tr>`;
+  for(const k in K.PRODUCTS){const P=K.PRODUCTS[k],m=f.menu[k],locked=P.res&&!f.res[P.res];if(locked)continue;
+    const unit=(P.other+(P.beans?P.beans*K.GOODS.bohnen.ref*G.idx.rohkaffee:0)+(P.piece?P.mkt:0))*K.QMULT[m.q];
+    h+=`<tr><td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-a="menuOn" data-k="${k}" ${m.on?'checked':''}> ${P.n}</label></td><td>${seg('menuQ',[[1,'I'],[2,'II'],[3,'III']],m.q,`data-k="${k}"`)}</td>
+    <td>${stepper('menuPrice',(m.price).toFixed(2).replace('.',','),`data-k="${k}"`)}</td><td class="mono">${unit.toFixed(2).replace('.',',')}</td></tr>`}
+  h+=`</table><div class="mono">Referenzpreise: Espresso 2,40 €, Cappuccino 3,60 €. Teurer senkt die Nachfrage, bessere Qualität hebt den Ruf.${K.firm&&G.firms.some(x=>x.branch==='prod')?' Eigene Röstkaffee- und Gebäckproduktion beliefert die Cafés zu Herstellkosten.':''}</div></section>`;return h}
+function softPane(f){const t=K.softTeam(G,f),d=K.desks(G,f),used=f.jr+f.sr+f.qa+(G.founderDev&&f.id===G.firms[0].id?1:0);
+  let h=`<section><div class="row"><span class="eyebrow">Team</span><span class="mono ${used>d?'neg':''}">${used} / ${d} Arbeitsplätze${f.office?'':' (Homeoffice)'}</span></div>`;
+  for(const [r,n] of [['jr','Junior-Entwickler'],['sr','Senior-Entwickler'],['qa','Tester']])h+=`<div class="row"><span>${n} <span class="mono">${fe(K.WAGE[r]*f.wage)}</span></span>${stepper('hire',f[r],`data-r="${r}"`)}</div>`;
+  if(f.id===G.firms[0].id)h+=`<div class="row"><span>Gründer programmiert mit</span>${seg('founderDev',[[1,'Ja'],[0,'Nein']],G.founderDev?1:0)}</div>`;
+  h+=`<div class="mono">Leistung ${t.W.toFixed(1).replace('.',',')} Punkte/Tag · Teamqualität ${pct(t.qT)} · Fehlerquote ${pct(t.bugMult)}</div>
+  ${f.office?'':'<div class="mono">Mehr Platz: Grundstück im Büroviertel oder in der Innenstadt antippen und Büro beziehen.</div>'}</section>`;
+  h+=`<section><span class="eyebrow">Apps & Projekte</span>`;
+  for(const a of G.apps.filter(a=>a.owner===f.id&&a.state!=='off')){const gen=K.GENRES[a.genre];
+    if(a.state==='dev')h+=`<div class="item"><div class="hd"><b>${esc(a.name)}</b><span class="mono">${gen.n} · ${K.SCOPES[a.scope].n} · in Entwicklung</span></div>${bar(a.progress/a.work)}
+      <div class="row"><span class="mono">${pct(a.progress/a.work)} · Qualität ${pct(a.quality)} · ${fn(a.bugs)} Bugs</span><span>Team ${stepper('appW',a.weight,`data-id="${a.id}"`)}</span></div>
+      ${a.progress>=a.work*0.6?`<div class="btns"><button class="btn" data-a="release" data-id="${a.id}">Jetzt veröffentlichen</button></div>`:''}</div>`;
+    else{const mrev=a.model==='abo'?(a.payers||0)*a.price*0.85:a.users*0.22*gen.adv;
+      h+=`<div class="item"><div class="hd"><b>${esc(a.name)}</b><span class="mono">${gen.n} · live</span></div>
+      <div class="stats"><div><b>${fn(a.users)}</b><span>Nutzer</span></div><div><b>${fe(mrev)}</b><span>Umsatz / Monat</span></div><div><b>${(K.rating(a)*5).toFixed(1).replace('.',',')} ★</b><span>Bewertung</span></div></div>
+      <div class="row"><span class="mono">${fn(a.bugs)} Bugs · Aktualität ${pct(a.fresh===undefined?1:a.fresh)}${a.model==='abo'?' · '+fn(a.payers||0)+' Abos':''}</span><span>Team ${stepper('appW',a.weight,`data-id="${a.id}"`)}</span></div>
+      <div class="row"><span>${seg('appModel',[['abo','Abo'],['ads','Werbung']],a.model,`data-id="${a.id}"`)}</span>${a.model==='abo'?stepper('appPrice',a.price.toFixed(2).replace('.',',')+' €',`data-id="${a.id}"`):''}<button class="btn" data-a="appOff" data-id="${a.id}">Einstellen</button></div></div>`}}
+  h+=`<div class="item"><div class="hd"><b>Neues Projekt</b></div><div class="row"><span>Genre</span>${seg('newGenre',Object.entries(K.GENRES).map(([k,g])=>[k,g.n,g.res&&!f.res[g.res]]),f._g||'prod')}</div>
+    <div class="row"><span>Umfang</span>${seg('newScope',Object.entries(K.SCOPES).map(([k,s])=>[k,s.n+' · '+s.work]),f._s||'S')}</div>
+    <div class="mono">${K.GENRES[f._g||'prod'].n}: Markt ${fn(K.GENRES[f._g||'prod'].pot)} Nutzer. Dauer bei deinem Team etwa ${t.W>0?fn(K.SCOPES[f._s||'S'].work/t.W)+' Tage':'– (erst Entwickler einstellen)'}.</div>
+    <div class="btns"><button class="btn ink" data-a="newApp">Projekt starten</button></div></div></section>`;return h}
+function prodPane(f){
+  let h=`<section><div class="row"><span class="eyebrow">Werke · ${f.plants.length}</span><span class="mono">Neue Halle: Gewerbe-Grundstück antippen</span></div>`;
+  for(const p of f.plants){const pl=K.plot(G,p.plot),cap=Math.floor(pl.size/500);
+    h+=`<div class="item"><div class="hd"><b>Halle ${K.cityName(pl.city)}</b><span class="mono">${p.lines.length} / ${cap} Linien · ${fn(pl.size)} m²</span></div>`;
+    for(const l of p.lines){const L=K.LINES[l.type],out=K.lineOut(G,f,l);
+      h+=`<div class="item" style="background:rgba(255,255,255,.8)"><div class="hd"><b>${L.n}</b><span class="mono">${fn(l.made||0)} / ${fn(out)} ${K.GOODS[l.product].unit} pro Tag</span></div>
+      ${Object.keys(L.cap).length>1?`<div class="row"><span>Produkt</span>${seg('lineProd',Object.keys(L.cap).map(g=>[g,K.GOODS[g].n,K.GOODS[g].res&&!f.res[K.GOODS[g].res]]),l.product,`data-id="${l.id}"`)}</div>`:''}
+      <div class="row"><span>Personal ${stepper('lineW',l.workers+' / '+L.workers,`data-id="${l.id}"`)}</span><span>Güte ${seg('lineG',[[1,'I'],[2,'II'],[3,'III']],l.grade,`data-id="${l.id}"`)}</span></div></div>`}
+    if(p.lines.length<cap)h+=`<div class="btns">${Object.entries(K.LINES).map(([k,L])=>`<button class="btn" data-a="buyLine" data-id="${p.id}" data-k="${k}" ${L.res&&!f.res[L.res]?'aria-disabled="true"':''}>${L.n} · ${fe(L.cost)}</button>`).join('')}</div>`;
+    h+=`</div>`}
+  if(!f.plants.length)h+=`<div class="mono">Noch keine Halle.</div>`;
+  h+=`</section><section><span class="eyebrow">Lager</span><table><tr><th>Rohstoff</th><th>Bestand</th><th>Preis</th><th>Vorrat</th></tr>`;
+  const need=K.rawNeedPerDay(G,f);
+  for(const r in K.RAW){const R=K.RAW[r];if(!need[r]&&!f.raw[r])continue;h+=`<tr><td>${R.n}</td><td>${fn(f.raw[r])} ${R.unit}</td><td class="mono">${K.rawPrice(G,r).toFixed(2).replace('.',',')} €</td><td>${stepper('auto',f.auto[r]+' T',`data-k="${r}"`)}</td></tr>`}
+  h+=`</table><table><tr><th>Ware</th><th>Bestand</th><th>Großhandel</th><th></th></tr>`;
+  for(const g in K.GOODS){const q=K.goodsTotal(f,g);if(q<1&&!f.plants.some(p=>p.lines.some(l=>l.product===g)))continue;
+    h+=`<tr><td>${K.GOODS[g].n}</td><td>${fn(q)} ${K.GOODS[g].unit}</td><td class="mono">${K.wholesalePrice(G,f,g,2).toFixed(2).replace('.',',')} €</td><td><button class="btn" data-a="wholesale" data-k="${g}">Verkaufen</button></td></tr>`}
+  h+=`</table><div class="row"><span>Überschuss automatisch an den Großhandel</span>${seg('autoSell',[[1,'Ja'],[0,'Nein']],f.autoSell?1:0)}</div></section>`;
+  h+=`<section><span class="eyebrow">Aufträge</span>`;
+  for(const c of f.contracts){const left=c.due-G.day;h+=`<div class="item"><div class="hd"><b>${esc(c.buyer)}</b><span class="mono ${left<7?'neg':''}">noch ${left} Tage</span></div>
+    <div class="row"><span>${fn(c.qty)} ${K.GOODS[c.good].n} · Güte ${'I'.repeat(c.grade)} · ${c.price.toFixed(2).replace('.',',')} €</span><span class="mono">${fe(c.qty*c.price)}</span></div>${bar(c.done/c.qty)}</div>`}
+  const offers=G.offers.contracts.filter(c=>c.fid===f.id);
+  if(offers.length)h+=`<div class="eyebrow" style="margin-top:4px">Angebote</div>`;
+  for(const c of offers){h+=`<div class="item"><div class="hd"><b>${esc(c.buyer)}</b><span class="mono">${c.days} Tage Lieferzeit</span></div>
+    <div class="row"><span>${fn(c.qty)} ${K.GOODS[c.good].n} · Güte ${'I'.repeat(c.grade)} oder besser · ${c.price.toFixed(2).replace('.',',')} €</span><span class="mono">${fe(c.qty*c.price)}</span></div>
+    <div class="row"><span class="mono">Vertragsstrafe bei Verzug 15 %</span><button class="btn ink" data-a="accept" data-id="${c.id}">Annehmen</button></div></div>`}
+  if(!offers.length&&!f.contracts.length)h+=`<div class="mono">Neue Angebote kommen jeden Monat.</div>`;
+  return h+`</section>`}
+function researchPane(f){const R=K.RESEARCH[f.branch];
+  let h=`<section><div class="row"><span class="eyebrow">Entwicklung</span>${G.depts.rd?'<span class="mono">Forschungsabteilung: 60 % schneller</span>':''}</div>`;
+  if(f.resCur){const r=R[f.resCur.k];h+=`<div class="item"><div class="hd"><b>${r.n}</b><span class="mono">noch ${Math.ceil(f.resCur.left)} Tage</span></div>${bar(1-f.resCur.left/f.resCur.days)}</div>`}
+  for(const k in R){const r=R[k];if(f.res[k]||(f.resCur&&f.resCur.k===k))continue;
+    h+=`<div class="row"><span><b>${r.n}</b><br><span class="mono">${r.d}</span></span><button class="btn" data-a="research" data-k="${k}" ${f.resCur?'aria-disabled="true"':''}>${fe(r.cost)} · ${r.days} T</button></div>`}
+  const done=Object.keys(f.res).map(k=>R[k].n);if(done.length)h+=`<div class="mono">Fertig: ${done.join(', ')}</div>`;return h+'</section>'}
+
+// Finanzen
+const PL_ROWS=[['rev','Umsatz'],['revInt','davon intern',1],['cogs','Wareneinsatz',-1],['gross','Rohertrag',0,1],['staff','Personal',-1],['rent','Miete',-1],['mkt','Marketing',-1],['rd','Forschung',-1],['other','Sonstiges',-1],
+  ['ebitda','EBITDA',0,1],['dep','Abschreibungen',-1],['int','Zinsen',-1],['tax','Steuern',-1],['net','Ergebnis',0,1]];
+function finPane(){const fid=finView.fid,sub=finView.sub;
+  let h=`<section><div class="eyebrow">Buchhaltung</div><h2>Finanzen</h2>
+  <div class="chips"><button class="chip" data-a="finFirm" data-id="" aria-pressed="${!fid}">Konzern</button>${G.firms.map(f=>`<button class="chip" data-a="finFirm" data-id="${f.id}" aria-pressed="${fid===f.id}"><i style="background:${f.color}"></i>${esc(f.name)}</button>`).join('')}</div>
+  ${seg('finSub',[['pl','GuV'],['bal','Bilanz'],['cf','Kapitalfluss'],['money','Kapital']],sub)}</section>`;
+  if(sub==='pl'){const cols=[0,1,2,3].filter(i=>i===0||G.months.length>=i);const pls=cols.map(i=>monthPL(fid,i));
+    const name=i=>i===0?'lfd.':K.MONTHS[G.months[G.months.length-i].m%12];
+    h+=`<section><table><tr><th></th>${cols.map(i=>`<th>${name(i)}</th>`).join('')}</tr>`;
+    for(const [k,n,sign,sum] of PL_ROWS){if(k==='revInt'&&(!fid||!pls.some(p=>p.revInt)))continue;
+      h+=`<tr class="${sum?'sum':''} ${k==='revInt'?'sub':''}"><td>${n}</td>${pls.map(p=>{const v=k==='gross'?p.rev+p.revInt-p.cogs:k==='rev'?p.rev+p.revInt:p[k];return`<td class="${sum&&v<0?'neg':''}">${fe(sign===-1?-v:v)}</td>`}).join('')}</tr>`}
+    h+=`</table><canvas class="chart" id="chart1" aria-label="Umsatz und Ergebnis der letzten Monate"></canvas><div class="mono">Linien: Umsatz (Tinte), Ergebnis (grün/rot), letzte ${Math.min(24,G.months.length)} Monate.</div></section>`}
+  if(sub==='bal'){const b=K.balance(G);h+=`<section><div class="mono">Bilanz immer für den ganzen Konzern.</div><table>
+    <tr><th>Aktiva</th><th></th></tr><tr><td>Anlagevermögen</td><td>${fe(b.fixed)}</td></tr><tr><td>Vorräte</td><td>${fe(b.inv)}</td></tr><tr><td>Kasse</td><td>${fe(b.cash)}</td></tr><tr class="sum"><td>Summe</td><td>${fe(b.assets)}</td></tr>
+    <tr><th>Passiva</th><th></th></tr><tr><td>Eingezahltes Kapital</td><td>${fe(b.paidIn)}</td></tr><tr><td>Gewinnrücklagen</td><td>${fe(b.retained)}</td></tr><tr><td>Ergebnis lfd. Monat</td><td>${fe(b.curNet)}</td></tr>
+    <tr class="sub"><td>Eigenkapital</td><td>${fe(b.eq)}</td></tr><tr><td>Bankkredite</td><td>${fe(b.debt)}</td></tr><tr><td>Kontokorrent</td><td>${fe(b.od)}</td></tr><tr class="sum"><td>Summe</td><td>${fe(b.eq+b.debt+b.od)}</td></tr></table>
+    <div class="mono">Eigenkapitalquote ${b.assets>0?pct(Math.max(0,b.eq)/b.assets):'–'}</div></section>`}
+  if(sub==='cf'){const rows=[['op','Operativ'],['inv','Investitionen'],['fin','Finanzierung']];const ms=[K.curMonth(G)].concat(G.months.slice(-3).reverse());
+    h+=`<section><div class="mono">Kapitalfluss immer für den ganzen Konzern.</div><table><tr><th></th>${ms.map((m,i)=>`<th>${i?K.MONTHS[m.m%12]:'lfd.'}</th>`).join('')}</tr>`;
+    for(const [k,n] of rows)h+=`<tr><td>${n}</td>${ms.map(m=>`<td class="${m.cf[k]<0?'neg':''}">${fe(m.cf[k])}</td>`).join('')}</tr>`;
+    h+=`<tr class="sum"><td>Veränderung</td>${ms.map(m=>{const v=m.cf.op+m.cf.inv+m.cf.fin;return`<td class="${v<0?'neg':''}">${fe(v)}</td>`}).join('')}</tr></table>
+    <canvas class="chart" id="chart2" aria-label="Kassenstand der letzten Monate"></canvas><div class="mono">Kassenstand am Monatsende.</div></section>`}
+  if(sub==='money'){const lo=K.loanOffer(G),v=K.valuation(G);
+    h+=`<section><div class="stats"><div><b>${pct(G.owner)}</b><span>Dein Anteil</span></div><div><b>${fe(v.mine)}</b><span>Dein Vermögen</span></div><div><b>${fe(K.dispo(G))}</b><span>Dispo-Rahmen</span></div></div></section>
+    <section><span class="eyebrow">Bankkredite</span>`;
+    for(const l of G.loans)h+=`<div class="item"><div class="hd"><b>${esc(l.name)}</b><span class="mono">${(l.rate*100).toFixed(1).replace('.',',')} % · ${fe(l.pay)} / Monat</span></div><div class="row"><span>Restschuld ${fe(l.bal)}</span><button class="btn" data-a="repay" data-id="${l.id}">Sondertilgung</button></div>${bar(1-l.bal/l.amount)}</div>`;
+    h+=`<div class="item"><div class="hd"><b>Neuer Kredit</b><span class="mono">${(lo.rate*100).toFixed(1).replace('.',',')} % · 5 Jahre</span></div>
+      ${lo.max>0?`<div class="btns">${[...new Set([25000,50000,100000,250000,1e6,5e6].filter(x=>x<=lo.max).concat([lo.max]))].slice(-4).map(a=>`<button class="btn" data-a="loan" data-v="${a}">${fe(a)}</button>`).join('')}</div>`:'<div class="mono">Die Bank gibt dir gerade keinen weiteren Kredit. Mehr Gewinn erhöht den Rahmen.</div>'}</div></section>`;
+    const o=G.offers.investor;h+=`<section><span class="eyebrow">Investoren</span>${o?`<div class="item"><div class="hd"><b>${esc(o.name)}</b><span class="mono">bis ${K.dateStr({day:o.expires})}</span></div><div>${fe(o.amount)} für ${pct(o.share)} der Anteile. Bewertung danach ${fe(o.amount/o.share)}.</div>
+      <div class="btns"><button class="btn ink" data-a="investor" data-v="1">Annehmen</button><button class="btn" data-a="investor" data-v="0">Ablehnen</button></div></div>`:'<div class="mono">Investoren melden sich, wenn dein Unternehmen deutlich an Wert gewonnen hat.</div>'}
+      <div class="mono">Bisherige Finanzierungsrunden: ${G.rounds}${G.public?' · börsennotiert':''}</div></section>`}
+  return h}
+function drawCharts(){const c1=$('chart1'),c2=$('chart2');const ms=G.months.slice(-24);
+  const draw=(cv,series)=>{if(!cv)return;const r=cv.getBoundingClientRect(),dpr=devicePixelRatio||1;cv.width=r.width*dpr;cv.height=r.height*dpr;const g=cv.getContext('2d');g.scale(dpr,dpr);
+    const W=r.width,H=r.height,all=series.flatMap(s=>s.v);if(!all.length){g.fillStyle='#73746f';g.font='11px Manrope';g.fillText('Daten ab dem ersten Monatsabschluss.',4,H/2);return}
+    let mn=Math.min(0,...all),mx=Math.max(1,...all);const Y=v=>H-8-(v-mn)/(mx-mn||1)*(H-16),X=i=>4+i*(W-8)/Math.max(1,ms.length-1);
+    g.strokeStyle='rgba(36,39,43,.18)';g.beginPath();g.moveTo(0,Y(0));g.lineTo(W,Y(0));g.stroke();
+    for(const s of series){g.lineWidth=1.6;g.beginPath();s.v.forEach((v,i)=>{const x=X(i),y=Y(v);i?g.lineTo(x,y):g.moveTo(x,y)});g.strokeStyle=s.c==='net'?'#3f9b62':s.c;g.stroke();
+      if(s.c==='net'){s.v.forEach((v,i)=>{if(v<0){g.fillStyle='#d63c3c';g.beginPath();g.arc(X(i),Y(v),2,0,7);g.fill()}})}}
+    g.fillStyle='#73746f';g.font='10px "JetBrains Mono",monospace';g.fillText(fe(mx),4,10)};
+  if(c1)draw(c1,[{v:ms.map(m=>{const p=K.pl(m,finView.fid);return p.rev+p.revInt}),c:'#24272b'},{v:ms.map(m=>K.pl(m,finView.fid).net),c:'net'}]);
+  if(c2)draw(c2,[{v:ms.map(m=>m.cash),c:'#2f6fd0'}])}
+
+// Markt
+function marketPane(){const city=World.city||G.cityCur;
+  let h=`<section><div class="eyebrow">Wettbewerb</div><h2>Markt</h2><div class="chips">${K.CITIES.map(c=>`<button class="chip" data-a="city" data-id="${c.id}" aria-pressed="${c.id===city}">${G.cities[c.id]?'':'🔒 '}${c.n}</button>`).join('')}</div>
+  ${!G.cities[city]?`<div class="hint">${K.cityName(city)} ist noch nicht erschlossen. Markteintritt im Bereich Konzern.</div>`:''}</section>`;
+  const cafes=G.comps.filter(c=>c.branch==='cafe'&&c.city===city);
+  h+=`<section><span class="eyebrow">Cafés in ${K.cityName(city)}</span>`;
+  const mine=G.firms.filter(f=>f.branch==='cafe').map(f=>({n:f.name,shops:f.shops.filter(s=>K.plot(G,s.plot).city===city).length,q:K.menuStats(G,f).quality,col:f.color,own:true}));
+  for(const x of mine.filter(x=>x.shops))h+=`<div class="row"><span><i class="dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${x.col}"></i> <b>${esc(x.n)}</b> (du)</span><span class="mono">${x.shops} Filialen · Qualität ${pct(x.q)}</span></div>`;
+  for(const cp of cafes){const n=G.plots.filter(p=>p.owner==='c:'+cp.id).length,price=Math.round(K.compValue(G,cp)*1.35/1000)*1000;
+    h+=`<div class="item"><div class="hd"><b><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${cp.color}"></span> ${esc(cp.name)}</b><span class="mono">${n} Filialen</span></div>
+    <div class="row"><span class="mono">Qualität ${pct(cp.q)} · Preise ${pct(cp.price)} · Ruf ${pct(cp.rep)}</span><button class="btn" data-a="takeover" data-id="${cp.id}" ${n?'':'aria-disabled="true"'}>Übernehmen · ${fe(price)}</button></div></div>`}
+  h+=`</section><section><span class="eyebrow">Fabriken in ${K.cityName(city)}</span>`;
+  for(const cp of G.comps.filter(c=>c.branch==='prod'&&c.city===city)){const price=Math.round(K.compValue(G,cp)*1.35/1000)*1000;
+    h+=`<div class="item"><div class="hd"><b>${esc(cp.name)}</b><span class="mono">drückt die Auftragspreise</span></div><div class="row"><span class="mono">Werk im Gewerbegebiet</span><button class="btn" data-a="takeover" data-id="${cp.id}">Übernehmen · ${fe(price)}</button></div></div>`}
+  h+=`</section><section><span class="eyebrow">App-Markt (bundesweit)</span><table><tr><th>App</th><th>Genre</th><th>Nutzer</th><th>Bew.</th></tr>`;
+  const apps=G.apps.filter(a=>a.state==='live').sort((a,b)=>b.users-a.users).slice(0,10);
+  for(const a of apps){const own=!a.owner.startsWith('c:');h+=`<tr><td>${own?'<b>':''}${esc(a.name)}${own?'</b>':''}</td><td class="mono">${K.GENRES[a.genre].n}</td><td>${fn(a.users)}</td><td class="mono">${(K.rating(a)*5).toFixed(1).replace('.',',')}</td></tr>`}
+  h+=`</table>`;
+  for(const cp of G.comps.filter(c=>c.branch==='soft').filter(cp=>G.apps.some(a=>a.owner==='c:'+cp.id)).sort((a,b)=>K.compValue(G,b)-K.compValue(G,a)).slice(0,4)){const price=Math.round(K.compValue(G,cp)*1.35/1000)*1000;
+    h+=`<div class="row"><span>${esc(cp.name)} <span class="mono">${G.apps.filter(a=>a.owner==='c:'+cp.id).map(a=>esc(a.name)).join(', ')}</span></span><button class="btn" data-a="takeover" data-id="${cp.id}">Übernehmen · ${fe(price)}</button></div>`}
+  h+=`</section><section><span class="eyebrow">Rohstoffe</span><table><tr><th>Rohstoff</th><th>Preis</th><th>zum Normalpreis</th></tr>${Object.entries(K.RAW).map(([r,R])=>`<tr><td>${R.n}</td><td>${K.rawPrice(G,r).toFixed(2).replace('.',',')} €</td><td class="${G.idx[r]>1.05?'neg':G.idx[r]<0.95?'pos':''}">${G.idx[r]>=1?'+':''}${Math.round((G.idx[r]-1)*100)} %</td></tr>`).join('')}</table>
+  <div class="mono">Lohnniveau ${pct(G.idx.wage)} · Mieten steigen jährlich um 2 %</div></section>`;return h}
+
+// Konzern
+function groupPane(){const st=K.stage(G),v=K.valuation(G);
+  let h=`<section><div class="eyebrow">Holding</div><h2>${st.n}</h2>
+  <div class="stats"><div><b>${fn(st.staff)}</b><span>Mitarbeitende</span></div><div><b>${fe(v.total)}</b><span>Unternehmenswert</span></div><div><b>${fe(v.mine)}</b><span>Dein Anteil (${pct(G.owner)})</span></div></div>
+  ${st.next?`<div class="row"><span class="mono">Bis ${st.next[1]}: ${fn(st.next[0])} Mitarbeitende</span><span class="mono">${fn(st.staff)} / ${fn(st.next[0])}</span></div>${bar(st.staff/st.next[0])}`:''}</section>`;
+  h+=`<section><span class="eyebrow">Firmen</span>`;
+  for(const f of G.firms){const fv=v.firms.find(x=>x.id===f.id),p=G.months.length?K.pl(G.months[G.months.length-1],f.id):null;
+    h+=`<div class="item"><div class="hd"><b><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${f.color}"></span> ${esc(f.name)}</b><span class="mono">${K.BRANCHES[f.branch].n} · ${fn(K.staffOf(G,f)+K.adminOf(G,f))} MA</span></div>
+    <div class="row"><span class="mono">Wert ${fe(fv?fv.v:0)} · Ergebnis Vormonat ${p?fe(p.ebitda-p.dep):'–'}</span><button class="btn" data-a="openFirm" data-id="${f.id}">Öffnen</button></div></div>`}
+  h+=`<div class="item"><div class="hd"><b>Neue Firma gründen</b><span class="mono">25.000 €</span></div><div class="row">${seg('foundBranch',Object.entries(K.BRANCHES).map(([k,b])=>[k,b.n]),G._fb||'cafe')}</div>
+    <div class="row"><input type="text" id="foundName" maxlength="28" placeholder="Name der Firma"><button class="btn ink" data-a="found">Gründen</button></div><div class="mono">Tipp: Eine eigene Rösterei oder Backstraße beliefert deine Cafés günstiger.</div></div></section>`;
+  h+=`<section><span class="eyebrow">Städte</span>`;
+  for(const c of K.CITIES){h+=`<div class="row"><span><b>${c.n}</b> <span class="mono">Laufkundschaft ${pct(c.traffic)} · Mieten ${pct(c.rent)}</span></span>${G.cities[c.id]?`<button class="btn" data-a="city" data-id="${c.id}">Ansehen</button>`:`<button class="btn" data-a="unlock" data-id="${c.id}">Markteintritt · ${fe(c.unlock.cost)}</button>`}</div>${!G.cities[c.id]?`<div class="mono">ab ${c.unlock.staff} Mitarbeitenden</div>`:''}`}
+  h+=`</section><section><span class="eyebrow">Zentrale</span>`;
+  if(!G.hq)h+=`<div class="mono">Ab 25 Mitarbeitenden. Bau 250.000 €. Tippe auf ein freies Grundstück in Innenstadt oder Büroviertel und wähle „Zentrale bauen“. Danach kannst du Abteilungen aufbauen.</div>`;
+  else{h+=`<div class="mono">Zentrale in ${K.cityName(K.plot(G,G.hq).city)} · ${K.hqStaff?'':''}${fn(4)} Stabsstellen und je Abteilung weitere Fachleute</div>`;
+    for(const [k,d] of Object.entries(K.DEPTS))h+=`<div class="row"><span><b>${d.n}</b><br><span class="mono">${d.d}</span></span>${seg('dept',[[1,'An'],[0,'Aus']],G.depts[k]?1:0,`data-k="${k}"`)}</div>`;
+    h+=`<div class="mono">Je Abteilung 4.000 € plus 30 € je Mitarbeitendem im Monat.</div>`}
+  h+=`</section><section><span class="eyebrow">Börse</span>`;
+  if(G.public){h+=`<div class="stats"><div><b>${G.sharePrice.toFixed(2).replace('.',',')} €</b><span>Aktienkurs</span></div><div><b>${fe(G.sharePrice*G.shares/0.75*1)}</b><span>Marktkapitalisierung</span></div><div><b>${pct(G.owner)}</b><span>Dein Anteil</span></div></div>`}
+  else{const ch=K.ipoCheck(G);h+=ch.map(x=>`<div class="row"><span>${x.ok?'✓':'○'} ${x.t}</span></div>`).join('')+`<div class="btns"><button class="btn ink" data-a="ipo" ${ch.every(x=>x.ok)?'':'aria-disabled="true"'}>Börsengang</button></div><div class="mono">Beim Börsengang gibst du 25 % neue Aktien aus und erhältst frisches Kapital.</div>`}
+  h+=`</section><section><span class="eyebrow">Meilensteine</span>${K.MILESTONES.map(([k,n])=>`<div class="row"><span>${G.ms[k]?'★':'☆'} ${n}</span><span class="mono">${G.ms[k]?K.dateStr({day:G.ms[k]}):''}</span></div>`).join('')}</section>
+  <section><span class="eyebrow">Spiel</span><div class="btns"><button class="btn" data-a="save">Speichern</button><button class="btn" data-a="newGame">Neues Spiel</button></div><div class="mono">Der Spielstand wird automatisch auf diesem Gerät gespeichert.</div></section>`;return h}
+
+// ---------- Grundstückskarte ----------
+function plotCard(){const pc=$('plotCard');if(!selPlot||!G){pc.hidden=true;return}const p=K.plot(G,selPlot);const z=K.ZONES[p.zone];
+  let own=null,who='Frei',acts='';
+  if(p.owner==='H')who='Deine Konzernzentrale';
+  else if(p.owner&&p.owner.startsWith('c:')){const cp=G.comps.find(c=>'c:'+c.id===p.owner);who='Konkurrenz: '+(cp?cp.name:'');if(cp)acts=`<button class="btn" data-a="gotoMarket">Zur Übernahme</button>`}
+  else if(p.owner){own=K.firm(G,p.owner);who=own?own.name:'';acts=`<button class="btn ink" data-a="openFirm" data-id="${p.owner}">Verwalten</button>`}
+  const unlocked=G.cities[p.city];
+  if(!p.owner&&unlocked){for(const f of G.firms){if(f.branch==='cafe'&&z.uses.includes('cafe'))acts+=`<button class="btn ink" data-a="openShop" data-id="${f.id}">${G.firms.length>1?esc(f.name)+': ':''}Filiale eröffnen · ${fe(K.LEVELS[1].cost+p.rent*2)}</button>`;
+      if(f.branch==='soft'&&z.uses.includes('office'))acts+=`<button class="btn ink" data-a="rentOffice" data-id="${f.id}">${G.firms.length>1?esc(f.name)+': ':''}Büro beziehen (${Math.floor(p.size/10)} Plätze) · ${fe(p.size*40+p.rent*2)}</button>`;
+      if(f.branch==='prod'&&z.uses.includes('factory'))acts+=`<button class="btn ink" data-a="rentPlant" data-id="${f.id}">${G.firms.length>1?esc(f.name)+': ':''}Halle mieten (${Math.floor(p.size/500)} Linien) · ${fe(p.rent*3)} Kaution</button>`}
+    if(z.uses.includes('hq')&&!G.hq)acts+=`<button class="btn" data-a="buildHQ" ${K.totalStaff(G)<25?'aria-disabled="true"':''}>Zentrale bauen · 250.000 €</button>`;
+    if(!acts)acts=`<div class="mono">${p.zone==='gewerbe'?'Gewerbegebiet: nur für Produktion.':'Für deine Firmen hier nichts möglich.'}</div>`}
+  if(!unlocked)acts=`<div class="mono">Stadt noch nicht erschlossen (Konzern → Städte).</div>`;
+  let extra='';if(own&&own.branch==='cafe'){const s=own.shops.find(x=>x.plot===p.id);if(s&&s.stat)extra=`<div class="mono">${fn(s.stat.cust)} Gäste/Tag · ${fe(s.stat.rev)} Umsatz/Tag</div>`}
+  pc.hidden=false;pc.innerHTML=`<button class="x" data-a="closeCard" aria-label="Schließen">×</button><div><div class="eyebrow">${z.n} · ${K.cityName(p.city)}</div><h3>${esc(who)}</h3></div>
+  <div class="stats"><div><b>${fn(p.traffic)}</b><span>Passanten/Tag</span></div><div><b>${fe(p.rent)}</b><span>Miete/Monat</span></div><div><b>${fn(p.size)} m²</b><span>Fläche</span></div></div>${extra}<div class="btns">${acts}</div>`}
+
+// ---------- Aktionen ----------
+function run(res){if(!res)return;if(res.msg)toast(res.msg,res.ok?'':'bad');dirty=true;World.sync(G);plotCard();render(true);header()}
+function onAction(e){const b=e.target.closest('[data-a]');if(!b||b.getAttribute('aria-disabled')==='true'||b.disabled)return;const a=b.dataset.a,d=+b.dataset.d||0,id=b.dataset.id,k=b.dataset.k,v=b.dataset.v;
+  if(b.tagName==='INPUT'&&b.type==='checkbox'&&e.type==='click'){}
+  const f=G&&cur();
+  switch(a){
+  case'pickBranch':newBranch=k;if(newBranch==='prod'&&newFin==='own')newFin='loan';showMenu();break;
+  case'pickFin':newFin=k;showMenu();break;
+  case'start':start();break;
+  case'continue':G=store.get();afterLoad();break;
+  case'selFirm':case'openFirm':G.cur=id;const f2=K.firm(G,id);setTab('firm');header();break;
+  case'shopStaff':run(K.act.shopStaff(G,f.id,+id,d));break;
+  case'upgrade':run(K.act.upgradeShop(G,f.id,+id));break;
+  case'closeShop':if(confirm('Filiale wirklich schließen? Die Einrichtung wird abgeschrieben, die Baristas erhalten eine Abfindung.'))run(K.act.closeShop(G,f.id,+id));break;
+  case'menuQ':run(K.act.menu(G,f.id,k,{q:+v}));break;
+  case'menuPrice':run(K.act.menu(G,f.id,k,{price:f.menu[k].price+d*0.1}));break;
+  case'menuOn':run(K.act.menu(G,f.id,k,{on:b.checked}));break;
+  case'research':run(K.act.research(G,f.id,k));break;
+  case'hire':run(K.act.hire(G,f.id,b.dataset.r,d));break;
+  case'founderDev':run(K.act.founderRole(G,v==='1'));break;
+  case'appW':{const ap=G.apps.find(x=>x.id===+id);run(K.act.app(G,+id,{weight:ap.weight+d}));break}
+  case'appModel':run(K.act.app(G,+id,{model:v}));break;
+  case'appPrice':{const ap=G.apps.find(x=>x.id===+id);run(K.act.app(G,+id,{price:ap.price+d}));break}
+  case'appOff':if(confirm('App wirklich einstellen? Alle Nutzer gehen verloren.'))run(K.act.app(G,+id,{off:true}));break;
+  case'release':run(K.act.app(G,+id,{release:true}));break;
+  case'newGenre':f._g=v;render(true);break;case'newScope':f._s=v;render(true);break;
+  case'newApp':run(K.act.newApp(G,f.id,f._g||'prod',f._s||'S'));break;
+  case'buyLine':run(K.act.buyLine(G,f.id,+id,k));break;
+  case'lineW':{const l=f.plants.flatMap(p=>p.lines).find(x=>x.id===+id);run(K.act.line(G,f.id,+id,{workers:l.workers+d}));break}
+  case'lineG':run(K.act.line(G,f.id,+id,{grade:+v}));break;
+  case'lineProd':run(K.act.line(G,f.id,+id,{product:v}));break;
+  case'auto':run(K.act.setAuto(G,f.id,{raw:k,days:f.auto[k]+d*5}));break;
+  case'autoSell':run(K.act.setAuto(G,f.id,{autoSell:v==='1'}));break;
+  case'wholesale':run(K.act.wholesale(G,f.id,k));break;
+  case'accept':run(K.act.accept(G,+id));break;
+  case'finFirm':finView.fid=id||null;render(true);break;
+  case'finSub':finView.sub=v;render(true);break;
+  case'loan':run(K.act.loan(G,+v));break;
+  case'repay':run(K.act.repay(G,+id));break;
+  case'investor':run(K.act.investor(G,v==='1'));break;
+  case'city':G.cityCur=id;World.setCity(G,id);selPlot=null;World.select(null);plotCard();render(true);break;
+  case'takeover':{const cp=G.comps.find(c=>c.id===+id);if(cp&&confirm(cp.name+' übernehmen?'))run(K.act.takeover(G,+id));break}
+  case'foundBranch':G._fb=v;render(true);break;
+  case'found':{const n=($('foundName').value||'').trim()||({cafe:'Kaffeehaus',soft:'Appwerk',prod:'Manufaktur'}[G._fb||'cafe']);const r=K.act.found(G,G._fb||'cafe',n.slice(0,28));run(r);if(r.ok){setTab('firm')}break}
+  case'unlock':run(K.act.unlockCity(G,id));break;
+  case'dept':run(K.act.dept(G,k,v==='1'));break;
+  case'ipo':if(confirm('Börsengang durchführen? Du gibst 25 % neue Aktien aus.'))run(K.act.ipo(G));break;
+  case'save':save();toast('Gespeichert.','');break;
+  case'newGame':if(confirm('Neues Spiel beginnen? Der aktuelle Spielstand wird überschrieben.')){store.del();G=null;showMenu()}break;
+  case'closeCard':selPlot=null;World.select(null);plotCard();break;
+  case'gotoMarket':setTab('market');break;
+  case'openShop':run(K.act.openShop(G,id,selPlot));break;
+  case'rentOffice':run(K.act.rentOffice(G,id,selPlot));break;
+  case'rentPlant':run(K.act.rentPlant(G,id,selPlot));break;
+  case'buildHQ':run(K.act.buildHQ(G,selPlot));break;
+  case'restart':store.del();G=null;$('over').hidden=true;showMenu();break;
+  }}
+document.addEventListener('click',onAction);
+document.addEventListener('input',e=>{const t=e.target;if(!G||!t.dataset.in)return;const f=cur();
+  if(t.dataset.in==='mkt'){K.act.setMkt(G,f.id,+t.value);$('mktV').textContent=fe(f.mkt)+' / Monat'}
+  if(t.dataset.in==='wage'){K.act.setWage(G,f.id,+t.value);$('wageV').textContent=pct(f.wage)+' vom Tarif'}});
+document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+document.querySelectorAll('[data-speed]').forEach(b=>b.addEventListener('click',()=>{speed=+b.dataset.speed;document.querySelectorAll('[data-speed]').forEach(x=>x.setAttribute('aria-pressed',x===b))}));
+const pane=$('pane');pane.addEventListener('pointerdown',()=>busy=true);addEventListener('pointerup',()=>setTimeout(()=>busy=false,250));
+let toastT=0;function toast(t,k){const el=$('toast');el.textContent=t;el.className='toast panel '+(k||'');el.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>el.hidden=true,3200)}
+function newsFeed(){const el=$('news');el.innerHTML=G.news.slice(0,4).reverse().map(n=>`<div class="k-${n.k}"><i></i><span><span class="mono">${K.dateStr({day:n.d}).replace(/ \d{4}$/,'')}</span> ${esc(n.t)}</span></div>`).join('');
+  const top=G.news[0];if(top&&top!==lastNews){if(lastNews&&(top.k==='bad'||top.k==='ms'||top.k==='fin'))toast(top.t,top.k);lastNews=top}}
+
+// ---------- Kamera und Auswahl in der Stadt ----------
+const cv=$('gl');const pts=new Map();let drag=null,pinch=null;
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pts.size===1)drag={x:e.clientX,y:e.clientY,yaw:World.view.yaw,tilt:World.view.tilt,moved:false};
+  if(pts.size===2){const [a,b]=[...pts.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),z:World.view.zoom};drag=null}});
+cv.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId)){World.hover(World.plotAt(e.clientX,e.clientY));return}pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinch&&pts.size===2){const [a,b]=[...pts.values()];World.view.zoom=pinch.z*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d;World.applyView();return}
+  if(drag){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>6)drag.moved=true;if(drag.moved){World.view.yaw=drag.yaw-dx*0.006;World.view.tilt=drag.tilt-dy*0.004;World.applyView()}}});
+cv.addEventListener('pointerup',e=>{pts.delete(e.pointerId);if(pts.size<2)pinch=null;if(drag&&!drag.moved&&G){const pid=World.plotAt(e.clientX,e.clientY);selPlot=pid;World.select(pid);plotCard()}drag=null});
+cv.addEventListener('pointercancel',e=>{pts.delete(e.pointerId);drag=null;pinch=null});
+cv.addEventListener('wheel',e=>{e.preventDefault();World.view.zoom*=Math.exp(-e.deltaY*0.0012);World.applyView()},{passive:false});
+addEventListener('resize',()=>{mobile=matchMedia('(max-width:760px)').matches;World.resize()});
+
+// Schilder über den eigenen Gebäuden
+function tags(){const el=$('tags');if(!G){el.innerHTML='';return}const out=[];
+  for(const p of G.plots){if(p.city!==World.city||!p.owner||p.owner.startsWith('c:'))continue;const pr=World.project(p.id,p.use==='hq'?19:p.use==='office'?9:7);if(!pr||!pr.vis)continue;
+    let t='',col='#24272b';if(p.owner==='H')t='Zentrale';else{const f=K.firm(G,p.owner);if(!f)continue;col=f.color;
+      if(p.use==='cafe'){const s=f.shops.find(x=>x.plot===p.id);t=(s&&s.stat?fn(s.stat.cust):'0')+' Gäste'}
+      if(p.use==='office')t=fn(G.apps.filter(a=>a.owner===f.id&&a.state==='live').reduce((s,a)=>s+a.users,0))+' Nutzer';
+      if(p.use==='factory'){const pl=f.plants.find(x=>x.plot===p.id);t=pl&&pl.lines.length?pl.lines.map(l=>fn(l.made||0)+' '+K.GOODS[l.product].unit).join(' · ')+'/T':'leer'}}
+    out.push(`<div class="tag" style="left:${pr.x}px;top:${pr.y}px"><i style="background:${col}"></i>${esc(t)}</div>`)}
+  el.innerHTML=out.join('')}
+
+// ---------- Schleife ----------
+function loop(t){const dt=Math.min(0.25,(t-lastT)/1000||0);lastT=t;
+  if(G&&!G.over&&$('menu').hidden){acc+=dt*speed;let n=0;while(acc>=1&&n<30){K.step(G);acc-=1;n++}if(n>=30)acc=0;
+    if(n){World.sync(G);newsFeed();if(G.day%30===0)save();if(G.over)gameOver()}}
+  if(G&&(t-lastRender>500&&G.day!==lastDay)){lastDay=G.day;render();header();if(selPlot)plotCard()}
+  if(G&&(t%3<1||true))tags();
+  World.frame(t);requestAnimationFrame(loop)}
+function gameOver(){save();const v=K.valuation(G);const o=$('over');o.hidden=false;o.innerHTML=`<div class="panel menuCard" style="max-width:420px"><div class="eyebrow">Insolvenz</div><h2>Das war's.</h2><p class="lead">${esc(G.firms[0].name)} ist am ${K.dateStr(G)} zahlungsunfähig. Höchster Stand: ${fn(Math.max(...G.months.map(m=>m.staff),1))} Mitarbeitende.</p><div class="btns"><button class="btn ink" data-a="restart">Neues Spiel</button></div></div>`}
+addEventListener('visibilitychange',()=>{if(document.hidden)save()});addEventListener('pagehide',save);
+
+World.init(cv);
+const saved=store.get();if(saved&&saved.v===1){G=saved;afterLoad();if(G.over)gameOver()}else showMenu();
+requestAnimationFrame(loop);
+window.__G=()=>G; // für Tests
+})();
+</script>
+</body></html>
