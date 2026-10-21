@@ -392,17 +392,31 @@ VIEWS.list=()=>{let b='';const last=G.report;
     b+='</div></div>'}
   return{eyebrow:K.monthName(G.month),title:'Meine Geschäfte',body:b}};
 // Café-Filiale
+const MGRLOOK=m=>Object.assign({},m,{suit:'#9b6fb5',shirt:'#24272b'});
+function mgrCard(s){const m=s.manager;
+  if(!m)return`<div class="card"><div class="row"><span><span class="lbl">Filialleitung</span><br><span class="sub">Mehr Kapazität, besserer Service, Stammgäste. Sie kann Personal, Angebot, Marketing und Zwischenfälle selbst übernehmen.</span></span></div><button class="btn ink" data-a="open" data-v="mgrHire" data-id="${s.id}" data-keep="1">Filialleitung einstellen</button></div>`;
+  const mp=K.mgrPay(m);return`<div class="sec"><h3>Filialleitung</h3><div class="card"><div class="execHead"><div style="text-align:center">${avatar(MGRLOOK(m),110)}<div class="eyebrow" style="margin-top:6px">Leitung seit</div><b>${K.monthName(m.since)}</b></div>
+    <div><b class="serif" style="font-size:24px">${esc(m.name)}</b><div class="eyebrow" style="margin-top:8px">Manager-Kenntnisse</div>${skill('Menschen',m.ppl)}${skill('Produkt',m.prod)}${skill('Marketing',m.mkt)}${skill('Ethik',m.eth)}
+    <div class="eyebrow" style="margin-top:8px">Jährliches Gehalt</div><div class="row">${step('mgrSal',fe(m.salary),`data-id="${s.id}"`)}</div><div class="sub">Marktüblich ${fe(mp)} <b class="${m.salary>=mp?'pos':'neg'}">${m.salary>=mp?'+':''}${Math.round((m.salary/mp-1)*100)} %</b> · Zufriedenheit ${Math.round(m.loy===undefined?75:m.loy)}</div></div></div>
+    <div class="eyebrow" style="margin-top:10px">Delegation an die Filialleitung</div>${Object.entries(K.MGR_DELEG).map(([k,n])=>`<div class="row"><span>${n}</span>${tog('mgrDeleg',(m.deleg||{})[k],`data-id="${s.id}" data-k="${k}"`)}</div>`).join('')}
+    <div class="sub">Menschen: Kapazität, Service und Stimmung. Produkt: Qualität und Tagesangebote. Marketing: Laufkundschaft. Ethik: schützt vor Kassenfehlbeträgen. Zu wenig Gehalt führt zur Kündigung.</div>
+    <button class="btn bad" data-a="fireMgr" data-id="${s.id}">Entlassen</button></div></div>`}
+VIEWS.mgrHire=({id})=>{const [f,s]=K.shopOf(G,+id);if(!s)return null;if(s.manager)return VIEWS.shop({id});const list=K.mgrCands(G,s.id);view.p.offer=view.p.offer||{};
+  let b=say('Diese Leute haben sich auf die Filialleitung beworben. Mach ein Gehaltsangebot.',BARISTA)+'<div class="cands">';
+  list.forEach((c,i)=>{const o=view.p.offer[i]||c.demand;b+=`<div class="card cand">${avatar(MGRLOOK(c),96)}<b class="serif" style="font-size:22px">${esc(c.name)}</b><div class="eyebrow">Manager-Kenntnisse</div>${skill('Menschen',c.ppl)}${skill('Produkt',c.prod)}${skill('Marketing',c.mkt)}${skill('Ethik',c.eth)}
+    <div class="eyebrow">Gehaltsvorstellung</div><b>${fe(c.demand)}</b><div class="eyebrow">Angebot</div><div class="row">${step('mgrOffer',fe(o),`data-v="${i}"`)}<span class="sub">${o>=c.demand?'+':''}${Math.round((o/c.demand-1)*100)} %</span></div><button class="btn ink" data-a="hireMgr" data-id="${s.id}" data-v="${i}">Angebot machen</button></div>`});
+  b+='</div>'+(list.length?'':'<div class="sub">Nächsten Monat gibt es neue Bewerbungen.</div>');return{eyebrow:esc(K.address(K.plot(G,s.plot))),title:'Filialleitung einstellen',body:b}};
 function shopHello(f,s,fc,st){if(fc.dem>fc.cap*1.1)return'Hallo Chef! Wir sind völlig überrannt, die Schlange reicht bis auf die Straße. Wir brauchen mehr Leute.';
   if(st&&st.profit<0)return'Hallo Chef. Ehrlich gesagt läuft es gerade nicht gut, es kommen zu wenige Gäste.';if(fc.dem<fc.cap*0.5)return'Hallo Chef. Es ist ruhig heute, wir hätten Platz für viel mehr Gäste.';
   if(s.rep>0.8)return'Hallo Chef! Die Gäste lieben uns, schau dir die Bewertungen an.';return'Hallo Chef. Wie geht’s Ihnen heute? Hier läuft alles rund.'}
 VIEWS.shop=({id})=>{const [f,s]=K.shopOf(G,+id);if(!s)return null;const p=K.plot(G,s.plot),fc=K.shopForecast(G,f,s),st=s.stat;const t=T()||'team';
-  let b=(t==='team'?say(shopHello(f,s,fc,st),BARISTA):'')+kpis([[st?fn(st.guests):'–','Gäste letzter Monat'],[st?fe(st.rev):'–','Umsatz'],[st?sgn(st.profit):'–','Gewinn',st?(st.profit>=0?'pos':'neg'):'']]);
+  let b=(t==='team'?say(shopHello(f,s,fc,st),s.manager?MGRLOOK(s.manager):BARISTA):'')+kpis([[st?fn(st.guests):'–','Gäste letzter Monat'],[st?fe(st.rev):'–','Umsatz'],[st?sgn(st.profit):'–','Gewinn',st?(st.profit>=0?'pos':'neg'):'']]);
   const over=fc.dem>fc.cap*1.02;
   b+=`<div class="card soft cap"><div class="row"><span class="lbl">Nachfrage diesen Monat</span><span class="sub">${fn(fc.dem)} Gäste</span></div>${bar(Math.min(1,fc.dem/Math.max(fc.dem,fc.cap)),'warn')}
     <div class="row"><span class="lbl">Kapazität</span><span class="sub">${fn(fc.cap)} Gäste</span></div>${bar(Math.min(1,fc.cap/Math.max(fc.dem,fc.cap)),over?'bad':'good')}
     <div class="sub">${over?'⚠️ Mehr Nachfrage als Kapazität: Gäste gehen wieder. Stell mehr Baristas ein.':fc.cap>fc.dem*1.5?'Viel Leerlauf: Weniger Personal spart Geld, oder mach Werbung.':'Passt gut zusammen.'}</div></div>`;
   if(t==='team'){b+=`<div class="card"><div class="row"><span><span class="lbl">Baristas</span><br><span class="sub">${fe(K.wageOf(G,'barista',f)*K.HOURS[s.hours].wage)} im Monat je Kraft</span></span>${step('shopStaff',s.staff,`data-id="${s.id}"`)}</div></div>
-    <div class="card"><div class="row"><span><span class="lbl">Filialleitung</span><br><span class="sub">+12 % Kapazität, besserer Service. ${fe(K.wageOf(G,'manager',f))} im Monat.</span></span>${tog('shopMgr',s.manager,`data-id="${s.id}"`)}</div></div>
+    ${mgrCard(s)}
     <div class="sec"><h3>Öffnungszeiten</h3>${seg('shopHours',Object.entries(K.HOURS).map(([k,h])=>[k,h.n,k==='short'?'−22 % Gäste':k==='long'?'+18 % Gäste':'Standard']),s.hours,`data-id="${s.id}"`)}<div class="sub">Längere Öffnung bringt mehr Gäste und Kapazität, kostet aber auch mehr Lohn.</div></div>
     <div class="card"><div class="row"><span><span class="lbl">Barista-Schulung</span><br><span class="sub">Service +5 % je Schulung (${s.train||0} von 3). Einmalig 1.500 €.</span></span><button class="btn" data-a="shopTrain" data-id="${s.id}" ${s.train>=3?'aria-disabled="true"':''}>Buchen</button></div></div>`}
   if(t==='up'){const nx=s.level<3?K.LEVELS[s.level+1]:null;
@@ -838,7 +852,11 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
   case'build':{let r;if(k==='cafe')r=K.act.openShop(G,id,b.dataset.p);if(k==='office')r=K.act.rentOffice(G,id,b.dataset.p);if(k==='factory')r=K.act.rentPlant(G,id,b.dataset.p);if(k==='hq')r=K.act.buildHQ(G,b.dataset.p);
     run(r);if(r&&r.ok){endPlace();if(k==='cafe')open('shop',{id:r.id});else if(k==='factory')open('plant',{id:r.id});else if(k==='office')open('office',{id});else close();save()}break}
   case'shopStaff':{const [,s]=K.shopOf(G,+id);run(K.act.shop(G,+id,{staff:s.staff+d}),1);break}
-  case'shopMgr':{const [,s]=K.shopOf(G,+id);run(K.act.shop(G,+id,{manager:!s.manager}),1);break}
+  case'mgrSal':{const [,s]=K.shopOf(G,+id);run(K.act.mgrSalary(G,+id,s.manager.salary+d*2500),1);break}
+  case'mgrDeleg':run(K.act.mgrDeleg(G,+id,k),1);break;
+  case'fireMgr':if(confirm('Filialleitung entlassen?'))run(K.act.fireMgr(G,+id));break;
+  case'mgrOffer':{const i=+v,[,s]=K.shopOf(G,view.p.id),c=K.mgrCands(G,s.id)[i];view.p.offer=view.p.offer||{};view.p.offer[i]=Math.max(20000,(view.p.offer[i]||c.demand)+d*2500);renderSheet();break}
+  case'hireMgr':{const i=+v,c=K.mgrCands(G,+id)[i],o=(view.p.offer||{})[i]||c.demand;const r=run(K.act.hireMgr(G,+id,i,o));view.p.offer={};save();if(r&&r.ok)back();else renderSheet();break}
   case'shopHours':run(K.act.shop(G,+id,{hours:v}),1);break;
   case'shopTrain':run(K.act.shop(G,+id,{train:true}));break;
   case'shopLevel':run(K.act.shop(G,+id,{level:true}));break;
