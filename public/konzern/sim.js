@@ -142,10 +142,17 @@ function earn(G,fid,acc,amt,cf){if(!amt)return;G.cash+=amt;if(acc)L(G,fid)[acc]+
 function equity(G,amt){G.cash+=amt;G.paidIn+=amt;G.led.cf.fin+=amt}
 function buyAsset(G,fid,name,cost,life,ref){G.cash-=cost;G.led.cf.inv-=cost;G.assets.push({id:uid(G),fid,name,cost,life,book:cost,ref:ref||null})}
 function dropAssets(G,ref){for(const a of G.assets.filter(a=>a.ref===ref)){L(G,a.fid).dep+=a.book;a.book=0}G.assets=G.assets.filter(a=>a.book>0.01)}
-function genCity(G,c){for(let r=0;r<ROWS;r++)for(let col=0;col<COLS;col++){const z=ZONES[ZONE_MAP[r][col]];
-  G.plots.push({id:c.id+'-'+r+'-'+col,city:c.id,r,c:col,zone:ZONE_MAP[r][col],traffic:Math.round(rr(G,z.traffic[0],z.traffic[1])*c.traffic/50)*50,rent:Math.round(rr(G,z.rent[0],z.rent[1])*c.rent/50)*50,size:Math.round(rr(G,z.size[0],z.size[1])/10)*10,owner:null,use:null})}}
+// Jedes Grundstück trägt ein festes Gebäude. Firmen mieten sich ein: Ladenlokale im Erdgeschoss, Etagen darüber, Hallen im Gewerbegebiet.
+const UNITS={wohn:['laden','laden'],city:['laden','laden','etage'],buero:['laden','etage','etage'],gewerbe:['halle']};
+const KINDS={laden:{n:'Ladenlokal',uses:['cafe']},etage:{n:'Büroetage',uses:['office','hq']},halle:{n:'Halle',uses:['factory']}};
+const UNIT_RANGE={'city-etage':{rent:[3800,6400],size:[250,520]},'buero-laden':{rent:[2200,3400],size:[90,160]}};
+function genCity(G,c){for(let r=0;r<ROWS;r++)for(let col=0;col<COLS;col++){const zk=ZONE_MAP[r][col],z=ZONES[zk],tr=Math.round(rr(G,z.traffic[0],z.traffic[1])*c.traffic/50)*50;
+  UNITS[zk].forEach((kind,u)=>{const R=UNIT_RANGE[zk+'-'+kind]||z;
+    G.plots.push({id:c.id+'-'+r+'-'+col+'-'+u,city:c.id,r,c:col,u,kind,zone:zk,traffic:kind==='laden'?Math.round(tr*rr(G,0.9,1.1)/50)*50:tr,rent:Math.round(rr(G,R.rent[0],R.rent[1])*c.rent/50)*50,size:Math.round(rr(G,R.size[0],R.size[1])/10)*10,owner:null,use:null})})}}
+const usesOf=p=>p.kind?KINDS[p.kind].uses.filter(x=>ZONES[p.zone].uses.includes(x)):ZONES[p.zone].uses;
+const unitName=p=>p.kind?KINDS[p.kind].n:p.zone==='gewerbe'?'Halle':'Gewerbefläche';
 const plot=(G,id)=>G.plots.find(p=>p.id===id);
-function freePlots(G,city,use){return G.plots.filter(p=>p.city===city&&!p.owner&&ZONES[p.zone].uses.includes(use)).sort((a,b)=>b.traffic-a.traffic)}
+function freePlots(G,city,use){return G.plots.filter(p=>p.city===city&&!p.owner&&usesOf(p).includes(use)).sort((a,b)=>b.traffic-a.traffic)}
 function addComp(G,o){const cp=Object.assign({id:uid(G),rep:0.6,price:1,aware:0.4,value:0},o);G.comps.push(cp);return cp}
 function compOpen(G,cp){const fr=freePlots(G,cp.city,'cafe').filter(p=>p.zone!=='buero'||rand(G)<0.4);if(!fr.length)return null;const p=fr[Math.min(fr.length-1,Math.floor(rand(G)*Math.min(5,fr.length)))];p.owner='c:'+cp.id;p.use='cafe';return p}
 function foundFirm(G,branch,name){
@@ -526,7 +533,7 @@ function shopOf(G,sid){for(const f of G.firms)if(f.shops){const s=f.shops.find(x
 function lineOf(G,lid){for(const f of G.firms)if(f.plants)for(const p of f.plants){const l=p.lines.find(x=>x.id===lid);if(l)return[f,p,l]}return[null,null,null]}
 function newShop(G,pid,o){return Object.assign({id:uid(G),plot:pid,level:1,staff:2,manager:false,hours:'normal',ups:{},act:{},special:null,rep:0.55,la:0.15,train:0,stat:null,reviews:[],opened:G.month},o||{})}
 A.openShop=(G,fid,pid)=>{const f=firm(G,fid),p=plot(G,pid);if(!f||f.branch!=='cafe')return{ok:false,msg:'Nur für Cafés.'};if(!p||p.owner)return{ok:false,msg:'Das Grundstück ist nicht frei.'};
-  if(!G.cities[p.city])return{ok:false,msg:'Diese Stadt ist noch nicht erschlossen.'};if(!ZONES[p.zone].uses.includes('cafe'))return{ok:false,msg:'Hier ist keine Gastronomie erlaubt.'};
+  if(!G.cities[p.city])return{ok:false,msg:'Diese Stadt ist noch nicht erschlossen.'};if(!usesOf(p).includes('cafe'))return{ok:false,msg:'Hier ist keine Gastronomie möglich.'};
   const cost=shopCost(p);if(!can(G,cost))return noMoney(cost);
   pay(G,f.id,'other',cost-LEVELS[1].cost);buyAsset(G,f.id,'Einrichtung',LEVELS[1].cost,60,'shop:'+p.id);p.owner=f.id;p.use='cafe';
   const s=newShop(G,p.id);f.shops.push(s);news(G,f.name+' eröffnet eine Filiale ('+ZONES[p.zone].n+', '+cityName(p.city)+').','good');return{ok:true,msg:'Filiale eröffnet!',id:s.id}};
@@ -550,7 +557,7 @@ A.hire=(G,fid,role,d)=>{const f=firm(G,fid);const n=f[role]+d;if(n<0)return{ok:f
   if(d>0&&f.jr+f.sr+f.des+f.qa+d+1>desks(G,f)*1.25)return{ok:false,msg:'Kein Platz mehr. Miete ein größeres Büro.'};
   const fee=(f.oups.gaming?800:1200)*d;if(d>0){if(!can(G,fee))return noMoney(fee);pay(G,f.id,'other',fee)}else pay(G,f.id,'other',WAGE[role]*-d);f[role]=n;return{ok:true}};
 A.rentOffice=(G,fid,pid)=>{const f=firm(G,fid),p=plot(G,pid);if(!f||f.branch!=='soft')return{ok:false,msg:'Nur für Software-Firmen.'};if(!p||p.owner)return{ok:false,msg:'Das Grundstück ist nicht frei.'};
-  if(!G.cities[p.city])return{ok:false,msg:'Diese Stadt ist noch nicht erschlossen.'};if(!ZONES[p.zone].uses.includes('office'))return{ok:false,msg:'Hier sind keine Büros möglich.'};
+  if(!G.cities[p.city])return{ok:false,msg:'Diese Stadt ist noch nicht erschlossen.'};if(!usesOf(p).includes('office'))return{ok:false,msg:'Büros gibt es nur in Büroetagen.'};
   const cost=officeCost(p);if(!can(G,cost))return noMoney(cost);
   if(f.office){const o=plot(G,f.office);dropAssets(G,'office:'+o.id);o.owner=null;o.use=null;f.oups={}}
   pay(G,f.id,'other',p.rent*2);buyAsset(G,f.id,'Büroausstattung',p.size*40,60,'office:'+p.id);p.owner=f.id;p.use='office';f.office=p.id;
@@ -568,7 +575,7 @@ A.app=(G,aid,ch)=>{const a=G.apps.find(x=>x.id===aid);if(!a)return{ok:false};con
   if(ch.share!==undefined)a.share=clamp(ch.share,0,4);if(ch.model)a.model=ch.model;if(ch.price!==undefined)a.price=Math.round(clamp(ch.price,0.99,29.99)*100)/100;if(ch.focus)a.focus=ch.focus;
   if(ch.ads!==undefined)a.ads=clamp(Math.round(ch.ads/500)*500,0,100000);if(ch.camp)a.camp[ch.camp]=!a.camp[ch.camp];return{ok:true}};
 A.rentPlant=(G,fid,pid)=>{const f=firm(G,fid),p=plot(G,pid);if(!f||f.branch!=='prod')return{ok:false,msg:'Nur für Produktionsfirmen.'};if(!p||p.owner)return{ok:false,msg:'Das Grundstück ist nicht frei.'};
-  if(!G.cities[p.city])return{ok:false,msg:'Diese Stadt ist noch nicht erschlossen.'};if(!ZONES[p.zone].uses.includes('factory'))return{ok:false,msg:'Fabriken nur im Gewerbegebiet.'};
+  if(!G.cities[p.city])return{ok:false,msg:'Diese Stadt ist noch nicht erschlossen.'};if(!usesOf(p).includes('factory'))return{ok:false,msg:'Fabriken nur in Hallen im Gewerbegebiet.'};
   const cost=p.rent*3;if(!can(G,cost))return noMoney(cost);pay(G,f.id,'other',cost);p.owner=f.id;p.use='factory';const pl={id:uid(G),plot:p.id,lines:[],ups:{}};f.plants.push(pl);
   news(G,f.name+' mietet eine Halle in '+cityName(p.city)+'.','good');return{ok:true,msg:'Halle gemietet! Jetzt eine Linie kaufen.',id:pl.id}};
 A.buyLine=(G,fid,plantId,type)=>{const f=firm(G,fid),pl=f&&f.plants.find(x=>x.id===plantId),T=LINES[type];if(!pl||!T)return{ok:false};if(T.res&&!has(f,T.res))return{ok:false,msg:'Erst entwickeln.'};
@@ -593,7 +600,7 @@ A.found=(G,branch,name)=>{const c=25000;if(!can(G,c))return noMoney(c);pay(G,'H'
 A.unlockCity=(G,cid)=>{const c=CITIES.find(x=>x.id===cid);if(!c||G.cities[cid])return{ok:false};if(totalStaff(G)<c.unlock.staff)return{ok:false,msg:'Erst ab '+c.unlock.staff+' Mitarbeitenden.'};
   if(!can(G,c.unlock.cost))return noMoney(c.unlock.cost);pay(G,'H','other',c.unlock.cost);G.cities[cid]=true;news(G,'Markteintritt in '+c.n+'.','good');return{ok:true,msg:'Willkommen in '+c.n+'!'}};
 A.buildHQ=(G,pid)=>{const p=plot(G,pid);if(G.hq)return{ok:false,msg:'Es gibt schon eine Zentrale.'};if(totalStaff(G)<25)return{ok:false,msg:'Eine Zentrale lohnt sich erst ab 25 Mitarbeitenden.'};
-  if(!p||p.owner||!ZONES[p.zone].uses.includes('hq'))return{ok:false,msg:'Wähle ein freies Grundstück in Innenstadt oder Büroviertel.'};if(!G.cities[p.city])return{ok:false,msg:'Diese Stadt ist noch nicht erschlossen.'};
+  if(!p||p.owner||!usesOf(p).includes('hq'))return{ok:false,msg:'Wähle eine freie Büroetage in Innenstadt oder Büroviertel.'};if(!G.cities[p.city])return{ok:false,msg:'Diese Stadt ist noch nicht erschlossen.'};
   if(!can(G,250000))return noMoney(250000);buyAsset(G,'H','Zentrale',250000,240,'hq');p.owner='H';p.use='hq';G.hq=p.id;news(G,'Die Konzernzentrale steht!','good');return{ok:true,msg:'Zentrale gebaut!'}};
 A.dept=(G,k,on)=>{if(!G.hq)return{ok:false,msg:'Erst eine Zentrale bauen.'};if(on&&!G.depts[k]){if(!can(G,5000))return noMoney(5000);pay(G,'H','other',5000)}G.depts[k]=!!on;return{ok:true}};
 A.loan=(G,amount)=>{const o=loanOffer(G);if(amount>o.max)return{ok:false,msg:'Die Bank gibt höchstens '+fmtE(o.max)+'.'};takeLoan(G,{amount,rate:o.rate,months:60,name:'Bankkredit'});return{ok:true,msg:fmtE(amount)+' Kredit aufgenommen.'}};
@@ -616,7 +623,7 @@ A.takeover=(G,cid)=>{const cp=G.comps.find(c=>c.id===cid);if(!cp)return{ok:false
 A.founderDev=(G,on)=>{G.founderDev=!!on;return{ok:true}};
 A.buyProp=(G,pid)=>{const p=plot(G,pid);if(!p||p.prop)return{ok:false};if(p.owner==='H')return{ok:false};if(!G.cities[p.city])return{ok:false,msg:'Diese Stadt ist noch nicht erschlossen.'};
   const v=propValue(G,p),c=v*1.05;if(!can(G,c))return noMoney(c);pay(G,'H','other',v*0.05);buyAsset(G,'H','Immobilie '+ZONES[p.zone].n+' '+cityName(p.city),v,1e9,'prop:'+p.id);p.prop='H';p.leaseR=1;
-  news(G,'Immobilie gekauft: '+ZONES[p.zone].n+', '+cityName(p.city)+'.','good');return{ok:true,msg:'Gebäude gekauft!'}};
+  news(G,'Immobilie gekauft: '+ZONES[p.zone].n+', '+cityName(p.city)+'.','good');return{ok:true,msg:'Fläche gekauft!'}};
 A.sellProp=(G,pid)=>{const p=plot(G,pid);if(!p||p.prop!=='H')return{ok:false};if(p.owner==='H')return{ok:false,msg:'Die Zentrale steht hier.'};const v=propValue(G,p)*0.97;
   const a=G.assets.filter(x=>x.ref==='prop:'+p.id),book=a.reduce((s,x)=>s+x.book,0);G.assets=G.assets.filter(x=>x.ref!=='prop:'+p.id);earn(G,'H',null,v,'inv');L(G,'H').other+=book-v;p.prop=null;
   return{ok:true,msg:'Verkauft für '+fmtE(v)+(v>book?' (Gewinn '+fmtE(v-book)+')':' (Verlust '+fmtE(book-v)+')')}};
@@ -662,6 +669,6 @@ function curLedger(G){return{m:G.month,f:G.led.f,H:G.led.H,cf:G.led.cf}}
 
 const K={MONTHS,BRANCHES,WAGE,PRODUCTS,QMULT,QUAL,QN,LEVELS,CAFE_UPS,CAFE_ACTIONS,HOURS,GENRES,SCOPES,FOCUS,MODELS,CAMPAIGNS,OFFICE_UPS,RAW,GOODS,LINES,SHIFTS,GMULT,GQUAL,SUPPLIERS,PLANT_UPS,RESEARCH,CITIES,ZONES,COLS,ROWS,STAGES,DEPTS,GOALS,
   newGame,endTurn,act:A,plot,firm,staffOf,adminOf,totalStaff,hqStaff,stage,menuStats,shopForecast,forecastShop,shopCost,officeCost,softTeam,desks,rating,goodsTotal,lineOut,lineNeed,rawPrice,wholesalePrice,storageCap,reserved,effGrade,
-  balance,valuation,firmValue,compValue,takeoverPrice,loanOffer,ipoCheck,pl,curLedger,dateStr:G=>monthName(G.month),monthName,yearOf,cityName,dispo,fmtE,fmtN:fn,freePlots,stars,eventOpts,productivity,summer,shopOf,lineOf,sumF,wageOf,propValue,propIncome,leaseOcc,rentOf,CITY_CAMPS,EXECS,SECTORS,LUX,CLUBS,wealth,genMarket,YIELD};
+  balance,valuation,firmValue,compValue,takeoverPrice,loanOffer,ipoCheck,pl,curLedger,dateStr:G=>monthName(G.month),monthName,yearOf,cityName,dispo,fmtE,fmtN:fn,freePlots,stars,eventOpts,productivity,summer,shopOf,lineOf,sumF,wageOf,propValue,propIncome,leaseOcc,rentOf,CITY_CAMPS,EXECS,SECTORS,LUX,CLUBS,wealth,genMarket,UNITS,KINDS,usesOf,unitName,YIELD};
 if(typeof module!=='undefined'&&module.exports)module.exports=K;else root.K=K;
 })(typeof window!=='undefined'?window:globalThis);

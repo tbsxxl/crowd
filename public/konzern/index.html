@@ -185,7 +185,7 @@ canvas.chart{width:100%;height:150px;display:block}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style></head>
 <body>
-<div id="stage"><canvas id="gl" aria-label="Die Stadt als Diorama. Tippe auf ein Gebäude oder Grundstück."></canvas></div>
+<div id="stage"><canvas id="gl" aria-label="Die Stadt als Diorama. Tippe auf ein Gebäude oder einen Laden."></canvas></div>
 <div class="tags" id="tags"></div>
 <div class="floats" id="floats"></div>
 <header class="brand"><h1>Gründerzeit.</h1><p id="brandSub"></p></header>
@@ -292,7 +292,7 @@ const donut=(parts,size)=>{const tot=parts.reduce((s,p)=>s+Math.max(0,p.v),0)||1
 const legend=parts=>`<div class="list" style="gap:4px;flex:1">${parts.map(p=>`<div class="row"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${p.c};margin-right:6px"></i>${p.n}</span><b style="font-variant-numeric:tabular-nums">${p.t||fe(p.v)}</b></div>`).join('')}</div>`;
 const VIEWS={};
 // Bauen
-VIEWS.build=()=>{let b='<div class="hint">Wähle, was du bauen willst. Danach leuchten passende Grundstücke in der Stadt grün auf.</div>';
+VIEWS.build=()=>{let b='<div class="hint">Wähle, was du bauen willst. Danach leuchten passende freie Flächen in der Stadt grün auf: Ladenlokale, Büroetagen oder Hallen.</div>';
   for(const f of G.firms){b+=`<div class="sec"><h3>${esc(f.name)} · ${K.BRANCHES[f.branch].n}</h3>`;
     if(f.branch==='cafe')b+=buildOpt('cafe',f,'☕','Neue Filiale','Café in Innenstadt, Wohnviertel oder Büroviertel. Einrichtung, Kaution und Anwerbung.','ab '+fe(15000+1700*2+1600));
     if(f.branch==='soft')b+=buildOpt('office',f,'🏢',f.office?'Größeres Büro':'Eigenes Büro','Mehr Arbeitsplätze für dein Team (Homeoffice: 3). Büroviertel oder Innenstadt.','ab '+fe(300*40+2600*2))+
@@ -304,9 +304,9 @@ VIEWS.build=()=>{let b='<div class="hint">Wähle, was du bauen willst. Danach le
     <button class="li" data-a="open" data-v="group" data-tab="firms" data-keep="1"><span class="ico">➕</span><span class="t"><b>Neue Firma gründen</b><span>In eine weitere Branche einsteigen.</span></span><span class="v">→</span></button></div>`;
   return{eyebrow:K.monthName(G.month),title:'Bauen',body:b}};
 function buildOpt(kind,f,ico,t,d,price,lock){return`<button class="li" data-a="place" data-k="${kind}" data-id="${f?f.id:''}" ${lock?'aria-disabled="true"':''}><span class="ico">${ico}</span><span class="t"><b>${t}</b><span>${d}</span></span><span class="v">${lock?`<small>${lock}</small>`:price}</span></button>`}
-function eligible(kind){const use={cafe:'cafe',office:'office',factory:'factory',hq:'hq'}[kind];return G.plots.filter(p=>p.city===World.city&&!p.owner&&K.ZONES[p.zone].uses.includes(use)).map(p=>p.id)}
+function eligible(kind){const use={cafe:'cafe',office:'office',factory:'factory',hq:'hq'}[kind];return G.plots.filter(p=>p.city===World.city&&!p.owner&&K.usesOf(p).includes(use)).map(p=>p.id)}
 function startPlace(kind,fid){if(!G.cities[World.city]){toast('Diese Stadt ist noch nicht erschlossen.','bad');return}place={kind,fid};close();const ids=eligible(kind);World.highlight(ids);
-  $('placeBar').hidden=false;$('placeBar').innerHTML=`<span>${{cafe:'☕',office:'🏢',factory:'🏭',hq:'🏛️'}[kind]} <b>${ids.length} passende Grundstücke</b> leuchten grün. Tippe eins an.</span><button class="btn" data-a="cancelPlace">Abbrechen</button>`;
+  $('placeBar').hidden=false;$('placeBar').innerHTML=`<span>${{cafe:'☕',office:'🏢',factory:'🏭',hq:'🏛️'}[kind]} <b>${ids.length} freie Flächen</b> leuchten grün. Tippe eins an.</span><button class="btn" data-a="cancelPlace">Abbrechen</button>`;
   if(!ids.length)toast('Hier ist gerade nichts frei. Andere Stadt im Bereich Konzern erschließen.','bad')}
 function endPlace(){place=null;$('placeBar').hidden=true;World.highlight(null)}
 // Grundstück (frei, Konkurrenz)
@@ -314,40 +314,45 @@ VIEWS.plot=({id})=>{const p=K.plot(G,id);if(!p)return null;const z=K.ZONES[p.zon
   if(p.owner&&p.owner.startsWith('c:')){const cp=G.comps.find(c=>'c:'+c.id===p.owner);
     b+=`<div class="card"><div class="ch"><span class="ico">🏪</span><span class="t"><b>${esc(cp?cp.name:'Konkurrenz')}</b><span>${cp&&cp.branch==='cafe'?'Café-Kette · Qualität '+pct(cp.q)+' · Preise '+pct(cp.price):'Konkurrent'}</span></span></div>
       ${cp?`<button class="btn" data-a="open" data-v="group" data-tab="market" data-keep="1">Übernahme prüfen · ${fe(K.takeoverPrice(G,cp))}</button>`:''}</div>`;
-    return{eyebrow:z.n+' · '+K.cityName(p.city),title:'Konkurrenz',body:b+propCard(p)}}
+    return{eyebrow:z.n+' · '+K.cityName(p.city)+' · '+K.unitName(p),title:'Konkurrenz',body:b+propCard(p)+housemates(p)}}
   if(p.owner){const uses={cafe:'Deine Filiale',office:'Dein Büro',factory:'Deine Fabrik',hq:'Konzernzentrale'};const ff=p.owner!=='H'&&K.firm(G,p.owner);
-    return{eyebrow:z.n+' · '+K.cityName(p.city),title:uses[p.use]||'Dein Standort',sub:ff?esc(ff.name):'',body:b+(propCard(p)||'<div class="sub">Die Zentrale steht auf eigenem Grund.</div>')}}
+    return{eyebrow:z.n+' · '+K.cityName(p.city)+' · '+K.unitName(p),title:uses[p.use]||'Dein Standort',sub:ff?esc(ff.name):'',body:b+(propCard(p)||'')+housemates(p)}}
   if(!G.cities[p.city])return{eyebrow:z.n,title:'Noch nicht erschlossen',body:b+'<div class="warnbox">Erschließe diese Stadt im Bereich Konzern.</div>'};
-  let acts='';const kind=place?place.kind:null;
-  for(const f of G.firms){if(f.branch==='cafe'&&z.uses.includes('cafe')&&(!kind||kind==='cafe')){const fc=K.forecastShop(G,f.id,p.id);
+  let acts='';const kind=place?place.kind:null,us=K.usesOf(p);
+  for(const f of G.firms){if(f.branch==='cafe'&&us.includes('cafe')&&(!kind||kind==='cafe')){const fc=K.forecastShop(G,f.id,p.id);
       acts+=`<div class="card"><div class="ch"><span class="ico">☕</span><span class="t"><b>Filiale von ${esc(f.name)}</b><span>Prognose bei ${fc.staff} Baristas</span></span></div>
       ${kpis([[fn(fc.guests),'Gäste im Monat'],[fe(fc.rev),'Umsatz'],[sgn(fc.profit),'Gewinn',fc.profit>=0?'pos':'neg']])}
       <button class="btn ink" data-a="build" data-k="cafe" data-id="${f.id}" data-p="${p.id}">Eröffnen · ${fe(K.shopCost(p))}</button></div>`}
-    if(f.branch==='soft'&&z.uses.includes('office')&&(!kind||kind==='office'))acts+=`<div class="card"><div class="ch"><span class="ico">🏢</span><span class="t"><b>Büro für ${esc(f.name)}</b><span>${Math.floor(p.size/10)} Arbeitsplätze${f.office?', ersetzt das alte Büro':''}</span></span></div><button class="btn ink" data-a="build" data-k="office" data-id="${f.id}" data-p="${p.id}">Beziehen · ${fe(K.officeCost(p))}</button></div>`;
-    if(f.branch==='prod'&&z.uses.includes('factory')&&(!kind||kind==='factory'))acts+=`<div class="card"><div class="ch"><span class="ico">🏭</span><span class="t"><b>Halle für ${esc(f.name)}</b><span>Platz für ${Math.floor(p.size/500)} Linien</span></span></div><button class="btn ink" data-a="build" data-k="factory" data-id="${f.id}" data-p="${p.id}">Mieten · ${fe(p.rent*3)} Kaution</button></div>`}
-  if(z.uses.includes('hq')&&!G.hq&&(!kind||kind==='hq'))acts+=`<div class="card"><div class="ch"><span class="ico">🏛️</span><span class="t"><b>Konzernzentrale</b><span>${K.totalStaff(G)<25?'Erst ab 25 Mitarbeitenden':'Für Abteilungen und den Börsengang'}</span></span></div><button class="btn ${K.totalStaff(G)<25?'':'ink'}" data-a="build" data-k="hq" data-p="${p.id}" ${K.totalStaff(G)<25?'aria-disabled="true"':''}>Bauen · 250.000 €</button></div>`;
-  if(!acts)acts=`<div class="sub">${p.zone==='gewerbe'?'Im Gewerbegebiet sind nur Fabriken erlaubt.':'Für deine Firmen ist hier nichts möglich.'}</div>`;
-  return{eyebrow:z.n+' · '+K.cityName(p.city),title:p.prop==='H'?'Dein Gebäude':'Freies Grundstück',body:b+acts+propCard(p)}};
+    if(f.branch==='soft'&&us.includes('office')&&(!kind||kind==='office'))acts+=`<div class="card"><div class="ch"><span class="ico">🏢</span><span class="t"><b>Büro für ${esc(f.name)}</b><span>${Math.floor(p.size/10)} Arbeitsplätze${f.office?', ersetzt das alte Büro':''}</span></span></div><button class="btn ink" data-a="build" data-k="office" data-id="${f.id}" data-p="${p.id}">Beziehen · ${fe(K.officeCost(p))}</button></div>`;
+    if(f.branch==='prod'&&us.includes('factory')&&(!kind||kind==='factory'))acts+=`<div class="card"><div class="ch"><span class="ico">🏭</span><span class="t"><b>Halle für ${esc(f.name)}</b><span>Platz für ${Math.floor(p.size/500)} Linien</span></span></div><button class="btn ink" data-a="build" data-k="factory" data-id="${f.id}" data-p="${p.id}">Mieten · ${fe(p.rent*3)} Kaution</button></div>`}
+  if(us.includes('hq')&&!G.hq&&(!kind||kind==='hq'))acts+=`<div class="card"><div class="ch"><span class="ico">🏛️</span><span class="t"><b>Konzernzentrale</b><span>${K.totalStaff(G)<25?'Erst ab 25 Mitarbeitenden':'Für Abteilungen und den Börsengang'}</span></span></div><button class="btn ${K.totalStaff(G)<25?'':'ink'}" data-a="build" data-k="hq" data-p="${p.id}" ${K.totalStaff(G)<25?'aria-disabled="true"':''}>Bauen · 250.000 €</button></div>`;
+  if(!acts)acts=`<div class="sub">${p.kind==='laden'?'Ladenlokale eignen sich für Cafés und Läden.':p.kind==='etage'?'Büroetagen eignen sich für Büros und die Konzernzentrale.':p.zone==='gewerbe'?'Hallen eignen sich nur für Fabriken.':'Für deine Firmen ist hier nichts möglich.'}</div>`;
+  const un=K.unitName(p);return{eyebrow:z.n+' · '+K.cityName(p.city),title:(p.kind==='etage'||p.kind==='halle'?'Freie ':'Freies ')+un,sub:'zu mieten · '+fn(p.size)+' m²',body:b+acts+propCard(p)+housemates(p)}};
+function housemates(p){const o=G.plots.filter(q=>q.city===p.city&&q.r===p.r&&q.c===p.c&&q!==p);if(!o.length)return'';
+  return`<div class="sec"><h3>Im selben Gebäude</h3><div class="list">${o.map(q=>{let who='frei, zu mieten',ic='🔑';
+    if(q.owner==='H'){who='Deine Konzernzentrale';ic='🏛️'}else if(q.owner&&q.owner.startsWith('c:')){const cp=G.comps.find(c=>'c:'+c.id===q.owner);who=cp?cp.name:'Konkurrenz';ic='🏪'}
+    else if(q.owner){const ff=K.firm(G,q.owner);who=(ff?ff.name:'')+' (du)';ic={cafe:'☕',office:'💼',factory:'🏭'}[q.use]||'🏢'}
+    return li(`data-a="open" data-v="plot" data-id="${q.id}" data-keep="1"`,ic,K.unitName(q)+(q.kind==='laden'?' · '+(q.u===0?'links':'rechts'):''),who,fn(q.size)+' m²',fe(q.rent)+'/Monat')}).join('')}</div></div>`}
 function propCard(p){const v=K.propValue(G,p);
   if(p.prop==='H'){const inc=K.propIncome(G,p),self=p.owner&&!p.owner.startsWith('c:');
     let h=`<div class="card"><div class="ch"><span class="ico">🏢</span><span class="t"><b>Immobilie im Besitz</b><span>Marktwert ${fe(v)}</span></span></div>`;
-    if(self)h+=`<div class="sub">Du nutzt das Gebäude selbst und sparst ${fe(p.rent)} Miete im Monat (${(p.rent*12/v*100).toFixed(1).replace('.',',')} % Rendite).</div>`;
+    if(self)h+=`<div class="sub">Du nutzt die Fläche selbst und sparst ${fe(p.rent)} Miete im Monat (${(p.rent*12/v*100).toFixed(1).replace('.',',')} % Rendite).</div>`;
     else if(p.owner)h+=`<div class="sub">Vermietet an die Konkurrenz: ${fe(p.rent)} im Monat (${(p.rent*12/v*100).toFixed(1).replace('.',',')} % Rendite).</div>`;
     else h+=`<div class="row"><span><span class="lbl">Miete</span><br><span class="sub">${pct(p.leaseR||1)} vom Marktpreis · Auslastung ${pct(K.leaseOcc(p))}</span></span>${step('leaseR',fe(p.rent*(p.leaseR||1)),`data-id="${p.id}"`)}</div><div class="sub">Einnahmen ${fe(inc)} im Monat, ${(inc*12/v*100).toFixed(1).replace('.',',')} % Rendite. Höhere Miete senkt die Auslastung.</div>`;
     return h+(p.owner==='H'?'':`<button class="btn" data-a="sellProp" data-id="${p.id}">Verkaufen · ${fe(v*0.97)}</button>`)+'</div>'}
   if(p.owner==='H')return'';
-  const self=p.owner&&!p.owner.startsWith('c:');return`<div class="card soft"><div class="ch"><span class="ico">🏢</span><span class="t"><b>Gebäude kaufen</b><span>${self?'Du sparst danach '+fe(p.rent)+' Miete im Monat.':p.owner?'Die Konkurrenz zahlt dir dann '+fe(p.rent)+' Miete im Monat.':'Vermiete es an Dritte oder nutze es später selbst.'} Rendite ${(K.YIELD[p.zone]*100).toFixed(1).replace('.',',')} %.</span></span></div><button class="btn" data-a="buyProp" data-id="${p.id}">Kaufen · ${fe(v*1.05)} inkl. Nebenkosten</button></div>`}
+  const self=p.owner&&!p.owner.startsWith('c:');return`<div class="card soft"><div class="ch"><span class="ico">🏢</span><span class="t"><b>${K.unitName(p)} kaufen</b><span>${self?'Du sparst danach '+fe(p.rent)+' Miete im Monat.':p.owner?'Die Konkurrenz zahlt dir dann '+fe(p.rent)+' Miete im Monat.':'Vermiete es an Dritte oder nutze es später selbst.'} Rendite ${(K.YIELD[p.zone]*100).toFixed(1).replace('.',',')} %.</span></span></div><button class="btn" data-a="buyProp" data-id="${p.id}">Kaufen · ${fe(v*1.05)} inkl. Nebenkosten</button></div>`}
 // Liste der Geschäfte
 VIEWS.list=()=>{let b='';const last=G.report;
   for(const f of G.firms){b+=`<div class="sec"><h3>${esc(f.name)}</h3><div class="list">`;
     if(f.branch==='cafe'){for(const s of f.shops){const p=K.plot(G,s.plot),st=s.stat;b+=li(`data-a="open" data-v="shop" data-id="${s.id}" data-keep="1"`,'☕',K.ZONES[p.zone].n+', '+K.cityName(p.city),(st?fn(st.guests)+' Gäste · ':'neu · ')+starsH(K.stars(s.rep)),st?sgn(st.profit):'–','Gewinn',st?(st.profit>=0?'pos':'neg'):'')}
-      if(!f.shops.length)b+=`<button class="li" data-a="place" data-k="cafe" data-id="${f.id}"><span class="ico">➕</span><span class="t"><b>Erste Filiale eröffnen</b><span>Grundstück in der Stadt wählen</span></span></button>`}
+      if(!f.shops.length)b+=`<button class="li" data-a="place" data-k="cafe" data-id="${f.id}"><span class="ico">➕</span><span class="t"><b>Erste Filiale eröffnen</b><span>Ladenlokal in der Stadt wählen</span></span></button>`}
     if(f.branch==='soft'){b+=li(`data-a="open" data-v="office" data-id="${f.id}" data-keep="1"`,'🏢',f.office?'Studio '+K.cityName(K.plot(G,f.office).city):'Homeoffice',fn(f.jr+f.sr+f.des+f.qa)+' im Team · '+fn(K.desks(G,f))+' Plätze','→','');
       for(const a of G.apps.filter(a=>a.owner===f.id&&a.state!=='off'))b+=a.state==='dev'?li(`data-a="open" data-v="app" data-id="${a.id}" data-keep="1"`,'🛠️',esc(a.name),K.GENRES[a.genre].n+' · in Entwicklung',pct(a.progress/a.work),'fertig'):
         li(`data-a="open" data-v="app" data-id="${a.id}" data-keep="1"`,K.GENRES[a.genre].icon,esc(a.name),fn(a.users)+' Nutzer · '+starsH(Math.round(K.rating(a)*10)/2),a.stat?sgn(a.stat.rev-a.stat.server-a.stat.mk):'–','Gewinn',a.stat?(a.stat.rev-a.stat.server-a.stat.mk>=0?'pos':'neg'):'')}
     if(f.branch==='prod'){b+=li(`data-a="open" data-v="sales" data-id="${f.id}" data-keep="1"`,'📦','Einkauf, Lager & Vertrieb',f.contracts.length+' Aufträge · '+G.offers.contracts.filter(c=>c.fid===f.id).length+' Angebote','→','');
       for(const p of f.plants){const it=last&&last.items.find(x=>x.kind==='plant'&&x.id===p.id);b+=li(`data-a="open" data-v="plant" data-id="${p.id}" data-keep="1"`,'🏭','Werk '+K.cityName(K.plot(G,p.plot).city),p.lines.length?p.lines.map(l=>K.LINES[l.type].n).join(', '):'noch keine Linie',it?sgn(it.profit):'–','Gewinn',it?(it.profit>=0?'pos':'neg'):'')}
-      if(!f.plants.length)b+=`<button class="li" data-a="place" data-k="factory" data-id="${f.id}"><span class="ico">➕</span><span class="t"><b>Erste Halle mieten</b><span>Grundstück im Gewerbegebiet wählen</span></span></button>`}
+      if(!f.plants.length)b+=`<button class="li" data-a="place" data-k="factory" data-id="${f.id}"><span class="ico">➕</span><span class="t"><b>Erste Halle mieten</b><span>Halle im Gewerbegebiet wählen</span></span></button>`}
     b+='</div></div>'}
   return{eyebrow:K.monthName(G.month),title:'Meine Geschäfte',body:b}};
 // Café-Filiale
@@ -375,7 +380,7 @@ VIEWS.shop=({id})=>{const [f,s]=K.shopOf(G,+id);if(!s)return null;const p=K.plot
       <tr><td>Wareneinsatz</td><td>${fe(-(st.cogs||0))}</td></tr><tr><td>Personal</td><td>${fe(-(st.wages||0))}</td></tr><tr><td>Miete</td><td>${fe(-(st.rent||0))}</td></tr><tr><td>Nebenkosten</td><td>${fe(-(st.other||0))}</td></tr><tr><td>Aktionen</td><td>${fe(-(st.mk||0))}</td></tr>
       <tr class="sum"><td>Gewinn</td><td class="${st.profit>=0?'pos':'neg'}">${sgn(st.profit)}</td></tr></table></div>`;
     else b+='<div class="sub">Zahlen gibt es nach dem ersten Monat.</div>';
-    if(p.prop!=='H')b+=`<div class="card soft"><div class="ch"><span class="ico">🏢</span><span class="t"><b>Gebäude kaufen statt mieten</b><span>Kaufpreis ${fe(K.propValue(G,p))}, dann keine Miete mehr (${fe(p.rent)} im Monat).</span></span></div><button class="btn" data-a="open" data-v="plot" data-id="${p.id}" data-keep="1">Zur Immobilie →</button></div>`}
+    if(p.prop!=='H')b+=`<div class="card soft"><div class="ch"><span class="ico">🏢</span><span class="t"><b>Ladenlokal kaufen statt mieten</b><span>Kaufpreis ${fe(K.propValue(G,p))}, dann keine Miete mehr (${fe(p.rent)} im Monat).</span></span></div><button class="btn" data-a="open" data-v="plot" data-id="${p.id}" data-keep="1">Zur Immobilie →</button></div>`}
   if(t==='rev'){const sat=st?st.sat:s.rep,cat=[['Preis',Math.min(1,fc.ms.price)],['Produkt',fc.ms.quality],['Service',Math.min(1,(st?st.served:1)*0.75+(s.manager?0.12:0)+(s.train||0)*0.05)],['Atmosphäre',fc.comfort]];
     b+=`<div class="card"><div class="row" style="align-items:flex-start"><span><b class="serif" style="font-size:44px;line-height:1">${String(K.stars(s.rep)).replace('.',',')}</b><br>${starsH(K.stars(s.rep))}<br><span class="sub">${fn(s.rcount||0)} Bewertungen</span></span>
       <span style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">${cat.map(([n,v])=>`<span class="row" style="gap:8px"><span class="sub">${n}</span>${starsH(K.stars(v))}<b>${String(K.stars(v)).replace('.',',')}</b></span>`).join('')}</span></div></div>`;
@@ -525,7 +530,7 @@ VIEWS.group=(pp,forceTab)=>{const t=forceTab||T()||'firms',st=K.stage(G);let b='
       b+=`<div class="card"><div class="ch"><span class="ico">${K.BRANCHES[cp.branch].icon}</span><span class="t"><b>${esc(cp.name)}</b><span>${cp.branch==='soft'?n.map(a=>esc(a.name)+' ('+fn(a.users)+' Nutzer)').join(', '):n.length+' Standort(e) in '+K.cityName(cp.city)+(cp.branch==='cafe'?' · Qualität '+pct(cp.q):'')}</span></span></div><button class="btn" data-a="takeover" data-id="${cp.id}">Übernehmen · ${fe(K.takeoverPrice(G,cp))}</button></div>`}}
     if(t==='re'){const props=G.plots.filter(p=>p.prop==='H');const tv=props.reduce((s,p)=>s+K.propValue(G,p),0),ti=props.reduce((s,p)=>s+(p.owner&&!p.owner.startsWith('c:')?p.rent:K.propIncome(G,p)),0);
     b+=kpis([[fn(props.length),'Gebäude'],[fe(tv),'Marktwert'],[tv?(ti*12/tv*100).toFixed(1).replace('.',',')+' %':'–','Rendite']]);
-    b+='<div class="sub">Kaufe Gebäude über die Grundstücksansicht in der Stadt: eigene Standorte (keine Miete mehr), Konkurrenz-Standorte (sie zahlen dir Miete) oder freie Gebäude zum Vermieten.</div><div class="list">';
+    b+='<div class="sub">Kaufe Gebäude über die Ansicht eines Ladens oder einer Etage in der Stadt: eigene Standorte (keine Miete mehr), Konkurrenz-Standorte (sie zahlen dir Miete) oder freie Gebäude zum Vermieten.</div><div class="list">';
     for(const p of props)b+=li(`data-a="open" data-v="plot" data-id="${p.id}" data-keep="1"`,'🏢',K.ZONES[p.zone].n+', '+K.cityName(p.city),p.owner==='H'?'Zentrale':p.owner&&p.owner.startsWith('c:')?'vermietet an Konkurrenz':p.owner?'selbst genutzt':'vermietet, Auslastung '+pct(K.leaseOcc(p)),fe(K.propValue(G,p)),'Marktwert');
     b+='</div>'}
   if(forceTab)return{eyebrow:'Investmentbank',title:'Goldbach & Söhne',sub:'Aktienmarkt, Eigenkapital und Übernahmen',tabs:[['market','Aktienmarkt'],['equity','Eigenkapital'],['ma','M&A']],body:b};
@@ -693,7 +698,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
   case'buyClub':if(confirm('Verein kaufen?'))run(K.act.buyClub(G,id));break;
   case'clubBudget':run(K.act.clubBudget(G,G.me.club.budget+d*Math.max(10000,Math.round(G.me.club.value*0.0005/10000)*10000)),1);break;
   case'sellClub':if(confirm('Verein verkaufen?'))run(K.act.sellClub(G));break;
-  case'buyProp':if(confirm('Gebäude kaufen?'))run(K.act.buyProp(G,id));break;
+  case'buyProp':if(confirm('Fläche kaufen (Teileigentum)?'))run(K.act.buyProp(G,id));break;
   case'sellProp':if(confirm('Gebäude verkaufen?'))run(K.act.sellProp(G,id));break;
   case'leaseR':{const pp=K.plot(G,id);run(K.act.leaseR(G,id,(pp.leaseR||1)+d*0.05),1);break}
   case'cityCamp':run(K.act.cityCamp(G,cur().id,id,k),1);break;
@@ -726,13 +731,13 @@ cv.addEventListener('pointercancel',e=>{pts.delete(e.pointerId);drag=null;pinch=
 cv.addEventListener('wheel',e=>{e.preventDefault();World.view.zoom*=Math.exp(-e.deltaY*0.0012);World.applyView()},{passive:false});
 addEventListener('resize',()=>{mobile=matchMedia('(max-width:760px)').matches;World.resize()});
 function tapPlot(pid){if(!pid){if(!place)close();return}const p=K.plot(G,pid);World.select(pid);
-  if(place){if(!eligible(place.kind).includes(pid)){toast('Hier geht das nicht. Wähle ein grün markiertes Grundstück.','bad');return}open('plot',{id:pid});return}
+  if(place){if(!eligible(place.kind).includes(pid)){toast('Hier geht das nicht. Wähle eine grün markierte Fläche.','bad');return}open('plot',{id:pid});return}
   if(p.owner==='H'){open('group',{tab:'hq'});return}
   if(p.owner&&!p.owner.startsWith('c:')){const f=K.firm(G,p.owner);G.cur=f.id;refresh();
     if(p.use==='cafe'){const s=f.shops.find(x=>x.plot===pid);open('shop',{id:s.id})}else if(p.use==='factory'){const pl=f.plants.find(x=>x.plot===pid);open('plant',{id:pl.id})}else if(p.use==='office')open('office',{id:f.id});return}
   open('plot',{id:pid})}
 function tags(){const el=$('tags');if(!G){el.innerHTML='';return}const out=[];
-  for(const p of G.plots){if(p.city!==World.city||!p.owner||p.owner.startsWith('c:'))continue;const pr=World.project(p.id,p.use==='hq'?19:p.use==='office'?9:7);if(!pr||!pr.vis)continue;
+  for(const p of G.plots){if(p.city!==World.city||!p.owner||p.owner.startsWith('c:'))continue;const pr=World.project(p.id,'pin');if(!pr||!pr.vis)continue;
     let t='',col='#24272b';if(p.owner==='H')t='Zentrale';else{const f=K.firm(G,p.owner);if(!f)continue;col=f.color;
       if(p.use==='cafe'){const s=f.shops.find(x=>x.plot===p.id);t=s&&s.stat?fn(s.stat.guests)+' Gäste':'neu'}
       if(p.use==='office')t=fn(G.apps.filter(a=>a.owner===f.id&&a.state==='live').reduce((s,a)=>s+a.users,0))+' Nutzer';
