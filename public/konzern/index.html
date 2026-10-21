@@ -168,6 +168,14 @@ table.cf td{padding:5px 0;font-size:13.5px}table.cf td:last-child{text-align:rig
 .execCard{align-items:center;text-align:center}.execCard .bar{width:100%}
 .cands{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.cand{min-width:min(280px,82%);scroll-snap-align:center;display:flex;flex-direction:column;gap:6px}.cand .ava,.execCard .ava,.execHead .ava{flex:none;align-self:center}
 @media (max-width:440px){.execHead{flex-direction:column;align-items:center}.mast{font-size:26px}}
+/* Innenansichten und Figuren */
+.room,.figs,.figSay{flex:none}
+.room{background:linear-gradient(180deg,#e7ecef,#f5f4f0);border-radius:12px;padding:6px 4px 0;overflow:hidden}.room svg{display:block;max-height:300px}
+.figSay{min-height:0;padding:10px 14px}.figSay p{margin:0}
+.figs{display:flex;gap:4px;overflow-x:auto;padding:22px 2px 2px;scrollbar-width:none}.figs::-webkit-scrollbar{display:none}
+.fig{all:unset;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center;min-width:58px;border-radius:10px;padding:2px}.fig:hover,.fig:focus-visible{background:var(--soft)}
+.fig small{font-size:10px;color:var(--muted);white-space:nowrap}.bub{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-style:normal;font-size:15px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:1px 6px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+.bub.bad{background:#fde8e4;border-color:#f2b8ad}.bub.good{background:#e3f3e7;border-color:#b5dcbf}
 /* Sprechblase, Verein, Bewertungen */
 .say{display:flex;gap:10px;align-items:flex-end;justify-content:space-between;background:var(--ink);color:#fff;border-radius:12px;padding:12px 10px 0 14px;min-height:70px}.say p{margin:0 0 12px;font-size:14px;line-height:1.4;align-self:center}.sayAva{flex:none;display:flex}
 .clubHero{display:flex;align-items:flex-end;justify-content:space-between;background:linear-gradient(180deg,#dfeaf3,#f3f1ea)}.clubHero .stad{font-size:84px;line-height:1}.pl2{display:flex;gap:2px}
@@ -219,9 +227,9 @@ table.league td{padding:3px 4px;font-size:12.5px}table.league td:nth-child(2){wi
 <div class="floats" id="floats"></div>
 <header class="brand"><h1>Gründerzeit.</h1><p id="brandSub"></p></header>
 <div class="hud panel" id="hud" hidden>
-  <div class="k"><span>Monat</span><b id="hMonth">Januar 2027</b></div>
+  <div class="k"><span>Datum</span><b id="hMonth">1. Januar 2027</b></div>
   <div class="k"><span>Kasse</span><b id="hCash">0 €</b></div>
-  <div class="k"><span>Ergebnis Vormonat</span><b id="hNet">–</b></div>
+  <div class="k"><span>Ergebnis Vorwoche</span><b id="hNet">–</b></div>
   <div class="k opt"><span>Dein Vermögen</span><b id="hWealth">0 €</b></div>
   <div class="k opt opt2"><span>Team</span><b id="hStaff">1</b></div>
 </div>
@@ -239,7 +247,7 @@ table.league td{padding:3px 4px;font-size:12.5px}table.league td:nth-child(2){wi
   <button class="db" data-a="open" data-v="build" aria-label="Bauen">🏗️<small>Bauen</small></button>
   <button class="db" data-a="open" data-v="list" aria-label="Geschäfte">📋<small>Geschäfte</small></button>
   <button class="db" data-a="open" data-v="firm" aria-label="Firma">🏢<small>Firma</small></button>
-  <button class="endBtn" data-a="endTurn" id="endBtn"><span><b>Monat abschließen</b><small id="endSub">Januar 2027 abrechnen</small></span><span class="arr">→</span></button>
+  <button class="endBtn" data-a="endTurn" id="endBtn"><span><b>Woche abschließen</b><small id="endSub">Januar 2027 abrechnen</small></span><span class="arr">→</span></button>
 </nav>
 <aside class="sheet panel" id="sheet" hidden></aside>
 <div class="placeBar panel" id="placeBar" hidden></div>
@@ -268,7 +276,7 @@ const cur=()=>K.firm(G,G.cur)||G.firms[0];
 // ---------- Start ----------
 function showMenu(){const saved=store.get();const m=$('menu');m.hidden=false;
   m.innerHTML=`<div class="menuCard panel"><div><div class="eyebrow">Rundenbasierte Wirtschaftssimulation</div><h1>Gründerzeit.</h1></div>
-  <p class="lead">Gründe ein kleines Start-up und mach daraus Monat für Monat einen Konzern mit tausenden Mitarbeitenden in mehreren Städten. Du planst in Ruhe, dann schließt du den Monat ab und siehst, was deine Entscheidungen gebracht haben.</p>
+  <p class="lead">Gründe ein kleines Start-up und mach daraus Woche für Woche einen Konzern mit tausenden Mitarbeitenden in mehreren Städten. Du planst in Ruhe, dann schließt du die Woche ab und siehst, was deine Entscheidungen gebracht haben.</p>
   ${saved?`<button class="btn ink" data-a="continue" style="padding:14px">Weiterspielen: ${esc(saved.firms[0].name)}, ${K.monthName(saved.month)}</button><div class="eyebrow">Oder neu beginnen</div>`:''}
   <div class="pick">${Object.entries(K.BRANCHES).map(([k,b])=>`<button data-a="pickBranch" data-k="${k}" aria-pressed="${k===newBranch}"><span class="e">${b.icon}</span><b>${b.long}</b><span>${b.desc}</span></button>`).join('')}</div>
   <div class="pick">
@@ -276,18 +284,18 @@ function showMenu(){const saved=store.get();const m=$('menu');m.hidden=false;
     <button data-a="pickFin" data-k="loan" aria-pressed="${newFin==='loan'}"><b>Bankkredit</b><span>Dazu ${newBranch==='prod'?'120.000':'60.000'} € zu 6,5 % über fünf Jahre.</span></button>
     <button data-a="pickFin" data-k="angel" aria-pressed="${newFin==='angel'}"><b>Business Angel</b><span>Dazu 150.000 € gegen 20 % deiner Anteile.</span></button></div>
   <div class="row"><input type="text" id="fname" maxlength="26" value="${esc({cafe:'Bohnenglück',soft:'Codewerk',prod:'Werkbank Nord'}[newBranch])}" aria-label="Name der Firma"><button class="btn ink" data-a="start" style="padding:13px 22px;white-space:nowrap">Firma gründen</button></div>
-  <div class="sub">${newBranch==='prod'?'Tipp: Produktion braucht viel Kapital. Mit Kredit reicht es für Halle und erste Linie.':newBranch==='soft'?'Tipp: Apps verdienen erst nach dem Release. Ein Investor gibt dir Luft.':'Tipp: Ein Café trägt sich schnell, wenn Lage und Personal stimmen.'}</div></div>`}
+  <div class="sub">${newBranch==='prod'?'Tipp: Produktion braucht viel Kapital. Mit Kredit reicht es für Halle und erste Linie.':newBranch==='soft'?'Tipp: Apps verdienen erst nach dem Release. Ein Investor gibt dir Luft.':'Tipp: Ein Restaurant trägt sich schnell, wenn Lage und Personal stimmen.'}</div></div>`}
 function start(){const name=($('fname').value||'Mein Start-up').trim().slice(0,26);G=K.newGame({branch:newBranch,name,finance:newFin,seed:(Date.now()%1e9)|0});afterLoad();
   setTimeout(()=>open('build'),300)}
 function afterLoad(){$('menu').hidden=true;['hud','topBtns','dock'].forEach(id=>$(id).hidden=false);World.setCity(G,G.cityCur);World.sync(G,true);refresh();save()}
 function save(){if(G)store.set(G)}
 
 // ---------- Kopf ----------
-function refresh(){if(!G)return;const last=G.months[G.months.length-1];
-  $('hMonth').textContent=K.monthName(G.month);const c=$('hCash');c.textContent=fe(G.cash);c.className=G.cash<0?'neg':'';
+function refresh(){if(!G)return;const last=(G.weeks||[])[(G.weeks||[]).length-1];
+  $('hMonth').textContent=K.dateStr(G);const c=$('hCash');c.textContent=fe(G.cash);c.className=G.cash<0?'neg':'';
   const n=$('hNet');n.textContent=last?sgn(last.net):'–';n.className=last?(last.net>=0?'pos':'neg'):'';$('hStaff').textContent=fn(K.totalStaff(G));$('hWealth').textContent=fe(K.wealth(G).total);
   $('brandSub').textContent=cur().name+' · '+K.stage(G).n;
-  $('endSub').textContent=G.pending.length?G.pending.length+(G.pending.length>1?' Entscheidungen offen':' Entscheidung offen'):K.MONTHS[G.month%12]+' abrechnen';$('endBtn').dataset.wait=G.pending.length>0;
+  $('endSub').textContent=G.pending.length?G.pending.length+(G.pending.length>1?' Entscheidungen offen':' Entscheidung offen'):'Woche ab '+K.dateStr(G).replace(/ \d{4}$/,'');$('endBtn').dataset.wait=G.pending.length>0;
   const g=K.GOALS.find(x=>!G.goals[x.k]);const gc=$('goalCard');
   if(g){gc.hidden=false;gc.innerHTML=`<span class="gi">🎯</span><span><b>${esc(g.n)}</b><br><span>Nächstes Ziel</span></span>${g.reward?`<span class="rw">+${fe(g.reward)}</span>`:''}`}else gc.hidden=true;
   World.sync(G);tags();if(view&&!$('sheet').hidden&&!busyInput())renderSheet()}
@@ -324,7 +332,7 @@ const VIEWS={};
 // Bauen
 VIEWS.build=()=>{let b='<div class="hint">Wähle, was du bauen willst. Danach leuchten passende freie Flächen in der Stadt grün auf: Ladenlokale, Büroetagen oder Hallen.</div>';
   for(const f of G.firms){b+=`<div class="sec"><h3>${esc(f.name)} · ${K.BRANCHES[f.branch].n}</h3>`;
-    if(f.branch==='cafe')b+=buildOpt('cafe',f,'☕','Neue Filiale','Café in Innenstadt, Wohnviertel oder Büroviertel. Einrichtung, Kaution und Anwerbung.','ab '+fe(15000+1700*2+1600));
+    if(f.branch==='cafe')b+=buildOpt('cafe',f,'🍽️','Neues Restaurant','Restaurant in Innenstadt, Wohnviertel oder Büroviertel. Einrichtung, Kaution und Anwerbung.','ab '+fe(15000+1700*2+1600));
     if(f.branch==='soft')b+=buildOpt('office',f,'🏢',f.office?'Größeres Büro':'Eigenes Büro','Mehr Arbeitsplätze für dein Team (Homeoffice: 3). Büroviertel oder Innenstadt.','ab '+fe(300*40+2600*2))+
       `<button class="li" data-a="open" data-v="office" data-id="${f.id}" data-keep="1"><span class="ico">✨</span><span class="t"><b>Neues App-Projekt</b><span>Genre und Umfang wählen, dein Team legt los.</span></span><span class="v">→</span></button>`;
     if(f.branch==='prod'){b+=buildOpt('factory',f,'🏭','Neue Halle','Fabrikhalle im Gewerbegebiet. Danach Produktionslinien kaufen.','Kaution ab '+fe(1500*3));
@@ -336,7 +344,7 @@ VIEWS.build=()=>{let b='<div class="hint">Wähle, was du bauen willst. Danach le
 function buildOpt(kind,f,ico,t,d,price,lock){return`<button class="li" data-a="place" data-k="${kind}" data-id="${f?f.id:''}" ${lock?'aria-disabled="true"':''}><span class="ico">${ico}</span><span class="t"><b>${t}</b><span>${d}</span></span><span class="v">${lock?`<small>${lock}</small>`:price}</span></button>`}
 function eligible(kind){const use={cafe:'cafe',office:'office',factory:'factory',hq:'hq'}[kind];return G.plots.filter(p=>p.city===World.city&&!p.owner&&K.usesOf(p).includes(use)).map(p=>p.id)}
 function startPlace(kind,fid){if(!G.cities[World.city]){toast('Diese Stadt ist noch nicht erschlossen.','bad');return}place={kind,fid};close();const ids=eligible(kind);World.highlight(ids);
-  $('placeBar').hidden=false;$('placeBar').innerHTML=`<span>${{cafe:'☕',office:'🏢',factory:'🏭',hq:'🏛️'}[kind]} <b>${ids.length} freie Flächen</b> leuchten grün. Tippe eins an.</span><button class="btn" data-a="cancelPlace">Abbrechen</button>`;
+  $('placeBar').hidden=false;$('placeBar').innerHTML=`<span>${{cafe:'🍽️',office:'🏢',factory:'🏭',hq:'🏛️'}[kind]} <b>${ids.length} freie Flächen</b> leuchten grün. Tippe eins an.</span><button class="btn" data-a="cancelPlace">Abbrechen</button>`;
   if(!ids.length)toast('Hier ist gerade nichts frei. Andere Stadt im Bereich Konzern erschließen.','bad')}
 function endPlace(){place=null;$('placeBar').hidden=true;World.highlight(null)}
 // Grundstück (frei, Konkurrenz)
@@ -345,7 +353,7 @@ VIEWS.plot=({id})=>{const p=K.plot(G,id);if(!p)return null;const z=K.ZONES[p.zon
     if(cp&&cp.branch==='cafe'){const cs=K.compShop(G,cp,p);b=say('Das ist eine Filiale von '+esc(cp.name)+'. Hier siehst du, was die Gäste über sie sagen.')+b;
       b+=`<div class="sec"><h3>Kundenrezensionen</h3><div class="card"><div class="row" style="align-items:flex-start"><span><b class="serif" style="font-size:44px;line-height:1">${String(K.stars(cs.all)).replace('.',',')}</b><br>${starsH(K.stars(cs.all))}<br><span class="sub">${fn(cs.n)} Bewertungen</span></span>
         ${catStars([['Preis',cs.cat.preis],['Produkt',cs.cat.produkt],['Service',cs.cat.service],['Atmosphäre',cs.cat.atmo]])}</div></div>${reviewCards(cs.reviews)}</div>`}
-    b+=`<div class="card"><div class="ch"><span class="ico">🏪</span><span class="t"><b>${esc(cp?cp.name:'Konkurrenz')}</b><span>${cp&&cp.branch==='cafe'?'Café-Kette · Qualität '+pct(cp.q)+' · Preise '+pct(cp.price):'Konkurrent'}</span></span></div>
+    b+=`<div class="card"><div class="ch"><span class="ico">🏪</span><span class="t"><b>${esc(cp?cp.name:'Konkurrenz')}</b><span>${cp&&cp.branch==='cafe'?'Restaurantkette · Qualität '+pct(cp.q)+' · Preise '+pct(cp.price):'Konkurrent'}</span></span></div>
       ${cp?`<button class="btn" data-a="open" data-v="group" data-tab="market" data-keep="1">Übernahme prüfen · ${fe(K.takeoverPrice(G,cp))}</button>`:''}</div>`;
     return{eyebrow:'Konkurrenz · '+K.unitName(p),title:esc(cp?cp.name:'Konkurrenz'),sub:esc(K.address(p)),body:b+propCard(p)+housemates(p)}}
   if(p.owner){const uses={cafe:'Deine Filiale',office:'Dein Büro',factory:'Deine Fabrik',hq:'Konzernzentrale'};const ff=p.owner!=='H'&&K.firm(G,p.owner);
@@ -353,18 +361,18 @@ VIEWS.plot=({id})=>{const p=K.plot(G,id);if(!p)return null;const z=K.ZONES[p.zon
   if(!G.cities[p.city])return{eyebrow:z.n,title:'Noch nicht erschlossen',body:b+'<div class="warnbox">Erschließe diese Stadt im Bereich Konzern.</div>'};
   let acts='';const kind=place?place.kind:null,us=K.usesOf(p);
   for(const f of G.firms){if(f.branch==='cafe'&&us.includes('cafe')&&(!kind||kind==='cafe')){const fc=K.forecastShop(G,f.id,p.id);
-      acts+=`<div class="card"><div class="ch"><span class="ico">☕</span><span class="t"><b>Filiale von ${esc(f.name)}</b><span>Prognose bei ${fc.staff} Baristas</span></span></div>
+      acts+=`<div class="card"><div class="ch"><span class="ico">🍽️</span><span class="t"><b>Restaurant von ${esc(f.name)}</b><span>Prognose nach der Eröffnung bei ${fc.staff} Kräften</span></span></div>
       ${kpis([[fn(fc.guests),'Gäste im Monat'],[fe(fc.rev),'Umsatz'],[sgn(fc.profit),'Gewinn',fc.profit>=0?'pos':'neg']])}
-      <button class="btn ink" data-a="build" data-k="cafe" data-id="${f.id}" data-p="${p.id}">Eröffnen · ${fe(K.shopCost(p))}</button></div>`}
-    if(f.branch==='soft'&&us.includes('office')&&(!kind||kind==='office'))acts+=`<div class="card"><div class="ch"><span class="ico">🏢</span><span class="t"><b>Büro für ${esc(f.name)}</b><span>${Math.floor(p.size/10)} Arbeitsplätze${f.office?', ersetzt das alte Büro':''}</span></span></div><button class="btn ink" data-a="build" data-k="office" data-id="${f.id}" data-p="${p.id}">Beziehen · ${fe(K.officeCost(p))}</button></div>`;
-    if(f.branch==='prod'&&us.includes('factory')&&(!kind||kind==='factory'))acts+=`<div class="card"><div class="ch"><span class="ico">🏭</span><span class="t"><b>Halle für ${esc(f.name)}</b><span>Platz für ${Math.floor(p.size/500)} Linien</span></span></div><button class="btn ink" data-a="build" data-k="factory" data-id="${f.id}" data-p="${p.id}">Mieten · ${fe(p.rent*3)} Kaution</button></div>`}
+      <button class="btn ink" data-a="build" data-k="cafe" data-id="${f.id}" data-p="${p.id}">Bauen · ${fe(K.shopCost(p))}</button><div class="sub">Umbau und Einrichtung dauern ${K.BUILD.shop} Wochen. In der Zeit zahlst du schon Miete.</div></div>`}
+    if(f.branch==='soft'&&us.includes('office')&&(!kind||kind==='office'))acts+=`<div class="card"><div class="ch"><span class="ico">🏢</span><span class="t"><b>Büro für ${esc(f.name)}</b><span>${Math.floor(p.size/10)} Arbeitsplätze${f.office?', ersetzt das alte Büro':''}</span></span></div><button class="btn ink" data-a="build" data-k="office" data-id="${f.id}" data-p="${p.id}">Beziehen · ${fe(K.officeCost(p))} · ${K.BUILD.office} Wochen Ausbau</button></div>`;
+    if(f.branch==='prod'&&us.includes('factory')&&(!kind||kind==='factory'))acts+=`<div class="card"><div class="ch"><span class="ico">🏭</span><span class="t"><b>Halle für ${esc(f.name)}</b><span>Platz für ${Math.floor(p.size/500)} Linien</span></span></div><button class="btn ink" data-a="build" data-k="factory" data-id="${f.id}" data-p="${p.id}">Mieten · ${fe(p.rent*3)} Kaution · ${K.BUILD.plant} Wochen Aufbau</button></div>`}
   if(us.includes('hq')&&!G.hq&&(!kind||kind==='hq'))acts+=`<div class="card"><div class="ch"><span class="ico">🏛️</span><span class="t"><b>Konzernzentrale</b><span>${K.totalStaff(G)<25?'Erst ab 25 Mitarbeitenden':'Für Abteilungen und den Börsengang'}</span></span></div><button class="btn ${K.totalStaff(G)<25?'':'ink'}" data-a="build" data-k="hq" data-p="${p.id}" ${K.totalStaff(G)<25?'aria-disabled="true"':''}>Bauen · 250.000 €</button></div>`;
-  if(!acts)acts=`<div class="sub">${p.kind==='laden'?'Ladenlokale eignen sich für Cafés und Läden.':p.kind==='etage'?'Büroetagen eignen sich für Büros und die Konzernzentrale.':p.zone==='gewerbe'?'Hallen eignen sich nur für Fabriken.':'Für deine Firmen ist hier nichts möglich.'}</div>`;
+  if(!acts)acts=`<div class="sub">${p.kind==='laden'?'Ladenlokale eignen sich für Restaurants und Läden.':p.kind==='etage'?'Büroetagen eignen sich für Büros und die Konzernzentrale.':p.zone==='gewerbe'?'Hallen eignen sich nur für Fabriken.':'Für deine Firmen ist hier nichts möglich.'}</div>`;
   const un=K.unitName(p);return{eyebrow:z.n+' · '+K.cityName(p.city),title:(p.kind==='etage'||p.kind==='halle'?'Freie ':'Freies ')+un,sub:esc(K.address(p))+' · '+fn(p.size)+' m²',body:b+acts+propCard(p)+housemates(p)}};
 function housemates(p){const o=G.plots.filter(q=>q.city===p.city&&q.r===p.r&&q.c===p.c&&q!==p);if(!o.length)return'';
   return`<div class="sec"><h3>Im selben Gebäude</h3><div class="list">${o.map(q=>{let who='frei, zu mieten',ic='🔑';
     if(q.owner==='H'){who='Deine Konzernzentrale';ic='🏛️'}else if(q.owner&&q.owner.startsWith('c:')){const cp=G.comps.find(c=>'c:'+c.id===q.owner);who=cp?cp.name:'Konkurrenz';ic='🏪'}
-    else if(q.owner){const ff=K.firm(G,q.owner);who=(ff?ff.name:'')+' (du)';ic={cafe:'☕',office:'💼',factory:'🏭'}[q.use]||'🏢'}
+    else if(q.owner){const ff=K.firm(G,q.owner);who=(ff?ff.name:'')+' (du)';ic={cafe:'🍽️',office:'💼',factory:'🏭'}[q.use]||'🏢'}
     return li(`data-a="open" data-v="plot" data-id="${q.id}" data-keep="1"`,ic,K.unitName(q)+(q.kind==='laden'?' · '+(q.u===0?'links':'rechts'):''),who,fn(q.size)+' m²',fe(q.rent)+'/Monat')}).join('')}</div></div>`}
 function propCard(p){const v=K.propValue(G,p);
   if(p.prop==='H'){const inc=K.propIncome(G,p),self=p.owner&&!p.owner.startsWith('c:');
@@ -381,8 +389,8 @@ function propCard(p){const v=K.propValue(G,p);
 // Liste der Geschäfte
 VIEWS.list=()=>{let b='';const last=G.report;
   for(const f of G.firms){b+=`<div class="sec"><h3>${esc(f.name)}</h3><div class="list">`;
-    if(f.branch==='cafe'){for(const s of f.shops){const p=K.plot(G,s.plot),st=s.stat;b+=li(`data-a="open" data-v="shop" data-id="${s.id}" data-keep="1"`,'☕',K.ZONES[p.zone].n+', '+K.cityName(p.city),(st?fn(st.guests)+' Gäste · ':'neu · ')+starsH(K.stars(s.rep)),st?sgn(st.profit):'–','Gewinn',st?(st.profit>=0?'pos':'neg'):'')}
-      if(!f.shops.length)b+=`<button class="li" data-a="place" data-k="cafe" data-id="${f.id}"><span class="ico">➕</span><span class="t"><b>Erste Filiale eröffnen</b><span>Ladenlokal in der Stadt wählen</span></span></button>`}
+    if(f.branch==='cafe'){for(const s of f.shops){const p=K.plot(G,s.plot),st=s.stat;b+=li(`data-a="open" data-v="shop" data-id="${s.id}" data-keep="1"`,'🍽️',K.ZONES[p.zone].n+', '+K.cityName(p.city),(st?fn(st.guests)+' Gäste · ':'neu · ')+starsH(K.stars(s.rep)),st?sgn(st.profit):'–','Gewinn',st?(st.profit>=0?'pos':'neg'):'')}
+      if(!f.shops.length)b+=`<button class="li" data-a="place" data-k="cafe" data-id="${f.id}"><span class="ico">➕</span><span class="t"><b>Erstes Restaurant eröffnen</b><span>Ladenlokal in der Stadt wählen</span></span></button>`}
     if(f.branch==='soft'){b+=li(`data-a="open" data-v="office" data-id="${f.id}" data-keep="1"`,'🏢',f.office?'Studio '+K.cityName(K.plot(G,f.office).city):'Homeoffice',fn(f.jr+f.sr+f.des+f.qa)+' im Team · '+fn(K.desks(G,f))+' Plätze','→','');
       for(const a of G.apps.filter(a=>a.owner===f.id&&a.state!=='off'))b+=a.state==='dev'?li(`data-a="open" data-v="app" data-id="${a.id}" data-keep="1"`,'🛠️',esc(a.name),K.GENRES[a.genre].n+' · in Entwicklung',pct(a.progress/a.work),'fertig'):
         li(`data-a="open" data-v="app" data-id="${a.id}" data-keep="1"`,K.GENRES[a.genre].icon,esc(a.name),fn(a.users)+' Nutzer · '+starsH(Math.round(K.rating(a)*10)/2),a.stat?sgn(a.stat.rev-a.stat.server-a.stat.mk):'–','Gewinn',a.stat?(a.stat.rev-a.stat.server-a.stat.mk>=0?'pos':'neg'):'')}
@@ -406,30 +414,38 @@ VIEWS.mgrHire=({id})=>{const [f,s]=K.shopOf(G,+id);if(!s)return null;if(s.manage
   list.forEach((c,i)=>{const o=view.p.offer[i]||c.demand;b+=`<div class="card cand">${avatar(MGRLOOK(c),96)}<b class="serif" style="font-size:22px">${esc(c.name)}</b><div class="eyebrow">Manager-Kenntnisse</div>${skill('Menschen',c.ppl)}${skill('Produkt',c.prod)}${skill('Marketing',c.mkt)}${skill('Ethik',c.eth)}
     <div class="eyebrow">Gehaltsvorstellung</div><b>${fe(c.demand)}</b><div class="eyebrow">Angebot</div><div class="row">${step('mgrOffer',fe(o),`data-v="${i}"`)}<span class="sub">${o>=c.demand?'+':''}${Math.round((o/c.demand-1)*100)} %</span></div><button class="btn ink" data-a="hireMgr" data-id="${s.id}" data-v="${i}">Angebot machen</button></div>`});
   b+='</div>'+(list.length?'':'<div class="sub">Nächsten Monat gibt es neue Bewerbungen.</div>');return{eyebrow:esc(K.address(K.plot(G,s.plot))),title:'Filialleitung einstellen',body:b}};
-function shopHello(f,s,fc,st){if(fc.dem>fc.cap*1.1)return'Hallo Chef! Wir sind völlig überrannt, die Schlange reicht bis auf die Straße. Wir brauchen mehr Leute.';
+function shopRoom(f,s,fc,st){const tables=Math.min(9,2+s.level*2+(s.ups.terrasse?1:0)),occ=s.build>0||!st?0:Math.min(1,st.guests/Math.max(1,st.cap)),guests=Math.round(tables*2*occ);
+  const room=isoRoom({kind:'restaurant',w:9,d:8,s:20,tables,guests,staff:s.build>0?0:Math.min(6,s.staff),apron:f.color,floor:s.level>=3?'#d9c3a5':'#e8d8bd',wall:s.level>=2?'#f1e3d3':'#f4f1ea',seed:s.id*7+1});
+  if(s.build>0)return`<div class="room">${room}</div>`;
+  const extra=[];if(fc.dem>fc.cap*1.1)extra[0]={t:'Wir schaffen das nicht allein, wir brauchen Verstärkung!',b:'👥',mood:'bad'};else if(fc.dem<fc.cap*0.5)extra[0]={t:'Heute ist kaum was los. Vielleicht mehr Werbung?',b:'💤'};
+  if(st&&st.sat>0.8)extra[1]={t:'Die Gäste loben das Essen heute ständig!',b:'⭐',mood:'good'};if(fc.ms.quality<0.55)extra[2]={t:'Mit besseren Zutaten würde es besser schmecken.',b:'🥕'};
+  const ppl=moodLines(f,'Kraft',Math.min(6,s.staff),extra).map(p=>Object.assign(p,{who:Object.assign(p.who,{suit:f.color,shirt:'#24272b'})}));
+  return`<div class="room">${room}</div>${figRow(ppl,'fs'+s.id)}`}
+function shopHello(f,s,fc,st){if(s.build>0)return'Hallo Chef! Die Handwerker sind fleißig. In '+s.build+(s.build>1?' Wochen':' Woche')+' können wir eröffnen.';if(fc.dem>fc.cap*1.1)return'Hallo Chef! Wir sind völlig überrannt, die Schlange reicht bis auf die Straße. Wir brauchen mehr Leute.';
   if(st&&st.profit<0)return'Hallo Chef. Ehrlich gesagt läuft es gerade nicht gut, es kommen zu wenige Gäste.';if(fc.dem<fc.cap*0.5)return'Hallo Chef. Es ist ruhig heute, wir hätten Platz für viel mehr Gäste.';
   if(s.rep>0.8)return'Hallo Chef! Die Gäste lieben uns, schau dir die Bewertungen an.';return'Hallo Chef. Wie geht’s Ihnen heute? Hier läuft alles rund.'}
 VIEWS.shop=({id})=>{const [f,s]=K.shopOf(G,+id);if(!s)return null;const p=K.plot(G,s.plot),fc=K.shopForecast(G,f,s),st=s.stat;const t=T()||'team';
-  let b=(t==='team'?say(shopHello(f,s,fc,st),s.manager?MGRLOOK(s.manager):BARISTA):'')+kpis([[st?fn(st.guests):'–','Gäste letzter Monat'],[st?fe(st.rev):'–','Umsatz'],[st?sgn(st.profit):'–','Gewinn',st?(st.profit>=0?'pos':'neg'):'']]);
+  let b=(t==='team'?say(shopHello(f,s,fc,st),s.manager?MGRLOOK(s.manager):BARISTA)+shopRoom(f,s,fc,st):'')+kpis([[st?fn(st.guests):'–','Gäste letzte Woche'],[st?fe(st.rev):'–','Umsatz'],[st?sgn(st.profit):'–','Gewinn',st?(st.profit>=0?'pos':'neg'):'']]);
   const over=fc.dem>fc.cap*1.02;
-  b+=`<div class="card soft cap"><div class="row"><span class="lbl">Nachfrage diesen Monat</span><span class="sub">${fn(fc.dem)} Gäste</span></div>${bar(Math.min(1,fc.dem/Math.max(fc.dem,fc.cap)),'warn')}
+  b+=`<div class="card soft cap"><div class="row"><span class="lbl">Nachfrage diese Woche</span><span class="sub">${fn(fc.dem)} Gäste</span></div>${bar(Math.min(1,fc.dem/Math.max(fc.dem,fc.cap)),'warn')}
     <div class="row"><span class="lbl">Kapazität</span><span class="sub">${fn(fc.cap)} Gäste</span></div>${bar(Math.min(1,fc.cap/Math.max(fc.dem,fc.cap)),over?'bad':'good')}
-    <div class="sub">${over?'⚠️ Mehr Nachfrage als Kapazität: Gäste gehen wieder. Stell mehr Baristas ein.':fc.cap>fc.dem*1.5?'Viel Leerlauf: Weniger Personal spart Geld, oder mach Werbung.':'Passt gut zusammen.'}</div></div>`;
-  if(t==='team'){b+=`<div class="card"><div class="row"><span><span class="lbl">Baristas</span><br><span class="sub">${fe(K.wageOf(G,'barista',f)*K.HOURS[s.hours].wage)} im Monat je Kraft</span></span>${step('shopStaff',s.staff,`data-id="${s.id}"`)}</div></div>
+    <div class="sub">${over?'⚠️ Mehr Nachfrage als Kapazität: Gäste gehen wieder. Stell mehr Personal ein.':fc.cap>fc.dem*1.5?'Viel Leerlauf: Weniger Personal spart Geld, oder mach Werbung.':'Passt gut zusammen.'}</div></div>`;
+  if(s.build>0)b=`<div class="card build"><div class="row"><span><span class="lbl">🚧 Im Bau</span><br><span class="sub">Eröffnung in ${s.build} ${s.build>1?'Wochen':'Woche'}. Bis dahin läuft nur die Miete.</span></span><b class="serif" style="font-size:26px">${Math.round((1-s.build/K.BUILD.shop)*100)} %</b></div>${bar(1-s.build/K.BUILD.shop,'warn')}<div class="row"><span><span class="lbl">Eröffnungsfeier</span><br><span class="sub">3.000 €: mehr Laufkundschaft und ein besserer Ruf zum Start</span></span>${tog('party',s.party,`data-id="${s.id}"`)}</div></div>`+b;
+  if(t==='team'){b+=`<div class="card"><div class="row"><span><span class="lbl">Küche und Service</span><br><span class="sub">${fe(K.wageOf(G,'barista',f)*K.HOURS[s.hours].wage)} im Monat je Kraft</span></span>${step('shopStaff',s.staff,`data-id="${s.id}"`)}</div></div>
     ${mgrCard(s)}
-    <div class="sec"><h3>Öffnungszeiten</h3>${seg('shopHours',Object.entries(K.HOURS).map(([k,h])=>[k,h.n,k==='short'?'−22 % Gäste':k==='long'?'+18 % Gäste':'Standard']),s.hours,`data-id="${s.id}"`)}<div class="sub">Längere Öffnung bringt mehr Gäste und Kapazität, kostet aber auch mehr Lohn.</div></div>
-    <div class="card"><div class="row"><span><span class="lbl">Barista-Schulung</span><br><span class="sub">Service +5 % je Schulung (${s.train||0} von 3). Einmalig 1.500 €.</span></span><button class="btn" data-a="shopTrain" data-id="${s.id}" ${s.train>=3?'aria-disabled="true"':''}>Buchen</button></div></div>`}
+    <div class="sec"><h3>Öffnungszeiten</h3>${seg('shopHours',Object.entries(K.HOURS).map(([k,h])=>[k,h.n,k==='short'?'−30 % Gäste':k==='long'?'+15 % Gäste':'Standard']),s.hours,`data-id="${s.id}"`)}<div class="sub">Längere Öffnung bringt mehr Gäste und Kapazität, kostet aber auch mehr Lohn.</div></div>
+    <div class="card"><div class="row"><span><span class="lbl">Personalschulung</span><br><span class="sub">Service +5 % je Schulung (${s.train||0} von 3). Einmalig 1.500 €.</span></span><button class="btn" data-a="shopTrain" data-id="${s.id}" ${s.train>=3?'aria-disabled="true"':''}>Buchen</button></div></div>`}
   if(t==='up'){const nx=s.level<3?K.LEVELS[s.level+1]:null;
     b+=`<div class="card"><div class="ch"><span class="ico">🪑</span><span class="t"><b>Einrichtung: ${K.LEVELS[s.level].n}</b><span>Gemütlichkeit ${pct(K.LEVELS[s.level].comfort)}${nx?' → '+nx.n+': '+pct(nx.comfort):''}</span></span></div>${nx?`<button class="btn ink" data-a="shopLevel" data-id="${s.id}">Umbauen zu „${nx.n}“ · ${fe(nx.cost)}</button>`:''}</div><div class="grid2">`;
     for(const [k,U] of Object.entries(K.CAFE_UPS)){const lock=U.zones&&!U.zones.includes(p.zone)?'nicht an diesem Ort':U.minLevel&&s.level<U.minLevel?'ab „'+K.LEVELS[U.minLevel].n+'“':null;
       b+=upCard('shopUp',`data-id="${s.id}" data-k="${k}"`,U.icon,U.n,U.d,fe(U.cost)+(U.mon?' + '+fe(U.mon)+'/M':''),s.ups[k],lock)}b+='</div>'}
   if(t==='act'){const sh=shareNear(f,s,p);b+=`<div class="sec"><h3>Marktanteile im Viertel</h3><div class="row" style="align-items:center">${donut(sh,140)}${legend(sh.map(x=>({...x,t:pct(x.v)})))}</div></div>`;
-    b+='<div class="sec"><h3>Aktionen</h3><div class="sub">Laufen jeden Monat, bis du sie abschaltest. Stadtweite Plakate und Radio gibt es in der Werbeagentur (Firma).</div></div>';
+    b+='<div class="sec"><h3>Aktionen</h3><div class="sub">Laufen jede Woche, bis du sie abschaltest. Stadtweite Plakate und Radio gibt es in der Werbeagentur (Firma).</div></div>';
     for(const [k,A] of Object.entries(K.CAFE_ACTIONS))b+=`<div class="card"><div class="row"><span class="ch"><span class="ico">${A.icon}</span><span class="t"><b>${A.n}</b><span>${A.d}${A.cost?' '+fe(A.cost)+' im Monat.':''}</span></span></span>${tog('shopAct',s.act[k],`data-id="${s.id}" data-k="${k}"`)}</div></div>`;
-    b+=`<div class="sec"><h3>Spezialität dieser Filiale</h3><div class="sub">Ein Produkt wird besonders beworben: +30 % Nachfrage danach.</div><div class="btns">${Object.entries(K.PRODUCTS).filter(([k,P])=>f.menu[k].on&&(!P.res||f.res[P.res])).map(([k,P])=>`<button class="btn" data-a="shopSpecial" data-id="${s.id}" data-k="${k}" style="${s.special===k?'background:var(--ink);color:#fff':''}">${P.icon} ${P.n}</button>`).join('')}</div>
+    b+=`<div class="sec"><h3>Tagesgericht</h3><div class="sub">Ein Produkt wird besonders beworben: +30 % Nachfrage danach.</div><div class="btns">${Object.entries(K.PRODUCTS).filter(([k,P])=>f.menu[k].on&&(!P.res||f.res[P.res])).map(([k,P])=>`<button class="btn" data-a="shopSpecial" data-id="${s.id}" data-k="${k}" style="${s.special===k?'background:var(--ink);color:#fff':''}">${P.icon} ${P.n}</button>`).join('')}</div>
       <button class="btn" data-a="open" data-v="firm" data-tab="menu" data-keep="1">Speisekarte und Preise bearbeiten →</button></div>`}
-  if(t==='fin'){const h=s.hist||[];b+=`<div class="card"><div class="row"><span class="lbl">Umsatz und Gewinn</span><span class="sub">letzte ${h.length} Monate</span></div>${barsSvg(h)}<div class="sub"><b>Tinte</b> Umsatz · <b class="pos">Grün</b> Gewinn</div></div>`;
-    if(st)b+=`<div class="sec"><h3>GuV der Filiale (Vormonat)</h3><table><tr><td>Heiße Getränke</td><td>${fe(st.hot||0)}</td></tr><tr><td>Kalte Getränke</td><td>${fe(st.cold||0)}</td></tr><tr><td>Speisen</td><td>${fe(st.food||0)}</td></tr><tr class="sum"><td>Umsatz</td><td>${fe(st.rev)}</td></tr>
+  if(t==='fin'){const h=s.hist||[];b+=`<div class="card"><div class="row"><span class="lbl">Umsatz und Gewinn</span><span class="sub">letzte ${h.length} Wochen</span></div>${barsSvg(h)}<div class="sub"><b>Tinte</b> Umsatz · <b class="pos">Grün</b> Gewinn</div></div>`;
+    if(st)b+=`<div class="sec"><h3>GuV des Restaurants (letzte Woche)</h3><table><tr><td>Hauptgerichte</td><td>${fe(st.hot||0)}</td></tr><tr><td>Getränke</td><td>${fe(st.cold||0)}</td></tr><tr><td>Desserts</td><td>${fe(st.food||0)}</td></tr><tr class="sum"><td>Umsatz</td><td>${fe(st.rev)}</td></tr>
       <tr><td>Wareneinsatz</td><td>${fe(-(st.cogs||0))}</td></tr><tr><td>Personal</td><td>${fe(-(st.wages||0))}</td></tr><tr><td>Miete</td><td>${fe(-(st.rent||0))}</td></tr><tr><td>Nebenkosten</td><td>${fe(-(st.other||0))}</td></tr><tr><td>Aktionen</td><td>${fe(-(st.mk||0))}</td></tr>
       <tr class="sum"><td>Gewinn</td><td class="${st.profit>=0?'pos':'neg'}">${sgn(st.profit)}</td></tr></table></div>`;
     else b+='<div class="sub">Zahlen gibt es nach dem ersten Monat.</div>';
@@ -437,7 +453,7 @@ VIEWS.shop=({id})=>{const [f,s]=K.shopOf(G,+id);if(!s)return null;const p=K.plot
   if(t==='rev'){const sat=st?st.sat:s.rep,cat=[['Preis',Math.min(1,fc.ms.price)],['Produkt',fc.ms.quality],['Service',Math.min(1,(st?st.served:1)*0.75+(s.manager?0.12:0)+(s.train||0)*0.05)],['Atmosphäre',fc.comfort]];
     b+=`<div class="card"><div class="row" style="align-items:flex-start"><span><b class="serif" style="font-size:44px;line-height:1">${String(K.stars(s.rep)).replace('.',',')}</b><br>${starsH(K.stars(s.rep))}<br><span class="sub">${fn(s.rcount||0)} Bewertungen</span></span>
       ${catStars(cat)}</div></div>`;
-    b+=reviewCards((s.reviews||[]).map((r,i)=>Object.assign({look:s.id*31+i+(s.hist?s.hist.length:0)*7,k:/Kaffee|Cappuccino|Kuchen|schmeckt|Qualität/.test(r.t)?'produkt':/teuer|Preis/.test(r.t)?'preis':/gemütlich|eingerichtet|Terrasse/.test(r.t)?'atmo':'service'},r)));if(!(s.reviews||[]).length)b+='<div class="sub">Bewertungen gibt es nach dem ersten Monat.</div>'}
+    b+=reviewCards((s.reviews||[]).map((r,i)=>Object.assign({look:s.id*31+i+(s.hist?s.hist.length:0)*7,k:/Essen|Pasta|Kaffee|schmeckt|Qualität/.test(r.t)?'produkt':/teuer|Preis/.test(r.t)?'preis':/gemütlich|eingerichtet|Terrasse/.test(r.t)?'atmo':'service'},r)));if(!(s.reviews||[]).length)b+='<div class="sub">Bewertungen gibt es nach dem ersten Monat.</div>'}
   b+=`<button class="btn bad" data-a="closeShop" data-id="${s.id}">Filiale schließen</button>`;
   return{eyebrow:esc(f.name)+' · '+K.ZONES[p.zone].n,title:esc(K.address(p).split(',')[0]),sub:K.cityName(p.city)+' · '+starsH(K.stars(s.rep))+' '+K.LEVELS[s.level].n+' · seit '+K.monthName(s.opened)+(p.prop==='H'?' · im eigenen Gebäude':''),tabs:[['team','Team'],['up','Ausbau'],['act','Marketing'],['fin','Finanzen'],['rev','Bewertungen']],body:b,after:()=>World.select(p.id)}};
 function shareNear(f,s,p){const out=[];const cols=['#24272b','#c8643c','#2f6fd0','#9b6fb5','#d4a72c','#3f9b62','#8a8f96'];let i=0;
@@ -447,7 +463,7 @@ function shareNear(f,s,p){const out=[];const cols=['#24272b','#c8643c','#2f6fd0'
     out.push({n,v:a,c:q===p?f.color:cols[(i++)%cols.length]})}
   const tot=out.reduce((s,x)=>s+x.v,0)||1;out.forEach(x=>x.v/=tot);return out.sort((a,b)=>b.v-a.v)}
 function barsSvg(h){if(!h.length)return'<div class="sub">Noch keine Daten.</div>';const w=380,H=130,mx=Math.max(1,...h.map(x=>x.rev)),mn=Math.min(0,...h.map(x=>x.profit)),bw=w/h.length;const Y=v=>H-18-(v-mn)/(mx-mn)*(H-26);
-  return`<svg viewBox="0 0 ${w} ${H}" width="100%" height="${H}" aria-hidden="true">${h.map((x,i)=>`<rect x="${i*bw+bw*0.18}" y="${Y(x.rev)}" width="${bw*0.3}" height="${Math.max(1,Y(0)-Y(x.rev))}" rx="3" fill="#24272b"/><rect x="${i*bw+bw*0.52}" y="${Math.min(Y(0),Y(x.profit))}" width="${bw*0.3}" height="${Math.max(1,Math.abs(Y(0)-Y(x.profit)))}" rx="3" fill="${x.profit>=0?'#2f8a55':'#cc3b33'}"/><text x="${i*bw+bw/2}" y="${H-4}" text-anchor="middle" font-size="10" fill="#73746f">${K.MONTHS[x.m%12].slice(0,3)}</text>`).join('')}</svg>`}
+  return`<svg viewBox="0 0 ${w} ${H}" width="100%" height="${H}" aria-hidden="true">${h.map((x,i)=>`<rect x="${i*bw+bw*0.18}" y="${Y(x.rev)}" width="${bw*0.3}" height="${Math.max(1,Y(0)-Y(x.rev))}" rx="3" fill="#24272b"/><rect x="${i*bw+bw*0.52}" y="${Math.min(Y(0),Y(x.profit))}" width="${bw*0.3}" height="${Math.max(1,Math.abs(Y(0)-Y(x.profit)))}" rx="3" fill="${x.profit>=0?'#2f8a55':'#cc3b33'}"/><text x="${i*bw+bw/2}" y="${H-4}" text-anchor="middle" font-size="10" fill="#73746f">${x.d||K.MONTHS[x.m%12].slice(0,3)}</text>`).join('')}</svg>`}
 // Firma
 VIEWS.firm=()=>{const f=cur(),t=T()||'gen';const last=G.months[G.months.length-1],p=last?K.pl(last,f.id):null;
   let b=G.firms.length>1?`<div class="btns">${G.firms.map(x=>`<button class="btn" data-a="selFirm" data-id="${x.id}" style="${x.id===f.id?'background:var(--ink);color:#fff':''}">${K.BRANCHES[x.branch].icon} ${esc(x.name)}</button>`).join('')}</div>`:'';
@@ -468,14 +484,16 @@ VIEWS.firm=()=>{const f=cur(),t=T()||'gen';const last=G.months[G.months.length-1
       ${Object.entries(K.CITY_CAMPS).map(([k,C])=>`<div class="row"><span class="ch"><span class="ico">${C.icon}</span><span class="t"><b>${C.n}</b><span>${C.d} ${fe(C.cost)}/Monat.</span></span></span>${tog('cityCamp',camps[k],`data-id="${c.id}" data-k="${k}"`)}</div>`).join('')}</div>`}}
   if(t==='studio'&&f.branch==='soft')return VIEWS.office({id:f.id,embed:true,tabs,b});
   if(t==='sales'&&f.branch==='prod')return VIEWS.sales({id:f.id,embed:true,tabs,b});
-  if(t==='res'){const R=K.RESEARCH[f.branch];b+=`<div class="sub">Immer eine Entwicklung gleichzeitig. Fertig nach der angegebenen Zahl von Monaten${G.depts.rd?' (Forschungsabteilung: doppelt so schnell)':''}.</div>`;
-    if(f.resCur){const r=R[f.resCur.k];b+=`<div class="card"><div class="ch"><span class="ico">${r.icon}</span><span class="t"><b>${r.n}</b><span>Noch ${f.resCur.left} Monat(e)</span></span></div>${bar(1-f.resCur.left/f.resCur.months)}</div>`}
+  if(t==='res'){const R=K.RESEARCH[f.branch];b+=`<div class="sub">Immer eine Entwicklung gleichzeitig. Fertig nach der angegebenen Zahl von Monaten (vier Wochen je Monat)${G.depts.rd?' (Forschungsabteilung: doppelt so schnell)':''}.</div>`;
+    if(f.resCur){const r=R[f.resCur.k];b+=`<div class="card"><div class="ch"><span class="ico">${r.icon}</span><span class="t"><b>${r.n}</b><span>Noch ${Math.ceil(f.resCur.left*4-1e-6)} Woche(n)</span></span></div>${bar(1-f.resCur.left/f.resCur.months)}</div>`}
     b+='<div class="grid2">';for(const [k,r] of Object.entries(R)){if(f.resCur&&f.resCur.k===k)continue;b+=upCard('research',`data-k="${k}"`,r.icon,r.n,r.d+' · '+r.months+' Monat(e)',fe(r.cost),f.res[k],f.resCur&&!f.res[k]?'läuft gerade nichts anderes':null)}b+='</div>'}
   return{eyebrow:K.BRANCHES[f.branch].long,title:esc(f.name),tabs,body:b}};
 // Software: Studio
 VIEWS.office=(o)=>{const f=K.firm(G,o.id)||cur();if(f.branch!=='soft')return null;const t=K.softTeam(G,f),d=K.desks(G,f),used=f.jr+f.sr+f.des+f.qa+(G.founderDev&&f.id===G.firms[0].id?1:0);
   let b=o.embed?o.b:'';
-  b+=kpis([[fn(used)+' / '+fn(d),'Plätze belegt',used>d?'neg':''],[fn(t.P),'Punkte im Monat'],[pct(t.qT),'Teamqualität']]);
+  {const extra=[];if(used>d)extra[0]={t:'Wir sitzen uns hier auf dem Schoß. Wir brauchen ein größeres Büro!',b:'🪑',mood:'bad'};if(G.apps.some(a=>a.owner===f.id&&a.bugs>a.users/2000+40))extra[1]={t:'Die Bugs stapeln sich, wir sollten uns darum kümmern.',b:'🐞',mood:'bad'};
+    const n=Math.max(0,used-(G.founderDev&&f.id===G.firms[0].id?1:0));b+=`<div class="room">${isoRoom({kind:'office',w:9,d:Math.max(5,1.6+Math.ceil(Math.min(16,d)/4)*2.2),s:20,desks:Math.min(16,d),people:Math.min(16,used),meeting:d>=6&&d<=8,logo:f.color,seed:f.id.length*31})}</div>`+(n?figRow(moodLines(f,'Dev',Math.min(6,n),extra),'fo'+f.id):'')}
+  b+=kpis([[fn(used)+' / '+fn(d),'Plätze belegt',used>d?'neg':''],[fn(t.P),'Punkte pro Woche'],[pct(t.qT),'Teamqualität']]);
   if(used>d)b+='<div class="warnbox">Zu eng: Die Stimmung leidet. Miete ein größeres Büro (Bauen).</div>';
   b+='<div class="sec"><h3>Team</h3>';
   for(const [r,n,dsc] of [['jr','Junior-Entwickler','1 Punkt am Tag'],['sr','Senior-Entwickler','2,2 Punkte, hebt die Qualität'],['des','Designer','Bessere Bewertungen'],['qa','Tester','Weniger Bugs']])
@@ -484,21 +502,21 @@ VIEWS.office=(o)=>{const f=K.firm(G,o.id)||cur();if(f.branch!=='soft')return nul
   b+='</div><div class="sec"><h3>Studio-Ausstattung</h3>'+(f.office?'<div class="grid2">'+Object.entries(K.OFFICE_UPS).map(([k,U])=>upCard('officeUp',`data-k="${k}" data-id="${f.id}"`,U.icon,U.n,U.d,fe(U.cost)+(U.mon?' + '+fe(U.mon)+'/M':''),f.oups[k])).join('')+'</div>':'<div class="sub">Erst mit eigenem Büro möglich.</div>')+'</div>';
   b+=`<div class="sec"><h3>Neues App-Projekt</h3><div class="card"><div class="lbl">Genre</div>${seg('newGenre',Object.entries(K.GENRES).map(([k,g])=>[k,g.icon+' '+g.n,fn(g.pot/1000)+' Tsd.',g.res&&!f.res[g.res]]),f._g||'prod')}
     <div class="lbl">Umfang</div>${seg('newScope',Object.entries(K.SCOPES).map(([k,s])=>[k,s.n,fn(s.work)+' Punkte']),f._s||'S')}
-    <div class="sub">Dauer bei deinem Team: etwa ${t.P>0?Math.ceil(K.SCOPES[f._s||'S'].work/t.P)+' Monat(e)':'– (erst Entwickler einstellen)'}. Größere Apps erreichen mehr Nutzer.</div>
+    <div class="sub">Dauer bei deinem Team: etwa ${t.P>0?Math.ceil(K.SCOPES[f._s||'S'].work/t.P)+' Woche(n)':'– (erst Entwickler einstellen)'}. Größere Apps erreichen mehr Nutzer.</div>
     <button class="btn ink" data-a="newApp" data-id="${f.id}">Projekt starten</button></div></div>`;
   return{eyebrow:K.BRANCHES.soft.long,title:o.embed?esc(f.name):'Team & Studio',tabs:o.tabs,body:b}};
 // App
 VIEWS.app=({id})=>{const a=G.apps.find(x=>x.id===+id);if(!a)return null;const f=K.firm(G,a.owner),gen=K.GENRES[a.genre];const t=T()||(a.state==='dev'?'dev':'work');
   if(a.state==='dev'){const team=K.softTeam(G,f),mine=G.apps.filter(x=>x.owner===f.id&&x.state!=='off'),ws=mine.reduce((s,x)=>s+x.share,0)||1,W=team.P*a.share/ws;
     let b=`<div class="card"><div class="row"><span class="lbl">Fortschritt</span><span class="serif" style="font-size:20px">${pct(a.progress/a.work)}</span></div>${bar(a.progress/a.work,'good')}
-      <div class="sub">${W>0?'Noch etwa '+Math.max(1,Math.ceil((a.work-a.progress)/W))+' Monat(e) bei '+fn(W)+' Punkten im Monat.':'Niemand arbeitet daran. Erhöhe den Team-Anteil oder stelle Leute ein.'}</div></div>`;
+      <div class="sub">${W>0?'Noch etwa '+Math.max(1,Math.ceil((a.work-a.progress)/W))+' Woche(n) bei '+fn(W)+' Punkten pro Woche.':'Niemand arbeitet daran. Erhöhe den Team-Anteil oder stelle Leute ein.'}</div></div>`;
     b+=kpis([[pct(a.quality),'Qualität bisher'],[fn(a.bugs),'Bugs'],[K.SCOPES[a.scope].n,'Umfang']]);
     b+=`<div class="card"><div class="row"><span><span class="lbl">Team-Anteil</span><br><span class="sub">Wie viel Arbeitszeit in dieses Projekt fließt</span></span>${step('appShare',a.share,`data-id="${a.id}"`)}</div></div>`;
     if(a.progress>=a.work*0.6)b+=`<button class="btn ink" data-a="appRelease" data-id="${a.id}">Jetzt veröffentlichen (weniger Funktionen)</button>`;
     return{eyebrow:gen.icon+' '+gen.n+' · in Entwicklung',title:esc(a.name),body:b}}
-  const r=K.rating(a);let b=kpis([[fn(a.users),'Nutzer'],[a.stat?fe(a.stat.rev):'–','Umsatz letzter Monat'],[(r*5).toFixed(1).replace('.',',')+' ★','Bewertung']]);
+  const r=K.rating(a);let b=kpis([[fn(a.users),'Nutzer'],[a.stat?fe(a.stat.rev):'–','Umsatz letzte Woche'],[(r*5).toFixed(1).replace('.',',')+' ★','Bewertung']]);
   if(a.stat)b+=`<div class="card soft"><div class="row"><span class="sub">Neue Nutzer</span><b class="pos">+${fn(a.stat.new)}</b></div><div class="row"><span class="sub">Kündigungen</span><b class="neg">−${fn(a.stat.churn)}</b></div><div class="row"><span class="sub">Serverkosten</span><b>${fe(a.stat.server)}</b></div></div>`;
-  if(t==='work'){b+=`<div class="sec"><h3>Woran arbeitet das Team diesen Monat?</h3><div class="list">${Object.entries(K.FOCUS).map(([k,F])=>`<button class="li" data-a="appFocus" data-id="${a.id}" data-k="${k}" style="${a.focus===k?'border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)':''}"><span class="ico">${F.icon}</span><span class="t"><b>${F.n}</b><span>${F.d}</span></span><span class="v">${a.focus===k?'✓':''}</span></button>`).join('')}</div></div>
+  if(t==='work'){b+=`<div class="sec"><h3>Woran arbeitet das Team diese Woche?</h3><div class="list">${Object.entries(K.FOCUS).map(([k,F])=>`<button class="li" data-a="appFocus" data-id="${a.id}" data-k="${k}" style="${a.focus===k?'border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)':''}"><span class="ico">${F.icon}</span><span class="t"><b>${F.n}</b><span>${F.d}</span></span><span class="v">${a.focus===k?'✓':''}</span></button>`).join('')}</div></div>
     <div class="card"><div class="row"><span><span class="lbl">Team-Anteil</span><br><span class="sub">${fn(a.bugs)} Bugs · Aktualität ${pct(a.fresh===undefined?1:a.fresh)}</span></span>${step('appShare',a.share,`data-id="${a.id}"`)}</div></div>`}
   if(t==='money'){b+=`<div class="sec"><h3>Geschäftsmodell</h3>${seg('appModel',[['free','Werbung','gratis'],['freemium','Abo','Freemium'],['paid','Kauf','einmalig']],a.model,`data-id="${a.id}"`)}
     <div class="sub">${a.model==='free'?'Alle nutzen gratis, du verdienst an Werbung (etwa 0,20 € pro Nutzer und Monat). Etwas mehr Kündigungen.':a.model==='freemium'?'Gratis-Version plus Abo. Ein Teil der Nutzer zahlt monatlich. Teurer heißt: weniger Abos.':'Einmalpreis beim Download. Weniger neue Nutzer, aber Geld sofort.'}</div>
@@ -512,7 +530,7 @@ VIEWS.app=({id})=>{const a=G.apps.find(x=>x.id===+id);if(!a)return null;const f=
 VIEWS.plant=({id})=>{let f=null,p=null;for(const x of G.firms)if(x.plants){const q=x.plants.find(y=>y.id===+id);if(q){f=x;p=q}}if(!p)return null;const pl=K.plot(G,p.plot),cap=Math.floor(pl.size/500);
   let b='';
   for(const l of p.lines){const L=K.LINES[l.type],out=K.lineOut(G,f,l);
-    b+=`<div class="card"><div class="ch"><span class="ico">${L.icon}</span><span class="t"><b>${L.n}${l.auto?' · automatisiert':''}</b><span>${fn(out)} ${K.GOODS[l.product].unit} im Monat${l.broke?' · ⚠️ letzten Monat Ausfall':''}</span></span></div>
+    b+=`<div class="card"><div class="ch"><span class="ico">${L.icon}</span><span class="t"><b>${L.n}${l.auto?' · automatisiert':''}</b><span>${fn(out)} ${K.GOODS[l.product].unit} pro Woche${l.broke?' · ⚠️ letzte Woche Ausfall':''}</span></span></div>
     ${Object.keys(L.cap).length>1?seg('lineProd',Object.keys(L.cap).map(g=>[g,K.GOODS[g].icon+' '+K.GOODS[g].n,'',K.GOODS[g].res&&!f.res[K.GOODS[g].res]]),l.product,`data-id="${l.id}"`):''}
     <div class="row"><span><span class="lbl">Personal je Schicht</span><br><span class="sub">${l.workers} von ${K.lineNeed(l)}</span></span>${step('lineW',l.workers,`data-id="${l.id}"`)}</div>
     <div class="lbl">Schichten</div>${seg('lineShift',[[1,'1 Schicht','×1'],[2,'2 Schichten','×1,9'],[3,'Rund um die Uhr','×2,7 · Nachtzuschlag']],l.shifts,`data-id="${l.id}"`)}
@@ -572,7 +590,7 @@ VIEWS.group=(pp,forceTab)=>{const t=forceTab||T()||'firms',st=K.stage(G);let b='
   if(t==='firms'){b+=`<div class="card"><div class="row"><span class="lbl">${st.n}</span><span class="sub">${fn(st.staff)} Mitarbeitende</span></div>${st.next?bar(st.staff/st.next[0],'good')+`<div class="sub">Nächste Stufe „${st.next[1]}“ ab ${fn(st.next[0])}</div>`:''}</div><div class="list">`;
     const v=K.valuation(G);for(const f of G.firms){const fv=v.firms.find(x=>x.id===f.id);b+=li(`data-a="selFirm" data-id="${f.id}" data-open="1"`,K.BRANCHES[f.branch].icon,esc(f.name),K.BRANCHES[f.branch].n+' · '+fn(K.staffOf(G,f)+K.adminOf(G,f))+' Mitarbeitende',fe(fv?fv.v:0),'Wert')}
     b+=`</div><div class="card"><div class="lbl">Neue Firma gründen · 25.000 €</div>${seg('foundBranch',Object.entries(K.BRANCHES).map(([k,B])=>[k,B.icon+' '+B.n]),G._fb||'cafe')}
-      <input type="text" id="foundName" maxlength="26" placeholder="Name der Firma"><button class="btn ink" data-a="found">Gründen</button><div class="sub">Eine eigene Rösterei oder Backstraße beliefert deine Cafés zu Herstellkosten.</div></div>`}
+      <input type="text" id="foundName" maxlength="26" placeholder="Name der Firma"><button class="btn ink" data-a="found">Gründen</button><div class="sub">Eine eigene Rösterei oder Backstraße beliefert deine Restaurants zu Herstellkosten.</div></div>`}
   if(t==='cities'){for(const c of K.CITIES){const on=!!G.cities[c.id];b+=`<div class="card"><div class="row"><span><span class="lbl">${c.n}</span><br><span class="sub">Laufkundschaft ${pct(c.traffic)} · Mieten ${pct(c.rent)}</span></span>${on?`<button class="btn ${World.city===c.id?'':'ink'}" data-a="city" data-id="${c.id}">${World.city===c.id?'Du bist hier':'Ansehen'}</button>`:`<button class="btn" data-a="unlock" data-id="${c.id}">Erschließen · ${fe(c.unlock.cost)}</button>`}</div>${on?'':`<div class="sub">ab ${c.unlock.staff} Mitarbeitenden</div>`}</div>`}}
   if(t==='hq'){if(!G.hq)b+=`<div class="hint">Ab 25 Mitarbeitenden kannst du eine Konzernzentrale beziehen (250.000 €). Danach baust du Abteilungen auf und stellst einen Vorstand ein.</div><button class="btn ink" data-a="place" data-k="hq" ${K.totalStaff(G)<25?'aria-disabled="true"':''}>Büroetage wählen</button>`;
     else b+=hqBody();
@@ -613,7 +631,7 @@ VIEWS.wealth=()=>{const w=K.wealth(G),me=G.me,t=T()||'over';let b='';
     const wh=me.wh||[],prevW=wh.length>1?wh[wh.length-2]:null;
     b+=`<div class="card"><div class="row"><span><b class="serif" style="font-size:24px">Du</b><br><span class="sub">CEO von ${esc(G.firms[0].name)} · in ${K.cityName(me.loc||'kiel')}</span></span>${avatar({g:'m',look:me.look||1,suit:'#eef3f7',shirt:'#ffffff'},84)}</div>
       <div class="row"><span><span class="lbl">Jährliches Gehalt</span><br><span class="sub">Zahlt der Konzern, netto ${fe(me.salary*0.58)} im Jahr</span></span>${step('salary',fe(me.salary),'')}</div></div>
-      <div class="card"><div class="eyebrow">Gesamtvermögen</div><b class="serif" style="font-size:40px;line-height:1.1">${fe(w.total)}</b>${prevW!=null?dl(w.total,prevW):''}${wh.length>2?spark(wh,300,40,'#2f8a55'):''}<div class="row" style="align-items:center;margin-top:6px">${donut(parts,130)}${legend(parts)}</div></div>`;
+      <div class="card"><div class="eyebrow">Gesamtvermögen</div><b class="serif" style="font-size:40px;line-height:1.1">${fe(w.total)}</b>${prevW!=null?dl(w.total,prevW,'zum Vormonat'):''}${wh.length>2?spark(wh,300,40,'#2f8a55'):''}<div class="row" style="align-items:center;margin-top:6px">${donut(parts,130)}${legend(parts)}</div></div>`;
     b+=`<div class="sec"><h3>Aktien</h3>${li('data-a="open" data-v="group" data-tab="firms" data-keep="1"',K.BRANCHES[G.firms[0].branch].icon,esc(G.firms[0].name)+' (Holding)',pct(G.owner)+' der Anteile'+(G.public?' · börsennotiert':''),fe(w.own),'aktueller Wert')}`;
     for(const tk in me.stocks){const s=G.stocks.find(x=>x.tk===tk),p=me.stocks[tk];b+=li(`data-a="open" data-v="bank" data-keep="1"`,'📈',esc(s.n),fn(p.n)+' Aktien · Kostenbasis '+fe(p.cost),fe(p.n*s.price),sgn(p.n*s.price-p.cost),p.n*s.price>=p.cost?'pos':'neg')}
     b+=`<button class="btn" data-a="open" data-v="bank" data-keep="1">🏦 Zum Aktienmarkt</button></div>`;
@@ -628,6 +646,53 @@ VIEWS.wealth=()=>{const w=K.wealth(G),me=G.me,t=T()||'over';let b='';
     else{b+='<div class="sub">Ein eigener Profiverein: Liga mit 18 Teams, Kader mit Spielern, Trikots, Transfers und Einnahmen aus Tickets, TV und Fanshop. Bezahlt wird privat.</div>';
       for(const C of K.CLUBS)b+=`<div class="card"><div class="row"><span class="ch"><span class="ico">🏟️</span><span class="t"><b>${C.n}</b><span>${K.cityName(C.city)} · ${C.league} · Stadion ${fn(K.CLUB_STAD[C.id])} Plätze<br>Eigentümer: ${C.owner}</span></span></span>${jerseySvg({c1:C.c1,c2:'#ffffff',style:'streifen'},48)}</div><button class="btn ${me.cash>=C.price?'ink':''}" data-a="buyClub" data-id="${C.id}" ${me.cash>=C.price?'':'aria-disabled="true"'}>Kaufen · ${fe(C.price)}</button></div>`}}
   return{eyebrow:'Persönliches Vermögen',title:fe(w.total),tabs:[['over','Übersicht'],['lux','Luxus'],['club','Verein']],body:b}};
+// ---------- Innenansichten: isometrische Räume als SVG ----------
+// Raum mit Boden (W×D Kacheln), zwei Rückwänden mit Fenstern und Möbeln. Gemalt wird von hinten nach vorn.
+function isoRoom(o){const W=o.w||10,D=o.d||8,S=o.s||22,c=0.866,sn=0.5,H=o.h||3.2;
+  const P=(x,y,z)=>[(x-y)*c*S,(x+y)*sn*S-(z||0)*S];const pts=a=>a.map(p=>P(...p).map(v=>v.toFixed(1)).join(',')).join(' ');
+  const items=[];const add=(depth,svg)=>items.push([depth,svg]);
+  const poly=(a,f,st)=>`<polygon points="${pts(a)}" fill="${f}"${st?` stroke="${st}" stroke-width=".6"`:''}/>`;
+  const shade=(hex,k)=>{const n=parseInt(hex.slice(1),16),r=n>>16,g=n>>8&255,b=n&255,f=v=>Math.max(0,Math.min(255,Math.round(v*k)));return'#'+[f(r),f(g),f(b)].map(v=>v.toString(16).padStart(2,'0')).join('')};
+  const box=(x,y,z,w,d,h,col)=>poly([[x,y,z+h],[x+w,y,z+h],[x+w,y+d,z+h],[x,y+d,z+h]],col)+poly([[x,y+d,z],[x+w,y+d,z],[x+w,y+d,z+h],[x,y+d,z+h]],shade(col,0.78))+poly([[x+w,y,z],[x+w,y+d,z],[x+w,y+d,z+h],[x+w,y,z+h]],shade(col,0.9));
+  const person=(x,y,z,shirt,skin,hair,sit)=>{const [hx,hy]=P(x+0.2,y+0.2,z+(sit?1.25:1.75));return box(x,y,z+(sit?0.45:0),0.4,0.4,sit?0.75:1.2,shirt)+`<circle cx="${hx.toFixed(1)}" cy="${hy.toFixed(1)}" r="${(S*0.2).toFixed(1)}" fill="${skin}"/><path d="M${(hx-S*0.2).toFixed(1)} ${hy.toFixed(1)} a${(S*0.2).toFixed(1)} ${(S*0.2).toFixed(1)} 0 0 1 ${(S*0.4).toFixed(1)} 0" fill="${hair}"/>`};
+  const SK=['#f6d2c4','#efc3a4','#d9a07c','#b9784f','#8d5a3b'],HR=['#24272b','#5b3a26','#a0522d','#d9a441','#7a4a2a'],SH=o.shirts||['#3b4a6b','#cc3b33','#3f9b62','#9b6fb5','#d4a72c','#5a6270','#2f6fd0'];
+  let seed=o.seed||7;const rnd=()=>(seed=seed*16807%2147483647,(seed-1)/2147483646);
+  // Boden und Wände
+  const floorCol=o.floor||'#e8d8bd';let bg=poly([[0,0,0],[W,0,0],[W,D,0],[0,D,0]],floorCol);
+  for(let i=1;i<W;i++)bg+=`<line x1="${P(i,0)[0]}" y1="${P(i,0)[1]}" x2="${P(i,D)[0]}" y2="${P(i,D)[1]}" stroke="rgba(0,0,0,.05)"/>`;
+  bg+=poly([[0,0,0],[W,0,0],[W,0,H],[0,0,H]],o.wall||'#f4f1ea')+poly([[0,0,0],[0,D,0],[0,D,H],[0,0,H]],shade(o.wall||'#f4f1ea',0.88));
+  for(let i=1;i<W-1;i+=2)bg+=poly([[i,0,0.9],[i+1.4,0,0.9],[i+1.4,0,H-0.4],[i,0,H-0.4]],'#bcd8e8');
+  for(let i=1;i<D-1;i+=2.5)bg+=poly([[0,i,0.9],[0,i+1.6,0.9],[0,i+1.6,H-0.4],[0,i,H-0.4]],'#a9c7d8');
+  if(o.logo)bg+=poly([[W-3.4,0,1.2],[W-0.6,0,1.2],[W-0.6,0,H-0.5],[W-3.4,0,H-0.5]],o.logo);
+  // Möbel
+  const kind=o.kind||'office';
+  if(kind==='office'){const n=o.desks||8,used=o.people||0;let k=0;
+    for(let r=0;r<Math.ceil(n/4);r++)for(let i=0;i<4&&k<n;i++,k++){const x=1.2+i*2,y=1.4+r*2.2;
+      add(x+y,box(x,y,0,1.5,0.8,0.75,'#f4f1ea')+box(x+0.5,y,0.75,0.6,0.08,0.5,'#24272b')+box(x+0.5,y+1.1,0,0.5,0.5,0.45,'#5a6270')+(k<used?person(x+0.55,y+1.1,0,SH[k%SH.length],SK[(k*3)%5],HR[(k*7)%5],true):''))}
+    add(W+D-2,box(W-1.4,D-1.6,0,0.6,0.6,0.5,'#c8643c')+(()=>{const [px,py]=P(W-1.1,D-1.3,1.1);return`<circle cx="${px}" cy="${py}" r="${S*0.55}" fill="#5e9e4e"/>`})());
+    if(o.meeting)add(W*0.7+D*0.8,box(W-3.8,D-3,0,2.4,1.4,0.75,'#b08a5a'))}
+  if(kind==='restaurant'){const n=o.tables||6,guests=o.guests||0,staff=o.staff||0;let k=0,g=0;
+    add(1,box(0.3,0.4,0,W*0.5,1,1.05,'#7a5a3a')+box(0.3,0.4,1.05,W*0.5,1,0.08,'#d9d2c4'));
+    for(let i=0;i<n;i++){const x=1.3+(i%3)*2.6,y=2.6+Math.floor(i/3)*2.2;
+      add(x+y,box(x,y,0,1.1,1.1,0.7,'#f4f1ea')+box(x-0.45,y+0.3,0,0.35,0.5,0.45,'#8a5a3a')+box(x+1.2,y+0.3,0,0.35,0.5,0.45,'#8a5a3a')+(g<guests?person(x-0.5,y+0.35,0,SH[(g++)%SH.length],SK[g%5],HR[(g*3)%5],true):'')+(g<guests?person(x+1.15,y+0.35,0,SH[(g++)%SH.length],SK[g%5],HR[(g*5)%5],true):''))}
+    for(let i=0;i<staff;i++){const x=0.8+i*1.3,y=1.6;add(x+y+0.5,person(x,y,0,o.apron||'#9b6fb5',SK[(i*2)%5],HR[i%5],false))}}
+  if(kind==='hq'){const n=o.desks||6,used=o.people||0;
+    add(D*0.5,box(W*0.35,D*0.35,0,2.6,1.2,1,'#f4f1ea')+box(W*0.35,D*0.35+1.2,0,1.2,0.8,1,'#f4f1ea')+(used?person(W*0.35+0.6,D*0.35+2,0,'#24272b','#efc3a4','#5b3a26',false):''));
+    for(let k=0;k<n;k++){const x=1+(k%5)*1.7,y=D-2.2-Math.floor(k/5)*1.6;add(x+y,box(x,y,0,1.2,0.7,0.75,'#e9e4d8')+box(x+0.4,y,0.75,0.5,0.06,0.42,'#24272b')+(k<used?person(x+0.4,y+0.85,0,SH[(k+2)%SH.length],SK[k%5],HR[(k+1)%5],true):box(x+0.4,y+0.85,0,0.45,0.45,0.45,'#5a6270')))}}
+  items.sort((a,b)=>a[0]-b[0]);
+  const xs=[P(0,D)[0],P(W,0)[0]],y0=P(0,0,H+0.4)[1],y1=P(W,D)[1];const pad=8;
+  return`<svg class="iso" viewBox="${(xs[0]-pad).toFixed(0)} ${(y0-pad).toFixed(0)} ${(xs[1]-xs[0]+2*pad).toFixed(0)} ${(y1-y0+2*pad).toFixed(0)}" width="100%" aria-hidden="true">${bg}${items.map(i=>i[1]).join('')}</svg>`}
+// Mitarbeiterfiguren mit Sprechblasen; ein Tipp zeigt, was die Person sagt
+function figRow(list,id){return`<div class="say figSay" id="${id}"><p>${esc(list.length?list[0].t:'')}</p></div><div class="figs">${list.map((p,i)=>`<button class="fig" data-a="figSay" data-k="${id}" data-v="${esc(p.t)}" aria-label="${esc(p.n)}">${p.b?`<i class="bub ${p.mood||''}">${p.b}</i>`:''}${avatar(p.who,46)}<small>${esc(p.n)}</small></button>`).join('')}</div>`}
+function moodLines(f,role,n,extra){const out=[],m=f?f.morale:0.7;
+  for(let i=0;i<n;i++){const look=((f?f.id.length*977:13)+i*131+(role.length*7))|0,g=i%2?'f':'m',who={g,look};
+    let t,b='',mood='';const r=(look%7)/7;
+    if(extra&&extra[i]){({t,b,mood}=extra[i])}
+    else if(m<0.45&&r<0.6){t='Für das Geld mache ich das nicht mehr lange.';b='💶';mood='bad'}
+    else if(m<0.6&&r<0.4){t='Ein bisschen mehr Gehalt wäre schön.';b='💬'}
+    else if(m>0.8&&r<0.5){t='Ich arbeite gern hier!';b='💚';mood='good'}
+    else t=['Alles im grünen Bereich.','Viel zu tun heute.','Läuft.','Kaffee?','Bin gleich im Meeting.'][look%5];
+    out.push({n:role+' '+(i+1),who,t,b,mood})}return out}
 // ---------- Sprechblase mit Person ----------
 const say=(t,who)=>`<div class="say"><p>${t}</p><span class="sayAva">${avatar(who||ASSIST,58)}</span></div>`;
 const BARISTA={g:'f',look:777,hair:'#5b3a26',suit:'#9b6fb5',shirt:'#ffffff',skin:'#efc3a4'};
@@ -690,12 +755,12 @@ VIEWS.goals=()=>{let b='<div class="sub">Für jedes erreichte Ziel gibt es eine 
   for(const g of K.GOALS){const done=G.goals[g.k]!==undefined;b+=`<div class="li" style="${done?'background:rgba(47,138,85,.07)':g===next?'border-color:var(--ink)':'opacity:.7'}"><span class="ico">${done?'✅':g===next?'🎯':'⬜'}</span><span class="t"><b>${g.n}</b><span>${done?'erreicht im '+K.monthName(G.goals[g.k]-1):g.d||''}</span></span><span class="v">${g.reward?fe(g.reward):''}</span></div>`}
   return{eyebrow:K.stage(G).n,title:'Ziele',body:b+'</div>'}};
 // Entscheidungen
-VIEWS.decide=()=>{if(!G.pending.length)return{title:'Keine offenen Entscheidungen',body:'<div class="sub">Alles erledigt. Du kannst den Monat abschließen.</div><button class="btn ink" data-a="endTurn">Monat abschließen</button>'};
+VIEWS.decide=()=>{if(!G.pending.length)return{title:'Keine offenen Entscheidungen',body:'<div class="sub">Alles erledigt. Du kannst die Woche abschließen.</div><button class="btn ink" data-a="endTurn">Monat abschließen</button>'};
   let b='';for(const e of G.pending){b+=`<div class="card"><div class="ch"><span class="ico">${e.icon||'❓'}</span><span class="t"><b>${esc(K.firm(G,e.fid).name)}</b></span></div><div class="quote" style="font-style:normal;font-size:17px">${esc(e.t)}</div><div class="list">${K.eventOpts(e).map((o,i)=>`<button class="li" data-a="decide" data-id="${e.id}" data-v="${i}"><span class="t"><b>${esc(o.n)}</b><span>${esc(o.d)}</span></span><span class="v">→</span></button>`).join('')}</div></div>`}
   return{eyebrow:K.monthName(G.month),title:G.pending.length>1?'Entscheidungen':'Entscheidung',body:b}};
-VIEWS.menu=()=>({title:'Menü',body:`<button class="btn wide" data-a="save">Speichern</button><button class="btn wide" data-a="help">So spielst du</button><button class="btn wide bad" data-a="newGame">Neues Spiel</button><div class="sub">Der Spielstand wird nach jedem Monat automatisch auf diesem Gerät gespeichert.</div>`});
+VIEWS.menu=()=>({title:'Menü',body:`<button class="btn wide" data-a="save">Speichern</button><button class="btn wide" data-a="help">So spielst du</button><button class="btn wide bad" data-a="newGame">Neues Spiel</button><div class="sub">Der Spielstand wird nach jeder Woche automatisch auf diesem Gerät gespeichert.</div>`});
 VIEWS.help=()=>({title:'So spielst du',body:`<div class="card"><b>1. Planen</b><div class="sub">Baue Geschäfte (🏗️ Bauen), stell Personal ein, richte ein, setze Preise und Aktionen. Dabei vergeht keine Zeit.</div></div>
-  <div class="card"><b>2. Monat abschließen</b><div class="sub">Rechts unten. Alle Geschäfte arbeiten einen Monat. Danach siehst du im Monatsbericht, was es gebracht hat, und über den Gebäuden steigt das Geld auf.</div></div>
+  <div class="card"><b>2. Monat abschließen</b><div class="sub">Rechts unten. Alle Geschäfte arbeiten eine Woche. Danach siehst du im Wochenbericht, was es gebracht hat, und über den Gebäuden steigt das Geld auf.</div></div>
   <div class="card"><b>3. Entscheiden</b><div class="sub">Manchmal passiert etwas: Bloggerinnen, Mieterhöhungen, Eilaufträge. Du entscheidest vor dem nächsten Abschluss.</div></div>
   <div class="card"><b>4. Wachsen</b><div class="sub">Folge den Zielen oben. Gründe weitere Firmen, erschließe Städte, baue eine Zentrale und geh an die Börse.</div></div>`});
 
@@ -732,7 +797,7 @@ function artImg(a){let h='';
 const PAPER_TABS=[['top','Top'],['handel','Handel'],['wirtschaft','Wirtschaft'],['markt','Markt'],['politik','Politik']];
 let paperTab='top';
 function paperHtml(r){const all=r.paper||[];if(!all.length)return'';let list=all.filter(a=>a.cat===paperTab||(paperTab==='top'&&a.top));if(paperTab==='top'&&list.length<2)list=list.concat(all.filter(a=>!list.includes(a)).slice(0,4-list.length));
-  return`<div class="paper" id="paper"><div class="mast">Der Wirtschaftskurier.</div><div class="pdate">${K.monthName(r.month)}</div><div class="ptabs">${PAPER_TABS.map(([k,n])=>`<button data-a="paperTab" data-k="${k}" aria-pressed="${paperTab===k}">${n}</button>`).join('')}</div>
+  return`<div class="paper" id="paper"><div class="mast">Der Wirtschaftskurier.</div><div class="pdate">${r.date||K.monthName(r.month)}</div><div class="ptabs">${PAPER_TABS.map(([k,n])=>`<button data-a="paperTab" data-k="${k}" aria-pressed="${paperTab===k}">${n}</button>`).join('')}</div>
     <div class="pcols">${list.length?list.map(a=>`<article>${artImg(a)}<h4>${esc(a.title)}</h4><p>${esc(a.text)}</p></article>`).join(''):'<p class="sub">Heute keine Meldungen in dieser Rubrik.</p>'}</div></div>`}
 // ---------- Fälle: Vorfälle und Entscheidungen nacheinander, mit Assistentin ----------
 let cases=[],caseI=0;
@@ -750,15 +815,19 @@ function showCase(){const m=$('modal');while(caseI<cases.length&&cases[caseI].ev
 function askEnd(){let noask=false;try{noask=localStorage.getItem('gz.noask')==='1'}catch(e){}if(noask){doEnd();return}
   const w=[];if(G.pending.length)w.push(G.pending.length+(G.pending.length>1?' Fälle sind offen und bekommen die Standardwahl.':' Fall ist offen und bekommt die Standardwahl.'));
   if(G.cash<0)w.push('Die Kasse ist im Minus. Drei Monate im Dispo führen zur Insolvenz.');
-  for(const f of G.firms)if(f.branch==='cafe')for(const s of f.shops)if(s.stat&&s.stat.dem>s.stat.cap*1.15){w.push('In '+K.ZONES[K.plot(G,s.plot).zone].n+' fehlen Baristas, Gäste gehen wieder.');break}
+  for(const f of G.firms)if(f.branch==='cafe')for(const s of f.shops)if(s.stat&&s.stat.dem>s.stat.cap*1.15){w.push('In '+K.ZONES[K.plot(G,s.plot).zone].n+' fehlt Personal, Gäste gehen wieder.');break}
   const due=(G.dues||[]).filter(d=>d.m===G.month+1);for(const d of due)w.push(d.t+' wird nächsten Monat fällig: '+fe(d.amt)+'.');
-  const m=$('modal');m.hidden=false;m.innerHTML=`<div class="report panel case" role="dialog" aria-label="Monat abschließen"><div class="caseHead"><span class="ico">🗓️</span><span><b>Fertig für diesen Monat?</b><br><span class="sub">${K.monthName(G.month)}</span></span><button class="x" data-a="caseClose" aria-label="Schließen">×</button></div>
-    <div class="caseBody"><p>Bist du diesen Monat mit deinen Geschäften fertig?${w.length?'<br><br>'+w.map(x=>'• '+esc(x)).join('<br>'):''}</p><div class="caseAva">${avatar(ASSIST,110)}<span>Lena, Assistenz</span></div></div>
+  const m=$('modal');m.hidden=false;m.innerHTML=`<div class="report panel case" role="dialog" aria-label="Woche abschließen"><div class="caseHead"><span class="ico">🗓️</span><span><b>Fertig für diese Woche?</b><br><span class="sub">${K.monthName(G.month)}</span></span><button class="x" data-a="caseClose" aria-label="Schließen">×</button></div>
+    <div class="caseBody"><p>Bist du diese Woche mit deinen Geschäften fertig?${w.length?'<br><br>'+w.map(x=>'• '+esc(x)).join('<br>'):''}</p><div class="caseAva">${avatar(ASSIST,110)}<span>Lena, Assistenz</span></div></div>
     <div class="btns" style="justify-content:center"><button class="btn ink" data-a="confirmEnd" style="min-width:110px">Ja</button><button class="btn" data-a="caseClose" style="min-width:110px">Nein</button></div>
     <label class="sub" style="display:flex;gap:8px;align-items:center;justify-content:center"><input type="checkbox" id="noask"> Nicht mehr fragen</label></div>`}
 // ---------- Vorstand und Zentrale ----------
 const skill=(n,v)=>`<div class="row skill"><span class="sub">${n}</span><span class="sbar"><i style="width:${v}%"></i></span><b>${Math.round(v)}</b></div>`;
 function hqBody(){let b='';const need=K.dneed(G);
+  {let heads=0;for(const k in G.depts)heads+=K.deptN(G,k);const ppl=[];
+    for(const [k,D] of Object.entries(K.DEPTS)){const n=K.deptN(G,k),cov=K.dcov(G,k);ppl.push({n:D.n,who:{g:k.length%2?'f':'m',look:k.charCodeAt(0)*313},t:!n?'Die Abteilung '+D.n+' gibt es noch nicht. Stell Leute ein, dann geht es los.':cov<1?'Wir sind '+n+', bräuchten aber '+need+'. Allein schaffen wir das nicht!':'Abteilung '+D.n+': alles im Griff. '+D.d+'.',b:!n?'💤':cov<1?'👥':'💚',mood:!n?'':cov<1?'bad':'good'})}
+    for(const [k,E] of Object.entries(K.EXECS)){const e=G.execs[k];if(e)ppl.push({n:E.n,who:e,t:e.loy<45?'Ehrlich gesagt sehe ich mich nach etwas Neuem um. Das Gehalt passt nicht.':'Als '+E.n+' kümmere ich mich darum: '+E.d+'.',b:e.loy<45?'💶':'',mood:e.loy<45?'bad':''})}
+    b+=`<div class="room">${isoRoom({kind:'hq',w:10,d:8,s:20,desks:Math.min(15,Math.max(5,heads)),people:Math.min(15,heads),logo:'#24272b',floor:'#d9dcdf',wall:'#eef0f2',seed:11})}</div>${G.hqBuild>0?'<div class="hint">🚧 Die Zentrale wird noch ausgebaut: fertig in '+G.hqBuild+' Wochen. Bis dahin wirken Abteilungen und Vorstand nicht.</div>':''}${figRow(ppl,'fhq')}`}
   b+=`<div class="sec"><h3>Abteilungen</h3><div class="sub">Jede Abteilung braucht bei deiner Größe ${need} Köpfe für die volle Wirkung. Jahresgehalt pro Kopf ${fe(G.deptWage)}.</div>`;
   for(const [k,D] of Object.entries(K.DEPTS)){const n=K.deptN(G,k),cov=K.dcov(G,k),own=Object.entries(K.EXECS).find(([ek,E])=>E.dept===k&&G.execs[ek]&&G.execs[ek].deleg.dept);
     b+=`<div class="card"><div class="row"><span class="ch"><span class="ico">${D.icon}</span><span class="t"><b>${D.n}</b><span>${D.d}${own?' · geführt von '+esc(G.execs[own[0]].name):''}</span></span></span>${step('deptN',n+' / '+need,`data-k="${k}"`)}</div>${bar(cov,cov>=1?'good':'')}</div>`}
@@ -772,7 +841,7 @@ VIEWS.exec=({id})=>{const e=G.execs[id],E=K.EXECS[id];if(!e)return null;const mp
   b+=`<div class="card"><div class="execHead">${avatar(e,120)}<div><b class="serif" style="font-size:26px">${esc(e.name)}</b><div class="sub">${E.de}</div><div class="eyebrow" style="margin-top:10px">${E.n} seit</div><b>${K.monthName(e.since)}</b>
     <div class="eyebrow" style="margin-top:10px">Führungskompetenzen</div>${skill('Führung',e.lead)}${skill('Expertise',e.exp)}${skill('Loyalität',e.loy)}</div></div></div>`;
   b+=`<div class="sub">Wirkung: ${E.d} (Stärke ${pct(K.ex(G,id))}).</div>`;
-  b+=`<div class="sec"><h3>Delegation der Führungskräfte</h3>${Object.entries(E.deleg).map(([d,n])=>`<div class="row"><span>${n}</span>${tog('deleg',e.deleg[d],`data-k="${id}" data-v="${d}"`)}</div>`).join('')}<div class="sub">Delegierte Aufgaben erledigt ${e.name.split(' ')[0]} jeden Monat selbst. Was passiert ist, steht im Monatsbericht.</div></div>`;
+  b+=`<div class="sec"><h3>Delegation der Führungskräfte</h3>${Object.entries(E.deleg).map(([d,n])=>`<div class="row"><span>${n}</span>${tog('deleg',e.deleg[d],`data-k="${id}" data-v="${d}"`)}</div>`).join('')}<div class="sub">Delegierte Aufgaben erledigt ${e.name.split(' ')[0]} jede Woche selbst. Was passiert ist, steht im Monatsbericht.</div></div>`;
   b+=`<div class="sec"><h3>Jährliches Gehalt</h3><div class="row">${step('execSal',fe(e.salary),`data-k="${id}"`)}<span class="sub" style="text-align:right">Marktüblich ${fe(mp)}<br><b class="${e.salary>=mp?'pos':'neg'}">${e.salary>=mp?'+':''}${Math.round((e.salary/mp-1)*100)} %</b></span></div></div>`;
   b+=`<div class="sec"><h3>Zuschüsse</h3>${(e.grants||[]).map(g=>`<div class="card"><div class="row"><span><b>${fn(g.n)} ${g.type==='rsu'?'RSU':'Aktienoptionen bei '+g.strike.toFixed(2).replace('.',',')+' €'}</b><br><span class="sub">4 Jahre Vesting · ${g.vested||0}/4 unverfallbar</span></span><b>${fe(K.grantValue(G,g))}</b></div></div>`).join('')||'<div class="sub">Noch keine Aktienzuschüsse.</div>'}
     ${G.public?`<button class="btn wide" data-a="open" data-v="grant" data-id="${id}" data-keep="1">Zuschuss hinzufügen</button>`:'<div class="sub">Aktienoptionen und RSU kannst du nach dem Börsengang vergeben. Sie binden Führungskräfte langfristig.</div>'}</div>`;
@@ -810,12 +879,12 @@ function floatMoney(r){const el=$('floats');el.innerHTML='';const byPlot={};
   let k=0;for(const pid in byPlot){const p=K.plot(G,pid);if(p.city!==World.city)continue;const pr=World.project(pid,9);if(!pr||!pr.vis)continue;const v=byPlot[pid];
     const d=document.createElement('div');d.className='money '+(v>=0?'p':'n');d.textContent=sgn(v);d.style.left=pr.x+'px';d.style.top=pr.y+'px';d.style.animationDelay=(k++*0.12)+'s';el.appendChild(d)}
   setTimeout(()=>{el.innerHTML=''},4500)}
-function report(r){const m=$('modal');m.hidden=false;const prev=G.months[G.months.length-2];
+function report(r){const m=$('modal');m.hidden=false;const wk=G.weeks||[],prev=wk.length>1?wk[wk.length-2]:null,mon=r.monthEnd?G.months[G.months.length-1]:null;
   const items=r.items.slice().sort((a,b)=>b.profit-a.profit);
-  m.innerHTML=`<div class="report panel" role="dialog" aria-label="Monatsbericht"><div><div class="eyebrow">Monatsbericht</div><h2>${K.monthName(r.month)}</h2></div>
-  <div class="resTop"><div><div class="eyebrow">Umsatz im Monat</div><div class="big2">${fe(r.rev)}</div>${dl(r.rev,prev?K.pl(prev).rev:null)}</div>
+  m.innerHTML=`<div class="report panel" role="dialog" aria-label="Wochenbericht"><div><div class="eyebrow">Wochenbericht</div><h2>${r.date||K.monthName(r.month)}</h2></div>
+  <div class="resTop"><div><div class="eyebrow">Umsatz der Woche</div><div class="big2">${fe(r.rev)}</div>${dl(r.rev,prev?prev.rev:null)}</div>
     <div><div class="eyebrow">Nettoeinkommen</div><div class="big2 ${r.net>=0?'pos':'neg'}" id="bigNet">${sgn(0)}</div>${dl(r.net,prev?prev.net:null)}</div></div>
-  ${cfTable()}
+  ${cfTable(r.cf)}${mon?`<div class="hint">📘 Monatsabschluss ${K.monthName(mon.m)}: Umsatz ${fe(K.pl(mon).rev)}, Ergebnis <b class="${mon.net>=0?'pos':'neg'}">${sgn(mon.net)}</b>. Details unter Finanzen.</div>`:''}
   ${kpis([[fe(r.cash),'Kasse',r.cash<0?'neg':''],[fe(K.wealth(G).total),'Dein Vermögen'],[fn(r.staff),'Mitarbeitende']])}
   ${r.goals.map(g=>`<div class="goalWin"><span class="e">🏆</span><span><b>Ziel erreicht: ${esc(g.n)}</b><br><span class="sub">${g.reward?'+'+fe(g.reward)+' Förderprämie':'Großartig!'}</span></span></div>`).join('')}
   ${items.length?`<div class="sec"><h3>Deine Geschäfte</h3><div class="list">${items.map(it=>`<div class="li" style="cursor:default"><span class="ico">${it.icon}</span><span class="t"><b>${esc(it.name)}</b><span>${esc(it.kpi)}${it.delta!=null&&it.delta!==0?` <b class="${it.delta>0?'pos':'neg'}">${it.delta>0?'▲':'▼'} ${fn(Math.abs(it.delta))}</b>`:''}${it.stars?' · '+starsH(it.stars):''}${it.broke?' · ⚠️ Ausfall':''}</span></span><span class="v ${it.profit>=0?'pos':'neg'}">${it.kind==='dev'?'':sgn(it.profit)}</span></div>`).join('')}</div></div>`:'<div class="hint">Noch keine Geschäfte. Öffne „Bauen“ und leg los!</div>'}
@@ -826,8 +895,8 @@ function report(r){const m=$('modal');m.hidden=false;const prev=G.months[G.month
   ${G.pending.length?`<div class="warnbox">${G.pending.length>1?G.pending.length+' Entscheidungen warten':'Eine Entscheidung wartet'} auf dich.</div>`:''}
   <button class="btn ink wide" data-a="closeReport" style="padding:14px">${G.over?'Ergebnis ansehen':G.pending.length||(r.incidents||[]).length?'Weiter':'Weiter planen'}</button></div>`;
   countUp($('bigNet'),r.net)}
-function dl(v,p){if(p==null)return'';const d=v-p,q=p?d/Math.abs(p):0;return`<div class="sub"><b class="${d>=0?'pos':'neg'}">${d>=0?'▲':'▼'} ${sgn(d)} (${d>=0?'+':''}${Math.round(q*100)} %)</b> zum Vormonat</div>`}
-function cfTable(){const m=G.months[G.months.length-1];if(!m||!m.cf)return'';const c=m.cf,net=c.op+c.inv+c.fin;
+function dl(v,p,lbl){if(p==null)return'';const d=v-p,q=p?d/Math.abs(p):0;return`<div class="sub"><b class="${d>=0?'pos':'neg'}">${d>=0?'▲':'▼'} ${sgn(d)}${p?` (${d>=0?'+':''}${Math.round(q*100)} %)`:''}</b> ${lbl||'zur Vorwoche'}</div>`}
+function cfTable(cf){if(!cf)return'';const c=cf,net=c.op+c.inv+c.fin;
   return`<table class="cf"><tr><td>Bargeld aus Geschäftstätigkeit</td><td>${sgn(c.op)}</td></tr><tr><td>Investition</td><td>${sgn(c.inv)}</td></tr><tr><td>Finanzierung</td><td>${sgn(c.fin)}</td></tr><tr class="sum"><td>Netto-Cashflow</td><td class="${net>=0?'pos':'neg'}">${sgn(net)}</td></tr></table>`}
 function quotes(){const q=[];for(const f of G.firms){if(f.shops)for(const s of f.shops)for(const r of s.reviews||[])q.push(r);for(const a of G.apps.filter(a=>a.owner===f.id&&a.reviews))for(const r of a.reviews)q.push(r)}
   if(!q.length)return'';const pickQ=q.sort(()=>Math.random()-0.5).slice(0,2);return`<div class="sec"><h3>Neue Bewertungen</h3>${pickQ.map(r=>`<div>${starsH(r.s)}<div class="quote">${esc(r.t)}</div></div>`).join('')}</div>`}
@@ -853,6 +922,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
     run(r);if(r&&r.ok){endPlace();if(k==='cafe')open('shop',{id:r.id});else if(k==='factory')open('plant',{id:r.id});else if(k==='office')open('office',{id});else close();save()}break}
   case'shopStaff':{const [,s]=K.shopOf(G,+id);run(K.act.shop(G,+id,{staff:s.staff+d}),1);break}
   case'mgrSal':{const [,s]=K.shopOf(G,+id);run(K.act.mgrSalary(G,+id,s.manager.salary+d*2500),1);break}
+  case'figSay':{const el=$(k);if(el)el.querySelector('p').textContent=v;break}
+  case'party':{const [,s]=K.shopOf(G,+id);run(K.act.shop(G,+id,{party:!s.party}),1);break}
   case'mgrDeleg':run(K.act.mgrDeleg(G,+id,k),1);break;
   case'fireMgr':if(confirm('Filialleitung entlassen?'))run(K.act.fireMgr(G,+id));break;
   case'mgrOffer':{const i=+v,[,s]=K.shopOf(G,view.p.id),c=K.mgrCands(G,s.id)[i];view.p.offer=view.p.offer||{};view.p.offer[i]=Math.max(20000,(view.p.offer[i]||c.demand)+d*2500);renderSheet();break}
@@ -905,7 +976,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
   case'ipo':if(confirm('Börsengang durchführen? Du gibst 25 % neue Aktien aus.'))run(K.act.ipo(G));break;
   case'takeover':{const cp=G.comps.find(c=>c.id===+id);if(cp&&confirm(cp.name+' für '+fe(K.takeoverPrice(G,cp))+' übernehmen?'))run(K.act.takeover(G,+id));break}
   case'foundBranch':G._fb=v;renderSheet();break;
-  case'found':{const n=($('foundName').value||'').trim()||({cafe:'Kaffeehaus',soft:'Appwerk',prod:'Manufaktur'}[G._fb||'cafe']);const r=run(K.act.found(G,G._fb||'cafe',n.slice(0,26)));if(r&&r.ok){G.cur=r.id;open('build')}break}
+  case'found':{const n=($('foundName').value||'').trim()||({cafe:'Tafelrunde',soft:'Appwerk',prod:'Manufaktur'}[G._fb||'cafe']);const r=run(K.act.found(G,G._fb||'cafe',n.slice(0,26)));if(r&&r.ok){G.cur=r.id;open('build')}break}
   case'decide':{const r=K.act.decide(G,+id,+v);if(r.msg)toast(r.msg,'');refresh();if(!G.pending.length){renderSheet(true)}else renderSheet(true);break}
   case'sector':view.p.sec=k;renderSheet();break;
   case'trade':run(K.act.trade(G,k,+v));break;
