@@ -34,6 +34,7 @@ button{font:inherit;color:inherit}
 .hud .k b{font-family:var(--f-display);font-weight:500;font-size:21px;line-height:1.05;white-space:nowrap;font-variant-numeric:tabular-nums}
 .hud .k span{font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
 .topBtns{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));right:calc(16px + env(safe-area-inset-right,0px));display:flex;gap:6px;z-index:3}
+@media (max-width:1500px) and (min-width:761px){.hud{left:220px;transform:none}.hud .k.opt2{display:none}}
 .ib{all:unset;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:58px;height:54px;border-radius:10px;font-size:20px;line-height:1}
 .ib small{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.02em}
 .ib:hover{background:#fff}
@@ -170,7 +171,7 @@ canvas.chart{width:100%;height:150px;display:block}
   .hud{left:8px;right:8px;transform:none;top:calc(8px + env(safe-area-inset-top,0px));padding:4px;justify-content:space-between}
   .hud .k{padding:3px 7px}.hud .k b{font-size:16px}.hud .k span{font-size:8.5px;letter-spacing:.08em}.hud .k.opt{display:none}
   .topBtns{top:auto;bottom:calc(84px + env(safe-area-inset-bottom,0px));right:8px;flex-direction:column}
-  .ib{width:48px;height:46px;font-size:18px}.ib small{font-size:9px}
+  .ib{width:46px;height:42px;font-size:17px}.ib small{font-size:8.5px}
   .goalCard{top:calc(62px + env(safe-area-inset-top,0px));left:8px;right:8px;transform:none;max-width:none}
   .dock{left:8px;right:8px;transform:none;bottom:calc(8px + env(safe-area-inset-bottom,0px));gap:4px;padding:4px}
   .db{min-width:0;flex:1;height:54px;font-size:20px}.db small{font-size:10px}
@@ -192,9 +193,12 @@ canvas.chart{width:100%;height:150px;display:block}
   <div class="k"><span>Monat</span><b id="hMonth">Januar 2027</b></div>
   <div class="k"><span>Kasse</span><b id="hCash">0 €</b></div>
   <div class="k"><span>Ergebnis Vormonat</span><b id="hNet">–</b></div>
-  <div class="k opt"><span>Team</span><b id="hStaff">1</b></div>
+  <div class="k opt"><span>Dein Vermögen</span><b id="hWealth">0 €</b></div>
+  <div class="k opt opt2"><span>Team</span><b id="hStaff">1</b></div>
 </div>
 <div class="topBtns" id="topBtns" hidden>
+  <button class="ib panel" data-a="open" data-v="wealth" aria-label="Vermögen">👤<small>Vermögen</small></button>
+  <button class="ib panel" data-a="open" data-v="bank" aria-label="Börse">🏦<small>Börse</small></button>
   <button class="ib panel" data-a="open" data-v="fin" aria-label="Finanzen">📊<small>Finanzen</small></button>
   <button class="ib panel" data-a="open" data-v="group" aria-label="Konzern">🏛️<small>Konzern</small></button>
   <button class="ib panel" data-a="open" data-v="goals" aria-label="Ziele">🎯<small>Ziele</small></button>
@@ -251,7 +255,7 @@ function save(){if(G)store.set(G)}
 // ---------- Kopf ----------
 function refresh(){if(!G)return;const last=G.months[G.months.length-1];
   $('hMonth').textContent=K.monthName(G.month);const c=$('hCash');c.textContent=fe(G.cash);c.className=G.cash<0?'neg':'';
-  const n=$('hNet');n.textContent=last?sgn(last.net):'–';n.className=last?(last.net>=0?'pos':'neg'):'';$('hStaff').textContent=fn(K.totalStaff(G));
+  const n=$('hNet');n.textContent=last?sgn(last.net):'–';n.className=last?(last.net>=0?'pos':'neg'):'';$('hStaff').textContent=fn(K.totalStaff(G));$('hWealth').textContent=fe(K.wealth(G).total);
   $('brandSub').textContent=cur().name+' · '+K.stage(G).n;
   $('endSub').textContent=G.pending.length?G.pending.length+(G.pending.length>1?' Entscheidungen offen':' Entscheidung offen'):K.MONTHS[G.month%12]+' abrechnen';$('endBtn').dataset.wait=G.pending.length>0;
   const g=K.GOALS.find(x=>!G.goals[x.k]);const gc=$('goalCard');
@@ -269,7 +273,7 @@ function renderSheet(top){const el=$('sheet');if(!view){el.hidden=true;return}co
   const body=el.querySelector('.sh-body'),y=!top&&body?body.scrollTop:0;
   el.innerHTML=`<div class="sh-head">${stack.length?`<button class="x" data-a="back" aria-label="Zurück">←</button>`:''}<div class="t">${r.eyebrow?`<div class="eyebrow">${r.eyebrow}</div>`:''}<h2>${r.title}</h2>${r.sub?`<div class="sub" style="margin-top:3px">${r.sub}</div>`:''}</div><button class="x" data-a="close" aria-label="Schließen">×</button></div>
   ${r.tabs?`<div class="tabs" role="tablist">${r.tabs.map(([k,n])=>`<button class="tab" data-a="tab" data-v="${k}" aria-selected="${(view.tab||r.tabs[0][0])===k}">${n}</button>`).join('')}</div>`:''}<div class="sh-body">${r.body}</div>`;
-  el.querySelector('.sh-body').scrollTop=y;if(r.after)r.after()}
+  el.querySelector('.sh-body').scrollTop=y;const st=el.querySelector('.tab[aria-selected="true"]'),tb=el.querySelector('.tabs');if(st&&tb)tb.scrollLeft=Math.max(0,st.offsetLeft-tb.clientWidth+st.offsetWidth+16);if(r.after)r.after()}
 const T=()=>view.tab;
 // kleine Bausteine
 const step=(a,val,attrs)=>`<span class="step"><button data-a="${a}" data-d="-1" ${attrs||''} aria-label="weniger">−</button><output>${val}</output><button data-a="${a}" data-d="1" ${attrs||''} aria-label="mehr">+</button></span>`;
@@ -281,6 +285,11 @@ const kpis=list=>`<div class="kpis">${list.map(([v,l,c])=>`<div class="kpi"><b c
 const upCard=(a,attrs,e,n,d,price,on,lock)=>`<button class="up" data-a="${a}" ${attrs} data-on="${!!on}" data-lock="${!!lock}" ${lock?'aria-disabled="true"':''}><span class="e">${e}</span><b>${n}</b><span>${d}</span><span class="p">${on?'✓ vorhanden':lock?lock:price}</span></button>`;
 const li=(attrs,ico,t,s,v,vs,cls)=>`<button class="li" ${attrs}><span class="ico">${ico}</span><span class="t"><b>${t}</b><span>${s}</span></span><span class="v ${cls||''}">${v}${vs?`<small>${vs}</small>`:''}</span></button>`;
 
+const spark=(v,w,h,col)=>{if(!v||v.length<2)return'';const mn=Math.min(...v),mx=Math.max(...v),X=i=>i*(w/(v.length-1)),Y=x=>h-2-(x-mn)/((mx-mn)||1)*(h-4);
+  return`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline fill="none" stroke="${col||'#24272b'}" stroke-width="2" points="${v.map((x,i)=>X(i).toFixed(1)+','+Y(x).toFixed(1)).join(' ')}"/></svg>`};
+const donut=(parts,size)=>{const tot=parts.reduce((s,p)=>s+Math.max(0,p.v),0)||1,r=size/2-10,c=2*Math.PI*r;let off=0;
+  return`<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true"><g transform="rotate(-90 ${size/2} ${size/2})">${parts.map(p=>{const l=Math.max(0,p.v)/tot*c;const el=`<circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${p.c}" stroke-width="18" stroke-dasharray="${l} ${c-l}" stroke-dashoffset="${-off}"/>`;off+=l;return el}).join('')}</g></svg>`};
+const legend=parts=>`<div class="list" style="gap:4px;flex:1">${parts.map(p=>`<div class="row"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${p.c};margin-right:6px"></i>${p.n}</span><b style="font-variant-numeric:tabular-nums">${p.t||fe(p.v)}</b></div>`).join('')}</div>`;
 const VIEWS={};
 // Bauen
 VIEWS.build=()=>{let b='<div class="hint">Wähle, was du bauen willst. Danach leuchten passende Grundstücke in der Stadt grün auf.</div>';
@@ -305,7 +314,9 @@ VIEWS.plot=({id})=>{const p=K.plot(G,id);if(!p)return null;const z=K.ZONES[p.zon
   if(p.owner&&p.owner.startsWith('c:')){const cp=G.comps.find(c=>'c:'+c.id===p.owner);
     b+=`<div class="card"><div class="ch"><span class="ico">🏪</span><span class="t"><b>${esc(cp?cp.name:'Konkurrenz')}</b><span>${cp&&cp.branch==='cafe'?'Café-Kette · Qualität '+pct(cp.q)+' · Preise '+pct(cp.price):'Konkurrent'}</span></span></div>
       ${cp?`<button class="btn" data-a="open" data-v="group" data-tab="market" data-keep="1">Übernahme prüfen · ${fe(K.takeoverPrice(G,cp))}</button>`:''}</div>`;
-    return{eyebrow:z.n+' · '+K.cityName(p.city),title:'Konkurrenz',body:b}}
+    return{eyebrow:z.n+' · '+K.cityName(p.city),title:'Konkurrenz',body:b+propCard(p)}}
+  if(p.owner){const uses={cafe:'Deine Filiale',office:'Dein Büro',factory:'Deine Fabrik',hq:'Konzernzentrale'};const ff=p.owner!=='H'&&K.firm(G,p.owner);
+    return{eyebrow:z.n+' · '+K.cityName(p.city),title:uses[p.use]||'Dein Standort',sub:ff?esc(ff.name):'',body:b+(propCard(p)||'<div class="sub">Die Zentrale steht auf eigenem Grund.</div>')}}
   if(!G.cities[p.city])return{eyebrow:z.n,title:'Noch nicht erschlossen',body:b+'<div class="warnbox">Erschließe diese Stadt im Bereich Konzern.</div>'};
   let acts='';const kind=place?place.kind:null;
   for(const f of G.firms){if(f.branch==='cafe'&&z.uses.includes('cafe')&&(!kind||kind==='cafe')){const fc=K.forecastShop(G,f.id,p.id);
@@ -316,7 +327,16 @@ VIEWS.plot=({id})=>{const p=K.plot(G,id);if(!p)return null;const z=K.ZONES[p.zon
     if(f.branch==='prod'&&z.uses.includes('factory')&&(!kind||kind==='factory'))acts+=`<div class="card"><div class="ch"><span class="ico">🏭</span><span class="t"><b>Halle für ${esc(f.name)}</b><span>Platz für ${Math.floor(p.size/500)} Linien</span></span></div><button class="btn ink" data-a="build" data-k="factory" data-id="${f.id}" data-p="${p.id}">Mieten · ${fe(p.rent*3)} Kaution</button></div>`}
   if(z.uses.includes('hq')&&!G.hq&&(!kind||kind==='hq'))acts+=`<div class="card"><div class="ch"><span class="ico">🏛️</span><span class="t"><b>Konzernzentrale</b><span>${K.totalStaff(G)<25?'Erst ab 25 Mitarbeitenden':'Für Abteilungen und den Börsengang'}</span></span></div><button class="btn ${K.totalStaff(G)<25?'':'ink'}" data-a="build" data-k="hq" data-p="${p.id}" ${K.totalStaff(G)<25?'aria-disabled="true"':''}>Bauen · 250.000 €</button></div>`;
   if(!acts)acts=`<div class="sub">${p.zone==='gewerbe'?'Im Gewerbegebiet sind nur Fabriken erlaubt.':'Für deine Firmen ist hier nichts möglich.'}</div>`;
-  return{eyebrow:z.n+' · '+K.cityName(p.city),title:'Freies Grundstück',body:b+acts}};
+  return{eyebrow:z.n+' · '+K.cityName(p.city),title:p.prop==='H'?'Dein Gebäude':'Freies Grundstück',body:b+acts+propCard(p)}};
+function propCard(p){const v=K.propValue(G,p);
+  if(p.prop==='H'){const inc=K.propIncome(G,p),self=p.owner&&!p.owner.startsWith('c:');
+    let h=`<div class="card"><div class="ch"><span class="ico">🏢</span><span class="t"><b>Immobilie im Besitz</b><span>Marktwert ${fe(v)}</span></span></div>`;
+    if(self)h+=`<div class="sub">Du nutzt das Gebäude selbst und sparst ${fe(p.rent)} Miete im Monat (${(p.rent*12/v*100).toFixed(1).replace('.',',')} % Rendite).</div>`;
+    else if(p.owner)h+=`<div class="sub">Vermietet an die Konkurrenz: ${fe(p.rent)} im Monat (${(p.rent*12/v*100).toFixed(1).replace('.',',')} % Rendite).</div>`;
+    else h+=`<div class="row"><span><span class="lbl">Miete</span><br><span class="sub">${pct(p.leaseR||1)} vom Marktpreis · Auslastung ${pct(K.leaseOcc(p))}</span></span>${step('leaseR',fe(p.rent*(p.leaseR||1)),`data-id="${p.id}"`)}</div><div class="sub">Einnahmen ${fe(inc)} im Monat, ${(inc*12/v*100).toFixed(1).replace('.',',')} % Rendite. Höhere Miete senkt die Auslastung.</div>`;
+    return h+(p.owner==='H'?'':`<button class="btn" data-a="sellProp" data-id="${p.id}">Verkaufen · ${fe(v*0.97)}</button>`)+'</div>'}
+  if(p.owner==='H')return'';
+  const self=p.owner&&!p.owner.startsWith('c:');return`<div class="card soft"><div class="ch"><span class="ico">🏢</span><span class="t"><b>Gebäude kaufen</b><span>${self?'Du sparst danach '+fe(p.rent)+' Miete im Monat.':p.owner?'Die Konkurrenz zahlt dir dann '+fe(p.rent)+' Miete im Monat.':'Vermiete es an Dritte oder nutze es später selbst.'} Rendite ${(K.YIELD[p.zone]*100).toFixed(1).replace('.',',')} %.</span></span></div><button class="btn" data-a="buyProp" data-id="${p.id}">Kaufen · ${fe(v*1.05)} inkl. Nebenkosten</button></div>`}
 // Liste der Geschäfte
 VIEWS.list=()=>{let b='';const last=G.report;
   for(const f of G.firms){b+=`<div class="sec"><h3>${esc(f.name)}</h3><div class="list">`;
@@ -345,20 +365,35 @@ VIEWS.shop=({id})=>{const [f,s]=K.shopOf(G,+id);if(!s)return null;const p=K.plot
     b+=`<div class="card"><div class="ch"><span class="ico">🪑</span><span class="t"><b>Einrichtung: ${K.LEVELS[s.level].n}</b><span>Gemütlichkeit ${pct(K.LEVELS[s.level].comfort)}${nx?' → '+nx.n+': '+pct(nx.comfort):''}</span></span></div>${nx?`<button class="btn ink" data-a="shopLevel" data-id="${s.id}">Umbauen zu „${nx.n}“ · ${fe(nx.cost)}</button>`:''}</div><div class="grid2">`;
     for(const [k,U] of Object.entries(K.CAFE_UPS)){const lock=U.zones&&!U.zones.includes(p.zone)?'nicht an diesem Ort':U.minLevel&&s.level<U.minLevel?'ab „'+K.LEVELS[U.minLevel].n+'“':null;
       b+=upCard('shopUp',`data-id="${s.id}" data-k="${k}"`,U.icon,U.n,U.d,fe(U.cost)+(U.mon?' + '+fe(U.mon)+'/M':''),s.ups[k],lock)}b+='</div>'}
-  if(t==='act'){b+='<div class="sub">Aktionen laufen jeden Monat, bis du sie abschaltest.</div>';
+  if(t==='act'){const sh=shareNear(f,s,p);b+=`<div class="sec"><h3>Marktanteile im Viertel</h3><div class="row" style="align-items:center">${donut(sh,140)}${legend(sh.map(x=>({...x,t:pct(x.v)})))}</div></div>`;
+    b+='<div class="sec"><h3>Aktionen</h3><div class="sub">Laufen jeden Monat, bis du sie abschaltest. Stadtweite Plakate und Radio gibt es in der Werbeagentur (Firma).</div></div>';
     for(const [k,A] of Object.entries(K.CAFE_ACTIONS))b+=`<div class="card"><div class="row"><span class="ch"><span class="ico">${A.icon}</span><span class="t"><b>${A.n}</b><span>${A.d}${A.cost?' '+fe(A.cost)+' im Monat.':''}</span></span></span>${tog('shopAct',s.act[k],`data-id="${s.id}" data-k="${k}"`)}</div></div>`;
     b+=`<div class="sec"><h3>Spezialität dieser Filiale</h3><div class="sub">Ein Produkt wird besonders beworben: +30 % Nachfrage danach.</div><div class="btns">${Object.entries(K.PRODUCTS).filter(([k,P])=>f.menu[k].on&&(!P.res||f.res[P.res])).map(([k,P])=>`<button class="btn" data-a="shopSpecial" data-id="${s.id}" data-k="${k}" style="${s.special===k?'background:var(--ink);color:#fff':''}">${P.icon} ${P.n}</button>`).join('')}</div>
       <button class="btn" data-a="open" data-v="firm" data-tab="menu" data-keep="1">Speisekarte und Preise bearbeiten →</button></div>`}
-  if(t==='rev'){const sat=st?st.sat:s.rep;b+=`<div class="card"><div class="row"><span class="lbl">Bewertung</span><span>${starsH(K.stars(s.rep))} <b class="serif" style="font-size:20px">${String(K.stars(s.rep)).replace('.',',')}</b></span></div>
-      <div class="row"><span class="sub">Qualität</span><span style="width:55%">${bar(fc.ms.quality,'good')}</span></div><div class="row"><span class="sub">Gemütlichkeit</span><span style="width:55%">${bar(fc.comfort,'good')}</span></div>
-      <div class="row"><span class="sub">Wartezeit</span><span style="width:55%">${bar(st?st.served:1,st&&st.served<0.9?'bad':'good')}</span></div><div class="row"><span class="sub">Preis-Leistung</span><span style="width:55%">${bar(Math.min(1,fc.ms.price),'good')}</span></div></div>`;
+  if(t==='fin'){const h=s.hist||[];b+=`<div class="card"><div class="row"><span class="lbl">Umsatz und Gewinn</span><span class="sub">letzte ${h.length} Monate</span></div>${barsSvg(h)}<div class="sub"><b>Tinte</b> Umsatz · <b class="pos">Grün</b> Gewinn</div></div>`;
+    if(st)b+=`<div class="sec"><h3>GuV der Filiale (Vormonat)</h3><table><tr><td>Heiße Getränke</td><td>${fe(st.hot||0)}</td></tr><tr><td>Kalte Getränke</td><td>${fe(st.cold||0)}</td></tr><tr><td>Speisen</td><td>${fe(st.food||0)}</td></tr><tr class="sum"><td>Umsatz</td><td>${fe(st.rev)}</td></tr>
+      <tr><td>Wareneinsatz</td><td>${fe(-(st.cogs||0))}</td></tr><tr><td>Personal</td><td>${fe(-(st.wages||0))}</td></tr><tr><td>Miete</td><td>${fe(-(st.rent||0))}</td></tr><tr><td>Nebenkosten</td><td>${fe(-(st.other||0))}</td></tr><tr><td>Aktionen</td><td>${fe(-(st.mk||0))}</td></tr>
+      <tr class="sum"><td>Gewinn</td><td class="${st.profit>=0?'pos':'neg'}">${sgn(st.profit)}</td></tr></table></div>`;
+    else b+='<div class="sub">Zahlen gibt es nach dem ersten Monat.</div>';
+    if(p.prop!=='H')b+=`<div class="card soft"><div class="ch"><span class="ico">🏢</span><span class="t"><b>Gebäude kaufen statt mieten</b><span>Kaufpreis ${fe(K.propValue(G,p))}, dann keine Miete mehr (${fe(p.rent)} im Monat).</span></span></div><button class="btn" data-a="open" data-v="plot" data-id="${p.id}" data-keep="1">Zur Immobilie →</button></div>`}
+  if(t==='rev'){const sat=st?st.sat:s.rep,cat=[['Preis',Math.min(1,fc.ms.price)],['Produkt',fc.ms.quality],['Service',Math.min(1,(st?st.served:1)*0.75+(s.manager?0.12:0)+(s.train||0)*0.05)],['Atmosphäre',fc.comfort]];
+    b+=`<div class="card"><div class="row" style="align-items:flex-start"><span><b class="serif" style="font-size:44px;line-height:1">${String(K.stars(s.rep)).replace('.',',')}</b><br>${starsH(K.stars(s.rep))}<br><span class="sub">${fn(s.rcount||0)} Bewertungen</span></span>
+      <span style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">${cat.map(([n,v])=>`<span class="row" style="gap:8px"><span class="sub">${n}</span>${starsH(K.stars(v))}<b>${String(K.stars(v)).replace('.',',')}</b></span>`).join('')}</span></div></div>`;
     for(const r of s.reviews||[])b+=`<div class="card soft">${starsH(r.s)}<div class="quote">${esc(r.t)}</div></div>`;if(!(s.reviews||[]).length)b+='<div class="sub">Bewertungen gibt es nach dem ersten Monat.</div>'}
   b+=`<button class="btn bad" data-a="closeShop" data-id="${s.id}">Filiale schließen</button>`;
-  return{eyebrow:esc(f.name)+' · '+K.cityName(p.city),title:K.ZONES[p.zone].n,sub:starsH(K.stars(s.rep))+' '+K.LEVELS[s.level].n+' · seit '+K.monthName(s.opened),tabs:[['team','Team'],['up','Ausbau'],['act','Aktionen'],['rev','Bewertungen']],body:b,after:()=>World.select(p.id)}};
+  return{eyebrow:esc(f.name)+' · '+K.cityName(p.city),title:K.ZONES[p.zone].n,sub:starsH(K.stars(s.rep))+' '+K.LEVELS[s.level].n+' · seit '+K.monthName(s.opened)+(p.prop==='H'?' · im eigenen Gebäude':''),tabs:[['team','Team'],['up','Ausbau'],['act','Marketing'],['fin','Finanzen'],['rev','Bewertungen']],body:b,after:()=>World.select(p.id)}};
+function shareNear(f,s,p){const out=[];const cols=['#24272b','#c8643c','#2f6fd0','#9b6fb5','#d4a72c','#3f9b62','#8a8f96'];let i=0;
+  for(const q of G.plots){if(q.use!=='cafe'||q.city!==p.city||Math.abs(q.r-p.r)>1||Math.abs(q.c-p.c)>1)continue;let a=0,n='';
+    if(q.owner&&q.owner.startsWith('c:')){const cp=G.comps.find(c=>'c:'+c.id===q.owner);if(!cp)continue;a=Math.pow(cp.q,0.8)*0.8*Math.min(1.5,Math.max(0.3,Math.exp(-1.8*(cp.price-1))))*(0.35+0.65*cp.rep);n=cp.name}
+    else{const ff=K.firm(G,q.owner);if(!ff)continue;const ss=ff.shops.find(x=>x.plot===q.id);if(!ss)continue;const fc=K.shopForecast(G,ff,ss);a=fc.A;n=ff.name+(q===p?' (diese)':'')}
+    out.push({n,v:a,c:q===p?f.color:cols[(i++)%cols.length]})}
+  const tot=out.reduce((s,x)=>s+x.v,0)||1;out.forEach(x=>x.v/=tot);return out.sort((a,b)=>b.v-a.v)}
+function barsSvg(h){if(!h.length)return'<div class="sub">Noch keine Daten.</div>';const w=380,H=130,mx=Math.max(1,...h.map(x=>x.rev)),mn=Math.min(0,...h.map(x=>x.profit)),bw=w/h.length;const Y=v=>H-18-(v-mn)/(mx-mn)*(H-26);
+  return`<svg viewBox="0 0 ${w} ${H}" width="100%" height="${H}" aria-hidden="true">${h.map((x,i)=>`<rect x="${i*bw+bw*0.18}" y="${Y(x.rev)}" width="${bw*0.3}" height="${Math.max(1,Y(0)-Y(x.rev))}" rx="3" fill="#24272b"/><rect x="${i*bw+bw*0.52}" y="${Math.min(Y(0),Y(x.profit))}" width="${bw*0.3}" height="${Math.max(1,Math.abs(Y(0)-Y(x.profit)))}" rx="3" fill="${x.profit>=0?'#2f8a55':'#cc3b33'}"/><text x="${i*bw+bw/2}" y="${H-4}" text-anchor="middle" font-size="10" fill="#73746f">${K.MONTHS[x.m%12].slice(0,3)}</text>`).join('')}</svg>`}
 // Firma
 VIEWS.firm=()=>{const f=cur(),t=T()||'gen';const last=G.months[G.months.length-1],p=last?K.pl(last,f.id):null;
   let b=G.firms.length>1?`<div class="btns">${G.firms.map(x=>`<button class="btn" data-a="selFirm" data-id="${x.id}" style="${x.id===f.id?'background:var(--ink);color:#fff':''}">${K.BRANCHES[x.branch].icon} ${esc(x.name)}</button>`).join('')}</div>`:'';
-  const tabs=[['gen','Überblick'],['res','Entwicklung']];if(f.branch==='cafe')tabs.splice(1,0,['menu','Speisekarte']);if(f.branch==='soft')tabs.splice(1,0,['studio','Team & Studio']);if(f.branch==='prod')tabs.splice(1,0,['sales','Vertrieb']);
+  const tabs=[['gen','Überblick'],['res','Entwicklung']];if(f.branch==='cafe'){tabs.splice(1,0,['menu','Speisekarte']);tabs.splice(2,0,['agency','Werbeagentur'])}if(f.branch==='soft')tabs.splice(1,0,['studio','Team & Studio']);if(f.branch==='prod')tabs.splice(1,0,['sales','Vertrieb']);
   if(t==='gen'){b+=kpis([[p?fe(p.rev+p.revInt):'–','Umsatz Vormonat'],[p?sgn(p.net):'–','Ergebnis',p?(p.net>=0?'pos':'neg'):''],[fn(K.staffOf(G,f)+K.adminOf(G,f)),'Mitarbeitende']])+
     kpis([[pct(f.aware),'Bekanntheit'],[pct(f.rep),'Ruf'],[pct(f.morale),'Stimmung',f.morale<0.5?'neg':'']]);
     b+=`<div class="card"><div class="row"><span class="lbl">Werbung</span><b class="serif" style="font-size:19px" id="mktV">${fe(f.mkt)} / Monat</b></div><input type="range" min="0" max="${Math.max(30000,Math.ceil(f.mkt/10000)*10000)}" step="250" value="${f.mkt}" data-in="mkt"><div class="sub">Mehr Werbung steigert die Bekanntheit. Die wirkt bei allen Geschäften dieser Firma.</div></div>
@@ -369,6 +404,10 @@ VIEWS.firm=()=>{const f=cur(),t=T()||'gen';const last=G.months[G.months.length-1
       b+=`<div class="card" style="${m.on?'':'opacity:.6'}"><div class="row"><span class="ch"><span class="ico">${P.icon}</span><span class="t"><b>${P.n}</b><span>Richtpreis ${P.ref.toFixed(2).replace('.',',')} € · Einkauf ${unit.toFixed(2).replace('.',',')} € · Marge ${pct(Math.max(0,1-unit/m.price))}</span></span></span>${tog('menuOn',m.on,`data-k="${k}"`)}</div>
       ${m.on?`<div class="row">${seg('menuQ',[[1,'Einfach'],[2,'Gut'],[3,'Premium']],m.q,`data-k="${k}"`)}${step('menuPrice',m.price.toFixed(2).replace('.',',')+' €',`data-k="${k}"`)}</div>`:''}</div>`}
     b+=`<div class="sub">Mehr Produkte: unter „Entwicklung“.</div>`}
+  if(t==='agency'){b+='<div class="sub">Kampagnen machen deine Marke in einer ganzen Stadt bekannt. Die Bekanntheit holt Laufkundschaft in jede Filiale dort.</div>';
+    for(const c of K.CITIES){if(!G.cities[c.id])continue;const aw=Math.max(f.aware,(f.cityAw||{})[c.id]||0);const camps=(f.camps||{})[c.id]||{};
+      b+=`<div class="card"><div class="row"><span class="lbl">Markenbekanntheit in ${c.n}</span><b class="serif" style="font-size:22px">${Math.round(aw*100)}</b></div>${bar(aw,'good')}
+      ${Object.entries(K.CITY_CAMPS).map(([k,C])=>`<div class="row"><span class="ch"><span class="ico">${C.icon}</span><span class="t"><b>${C.n}</b><span>${C.d} ${fe(C.cost)}/Monat.</span></span></span>${tog('cityCamp',camps[k],`data-id="${c.id}" data-k="${k}"`)}</div>`).join('')}</div>`}}
   if(t==='studio'&&f.branch==='soft')return VIEWS.office({id:f.id,embed:true,tabs,b});
   if(t==='sales'&&f.branch==='prod')return VIEWS.sales({id:f.id,embed:true,tabs,b});
   if(t==='res'){const R=K.RESEARCH[f.branch];b+=`<div class="sub">Immer eine Entwicklung gleichzeitig. Fertig nach der angegebenen Zahl von Monaten${G.depts.rd?' (Forschungsabteilung: doppelt so schnell)':''}.</div>`;
@@ -471,19 +510,70 @@ function drawChart(){const cv=$('chart1');if(!cv)return;const ms=G.months.slice(
   for(const s of S){g.lineWidth=2;g.strokeStyle=s.c;g.beginPath();s.v.forEach((v,i)=>i?g.lineTo(X(i),Y(v)):g.moveTo(X(i),Y(v)));g.stroke()}
   g.fillStyle='#73746f';g.font='11px "JetBrains Mono",monospace';g.fillText(fe(mx),6,11)}
 // Konzern
-VIEWS.group=()=>{const t=T()||'firms',st=K.stage(G);let b='';
+VIEWS.group=(pp,forceTab)=>{const t=forceTab||T()||'firms',st=K.stage(G);let b='';
   if(t==='firms'){b+=`<div class="card"><div class="row"><span class="lbl">${st.n}</span><span class="sub">${fn(st.staff)} Mitarbeitende</span></div>${st.next?bar(st.staff/st.next[0],'good')+`<div class="sub">Nächste Stufe „${st.next[1]}“ ab ${fn(st.next[0])}</div>`:''}</div><div class="list">`;
     const v=K.valuation(G);for(const f of G.firms){const fv=v.firms.find(x=>x.id===f.id);b+=li(`data-a="selFirm" data-id="${f.id}" data-open="1"`,K.BRANCHES[f.branch].icon,esc(f.name),K.BRANCHES[f.branch].n+' · '+fn(K.staffOf(G,f)+K.adminOf(G,f))+' Mitarbeitende',fe(fv?fv.v:0),'Wert')}
     b+=`</div><div class="card"><div class="lbl">Neue Firma gründen · 25.000 €</div>${seg('foundBranch',Object.entries(K.BRANCHES).map(([k,B])=>[k,B.icon+' '+B.n]),G._fb||'cafe')}
       <input type="text" id="foundName" maxlength="26" placeholder="Name der Firma"><button class="btn ink" data-a="found">Gründen</button><div class="sub">Eine eigene Rösterei oder Backstraße beliefert deine Cafés zu Herstellkosten.</div></div>`}
   if(t==='cities'){for(const c of K.CITIES){const on=!!G.cities[c.id];b+=`<div class="card"><div class="row"><span><span class="lbl">${c.n}</span><br><span class="sub">Laufkundschaft ${pct(c.traffic)} · Mieten ${pct(c.rent)}</span></span>${on?`<button class="btn ${World.city===c.id?'':'ink'}" data-a="city" data-id="${c.id}">${World.city===c.id?'Du bist hier':'Ansehen'}</button>`:`<button class="btn" data-a="unlock" data-id="${c.id}">Erschließen · ${fe(c.unlock.cost)}</button>`}</div>${on?'':`<div class="sub">ab ${c.unlock.staff} Mitarbeitenden</div>`}</div>`}}
   if(t==='hq'){if(!G.hq)b+=`<div class="hint">Ab 25 Mitarbeitenden kannst du eine Zentrale bauen (250.000 €). Danach schaltest du Abteilungen frei.</div><button class="btn ink" data-a="place" data-k="hq" ${K.totalStaff(G)<25?'aria-disabled="true"':''}>Bauplatz wählen</button>`;
-    else for(const [k,D] of Object.entries(K.DEPTS))b+=`<div class="card"><div class="row"><span class="ch"><span class="ico">${D.icon}</span><span class="t"><b>${D.n}</b><span>${D.d}. ${fe(4000+30*K.totalStaff(G))}/Monat.</span></span></span>${tog('dept',G.depts[k],`data-k="${k}"`)}</div></div>`;
+    else{b+='<div class="sec"><h3>Abteilungen</h3>';for(const [k,D] of Object.entries(K.DEPTS))b+=`<div class="card"><div class="row"><span class="ch"><span class="ico">${D.icon}</span><span class="t"><b>${D.n}</b><span>${D.d}. ${fe(4000+30*K.totalStaff(G))}/Monat.</span></span></span>${tog('dept',G.depts[k],`data-k="${k}"`)}</div></div>`;
+      b+='</div><div class="sec"><h3>Vorstand</h3><div class="sub">Führungskräfte auf C-Level übernehmen Aufgaben für den ganzen Konzern.</div>';for(const [k,E] of Object.entries(K.EXECS))b+=`<div class="card"><div class="row"><span class="ch"><span class="ico">${E.icon}</span><span class="t"><b>${E.n} · ${E.long}</b><span>${E.d}. ${fe(E.salary)}/Monat.</span></span></span>${tog('exec',G.execs[k],`data-k="${k}"`)}</div></div>`;b+='</div>'}
     b+=`<div class="sec"><h3>Börse</h3>${G.public?kpis([[G.sharePrice.toFixed(2).replace('.',',')+' €','Aktienkurs'],[pct(G.owner),'Dein Anteil'],[fe(K.valuation(G).mine),'Dein Vermögen']]):K.ipoCheck(G).map(x=>`<div class="row"><span>${x.ok?'✅':'⬜'} ${x.t}</span></div>`).join('')+`<button class="btn ink" data-a="ipo" ${K.ipoCheck(G).every(x=>x.ok)?'':'aria-disabled="true"'}>Börsengang</button>`}</div>`}
   if(t==='market'){b+='<div class="sub">Übernimm Konkurrenten mit allen Filialen, Apps oder Werken. Der Preis liegt 35 % über ihrem Wert.</div>';
     for(const cp of G.comps.filter(c=>c.branch!=='soft'||G.apps.some(a=>a.owner==='c:'+c.id))){const n=cp.branch==='soft'?G.apps.filter(a=>a.owner==='c:'+cp.id):G.plots.filter(p=>p.owner==='c:'+cp.id);if(!n.length)continue;
       b+=`<div class="card"><div class="ch"><span class="ico">${K.BRANCHES[cp.branch].icon}</span><span class="t"><b>${esc(cp.name)}</b><span>${cp.branch==='soft'?n.map(a=>esc(a.name)+' ('+fn(a.users)+' Nutzer)').join(', '):n.length+' Standort(e) in '+K.cityName(cp.city)+(cp.branch==='cafe'?' · Qualität '+pct(cp.q):'')}</span></span></div><button class="btn" data-a="takeover" data-id="${cp.id}">Übernehmen · ${fe(K.takeoverPrice(G,cp))}</button></div>`}}
-  return{eyebrow:'Holding',title:'Konzern',tabs:[['firms','Firmen'],['cities','Städte'],['hq','Zentrale & Börse'],['market','Übernahmen']],body:b}};
+    if(t==='re'){const props=G.plots.filter(p=>p.prop==='H');const tv=props.reduce((s,p)=>s+K.propValue(G,p),0),ti=props.reduce((s,p)=>s+(p.owner&&!p.owner.startsWith('c:')?p.rent:K.propIncome(G,p)),0);
+    b+=kpis([[fn(props.length),'Gebäude'],[fe(tv),'Marktwert'],[tv?(ti*12/tv*100).toFixed(1).replace('.',',')+' %':'–','Rendite']]);
+    b+='<div class="sub">Kaufe Gebäude über die Grundstücksansicht in der Stadt: eigene Standorte (keine Miete mehr), Konkurrenz-Standorte (sie zahlen dir Miete) oder freie Gebäude zum Vermieten.</div><div class="list">';
+    for(const p of props)b+=li(`data-a="open" data-v="plot" data-id="${p.id}" data-keep="1"`,'🏢',K.ZONES[p.zone].n+', '+K.cityName(p.city),p.owner==='H'?'Zentrale':p.owner&&p.owner.startsWith('c:')?'vermietet an Konkurrenz':p.owner?'selbst genutzt':'vermietet, Auslastung '+pct(K.leaseOcc(p)),fe(K.propValue(G,p)),'Marktwert');
+    b+='</div>'}
+  if(forceTab)return{eyebrow:'Investmentbank',title:'Goldbach & Söhne',sub:'Aktienmarkt, Eigenkapital und Übernahmen',tabs:[['market','Aktienmarkt'],['equity','Eigenkapital'],['ma','M&A']],body:b};
+  return{eyebrow:'Holding',title:'Konzern',tabs:[['firms','Firmen'],['cities','Städte'],['hq','Zentrale & Vorstand'],['re','Immobilien'],['market','Übernahmen']],body:b}};
+// Investmentbank
+VIEWS.bank=()=>{const t=T()||'market';let b='';const me=G.me;
+  if(t==='market'){const sec=view.p.sec||'all';b+=`<div class="sub">Kaufe und verkaufe Aktien mit deinem privaten Geld (${fe(me.cash)}). Gebühr 0,2 %.</div><div class="btns">${[['all','Alle']].concat(Object.entries(K.SECTORS)).map(([k,n])=>`<button class="btn" data-a="sector" data-k="${k}" style="${sec===k?'background:var(--ink);color:#fff':''}">${n}</button>`).join('')}</div>`;
+    const list=[];if(G.public)list.push({tk:'OWN',n:cur().name+' (deine Firma)',sec:G.firms[0].branch==='soft'?'tech':G.firms[0].branch==='cafe'?'kaffee':'handel',price:G.sharePrice,shares:G.shares,div:0,hist:G.priceHist,own:true});
+    for(const s of G.stocks)list.push(s);
+    for(const s of list){if(sec!=='all'&&s.sec!==sec)continue;const pos=s.own?{n:Math.round(G.owner*G.shares),cost:0}:me.stocks[s.tk],h=s.hist||[],hi=Math.max(...h),lo=Math.min(...h),ch=h.length>1?h[h.length-1]/h[h.length-2]-1:0;
+      b+=`<div class="card"><div class="row"><span><b style="font-size:15px">${esc(s.n)}</b><br><span class="sub">${s.own?'DEINE':s.tk} · ${K.SECTORS[s.sec]}</span></span>${spark(h,110,36,ch>=0?'#2f8a55':'#cc3b33')}</div>
+        <div class="row"><b class="serif" style="font-size:26px">${s.price.toFixed(2).replace('.',',')} €</b><span class="${ch>=0?'pos':'neg'}">${ch>=0?'▲':'▼'} ${(Math.abs(ch)*100).toFixed(1).replace('.',',')} %</span></div>
+        <div class="sub">Börsenwert ${fe(s.price*s.shares)} · Dividende ${(s.div*100).toFixed(1).replace('.',',')} % · 2-Jahres-Hoch ${hi.toFixed(2).replace('.',',')} € · Tief ${lo.toFixed(2).replace('.',',')} €</div>
+        ${pos&&pos.n?`<div class="row"><span>Im Depot: <b>${fn(pos.n)}</b> Aktien</span><b>${fe(pos.n*s.price)}${pos.cost?` <span class="${pos.n*s.price>=pos.cost?'pos':'neg'}">(${sgn(pos.n*s.price-pos.cost)})</span>`:''}</b></div>`:''}
+        <div class="btns">${[10,100,1000,10000].filter(n=>n*s.price<=Math.max(me.cash,s.price*10)*1.01).map(n=>`<button class="btn" data-a="trade" data-k="${s.tk}" data-v="${n}">+${fn(n)}</button>`).join('')}${pos&&pos.n?`<button class="btn bad" data-a="trade" data-k="${s.tk}" data-v="${-Math.min(pos.n,s.own?Math.round(pos.n/4):pos.n)}">${s.own?'25 % verkaufen':'Alle verkaufen'}</button>`:''}</div></div>`}}
+  if(t==='equity'){if(G.public){const pc=view.p.pc||0.05,n=Math.round(G.shares*pc),gross=n*G.sharePrice;
+      b+=`<div class="card"><div class="lbl">Sekundärangebot</div><div class="row"><span><span class="sub">Neue Aktien</span><br>${step('secPct',pct(pc),'')}</span><span><span class="sub">Preis je Aktie</span><br><b class="serif" style="font-size:26px">${G.sharePrice.toFixed(2).replace('.',',')} €</b></span></div>
+        <table><tr><td>Bruttoerlös</td><td>${fe(gross)}</td></tr><tr><td>Zeichnungsgebühren (6,8 %)</td><td>${fe(-gross*0.068)}</td></tr><tr class="sum"><td>Aufgenommenes Kapital</td><td>${fe(gross*0.932)}</td></tr></table>
+        <div class="sub">Dein Anteil sinkt von ${pct(G.owner)} auf ${pct(G.owner*G.shares/(G.shares+n))}.</div><button class="btn ink" data-a="secondary">Neue Aktien ausgeben</button></div>`}
+    else b+=`<div class="hint">Kapitalerhöhungen über die Börse gibt es nach dem Börsengang (Konzern → Zentrale & Vorstand). Bis dahin: Investoren unter Finanzen.</div>`;
+    const v=K.valuation(G);b+=`<div class="card"><div class="lbl">Dividende ausschütten</div><div class="sub">Geld aus dem Konzern an die Eigentümer. Dir gehören ${pct(G.owner)}, nach 25 % Kapitalertragsteuer landet der Rest auf deinem Privatkonto. Konzernkasse: ${fe(G.cash)}.</div>
+      <div class="btns">${[10000,50000,250000,1e6,5e6].filter(x=>x<=G.cash*0.8).map(x=>`<button class="btn" data-a="dividend" data-v="${x}">${fe(x)}</button>`).join('')||'<span class="sub">Zu wenig Geld in der Konzernkasse.</span>'}</div></div>`}
+  if(t==='ma')return VIEWS.group.call(null,{}, 'market');
+  return{eyebrow:'Investmentbank',title:'Goldbach & Söhne',sub:'Aktienmarkt, Eigenkapital und Übernahmen',tabs:[['market','Aktienmarkt'],['equity','Eigenkapital'],['ma','M&A']],body:b}};
+// Persönliches Vermögen
+VIEWS.wealth=()=>{const w=K.wealth(G),me=G.me,t=T()||'over';let b='';
+  if(t==='over'){const parts=[{n:'Bargeld',v:Math.max(0,w.cash),c:'#2f6fd0'},{n:'Aktien',v:w.own+w.stocks,c:'#2f8a55'},{n:'Immobilien',v:w.re,c:'#d14f8a'},{n:'Andere',v:w.lux+w.club,c:'#d4a72c'}];
+    b+=`<div class="card"><div class="row"><span><b class="serif" style="font-size:24px">Du</b><br><span class="sub">CEO von ${esc(G.firms[0].name)}</span></span><span style="font-size:44px">👤</span></div>
+      <div class="row"><span><span class="lbl">Jährliches Gehalt</span><br><span class="sub">Zahlt der Konzern, netto ${fe(me.salary*0.58)} im Jahr</span></span>${step('salary',fe(me.salary),'')}</div></div>
+      <div class="card"><div class="eyebrow">Gesamtvermögen</div><b class="serif" style="font-size:40px;line-height:1.1">${fe(w.total)}</b><div class="row" style="align-items:center;margin-top:6px">${donut(parts,130)}${legend(parts)}</div></div>`;
+    b+=`<div class="sec"><h3>Aktien</h3>${li('data-a="open" data-v="group" data-tab="firms" data-keep="1"',K.BRANCHES[G.firms[0].branch].icon,esc(G.firms[0].name)+' (Holding)',pct(G.owner)+' der Anteile'+(G.public?' · börsennotiert':''),fe(w.own),'aktueller Wert')}`;
+    for(const tk in me.stocks){const s=G.stocks.find(x=>x.tk===tk),p=me.stocks[tk];b+=li(`data-a="open" data-v="bank" data-keep="1"`,'📈',esc(s.n),fn(p.n)+' Aktien · Kostenbasis '+fe(p.cost),fe(p.n*s.price),sgn(p.n*s.price-p.cost),p.n*s.price>=p.cost?'pos':'neg')}
+    b+=`<button class="btn" data-a="open" data-v="bank" data-keep="1">🏦 Zum Aktienmarkt</button></div>`;
+    b+=`<div class="sec"><h3>Immobilien und andere Vermögenswerte</h3>`;
+    for(const l of me.lux){const L=K.LUX[l.k];b+=`<div class="card"><div class="ch"><span class="ico">${L.icon}</span><span class="t"><b>${L.n}</b><span>${L.sub}</span></span></div><div class="row"><span><span class="sub">Kaufpreis</span><br><b>${fe(l.cost)}</b></span><span style="text-align:right"><span class="sub">Fairer Marktwert</span><br><b class="${l.known?(l.value>=l.cost?'pos':'neg'):''}">${l.known?fe(l.value):'???'}</b></span></div>
+      <div class="btns">${l.known?'':`<button class="btn" data-a="appraise" data-id="${l.id}">Gutachten · ${fe(Math.max(500,l.cost*0.01))}</button>`}<button class="btn" data-a="sellLux" data-id="${l.id}">Versteigern</button></div></div>`}
+    if(me.club){const C=K.CLUBS.find(x=>x.id===me.club.id);b+=li('data-a="tab" data-v="club"','⚽',C.n,me.club.league+(me.club.hist[0]?' · zuletzt Platz '+me.club.hist[0].rank:''),fe(me.club.value),'Wert')}
+    b+=`<div class="btns"><button class="btn" data-a="tab" data-v="lux">🛍️ Luxus kaufen</button><button class="btn" data-a="tab" data-v="club">⚽ Fußballverein</button></div></div>`}
+  if(t==='lux'){b+=`<div class="sub">Privates Geld: ${fe(me.cash)}. Der faire Wert ist unbekannt, bis du ein Gutachten machst. Manche Dinge kosten laufend Unterhalt.</div><div class="grid2">`;
+    for(const [k,L] of Object.entries(K.LUX))b+=upCard('buyLux',`data-k="${k}"`,L.icon,L.n,L.sub+(L.up?' · Unterhalt':''),fe(L.p[0])+' – '+fe(L.p[1]),false,me.cash<L.p[0]?'zu teuer':null);b+='</div>'}
+  if(t==='club'){const c=me.club;if(!c){b+='<div class="sub">Ein eigener Fußballverein: Prestige, Saisonergebnisse und ein Wert, der mit dem Erfolg steigt oder fällt.</div>';
+      for(const C of K.CLUBS)b+=`<div class="card"><div class="ch"><span class="ico">🏟️</span><span class="t"><b>${C.n}</b><span>${K.cityName(C.city)} · ${C.league}</span></span></div><button class="btn ${me.cash>=C.price?'ink':''}" data-a="buyClub" data-id="${C.id}" ${me.cash>=C.price?'':'aria-disabled="true"'}>Kaufen · ${fe(C.price)}</button></div>`}
+    else{const C=K.CLUBS.find(x=>x.id===c.id);b+=`<div class="card" style="text-align:center"><div style="font-size:60px">🏟️</div><b class="serif" style="font-size:28px">${C.n}</b><div class="sub">${K.cityName(C.city)} · ${c.league}</div></div>`;
+      b+=kpis([[fe(c.value),'Vereinswert'],[pct(c.str),'Kaderstärke'],[c.hist[0]?c.hist[0].rank+'.':'–','Letzte Saison']]);
+      b+=`<div class="card"><div class="row"><span><span class="lbl">Kaderbudget</span><br><span class="sub">Gehälter und Transfers im Monat, aus deinem Privatgeld</span></span>${step('clubBudget',fe(c.budget),'')}</div><div class="sub">Mehr Budget macht die Mannschaft stärker. Die Saison endet jedes Jahr im Mai. Platz 1 bis 4 steigert den Wert deutlich.</div></div>`;
+      if(c.hist.length)b+=`<table>${c.hist.slice(0,6).map(h=>`<tr><td>Saison ${h.y}</td><td>${h.rank}. Platz</td></tr>`).join('')}</table>`;
+      b+=`<button class="btn bad" data-a="sellClub">Verein verkaufen · ${fe(c.value*0.95)}</button>`}}
+  return{eyebrow:'Persönliches Vermögen',title:fe(w.total),tabs:[['over','Übersicht'],['lux','Luxus'],['club','Verein']],body:b}};
 // Ziele
 VIEWS.goals=()=>{let b='<div class="sub">Für jedes erreichte Ziel gibt es eine Förderprämie.</div><div class="list">';const next=K.GOALS.find(x=>!G.goals[x.k]);
   for(const g of K.GOALS){const done=G.goals[g.k]!==undefined;b+=`<div class="li" style="${done?'background:rgba(47,138,85,.07)':g===next?'border-color:var(--ink)':'opacity:.7'}"><span class="ico">${done?'✅':g===next?'🎯':'⬜'}</span><span class="t"><b>${g.n}</b><span>${done?'erreicht im '+K.monthName(G.goals[g.k]-1):g.d||''}</span></span><span class="v">${g.reward?fe(g.reward):''}</span></div>`}
@@ -510,7 +600,7 @@ function report(r){const m=$('modal');m.hidden=false;const prev=G.months[G.month
   const items=r.items.slice().sort((a,b)=>b.profit-a.profit);
   m.innerHTML=`<div class="report panel" role="dialog" aria-label="Monatsbericht"><div><div class="eyebrow">Monatsbericht</div><h2>${K.monthName(r.month)}</h2></div>
   <div><div class="big ${r.net>=0?'pos':'neg'}" id="bigNet">${sgn(0)}</div><div class="sub">Ergebnis nach Steuern${prev?' · Vormonat '+sgn(prev.net):''}</div></div>
-  ${kpis([[fe(r.rev),'Umsatz'],[fe(r.cash),'Kasse',r.cash<0?'neg':''],[fn(r.staff),'Mitarbeitende']])}
+  ${kpis([[fe(r.rev),'Umsatz'],[fe(r.cash),'Kasse',r.cash<0?'neg':''],[fe(K.wealth(G).total),'Dein Vermögen']])}
   ${r.goals.map(g=>`<div class="goalWin"><span class="e">🏆</span><span><b>Ziel erreicht: ${esc(g.n)}</b><br><span class="sub">${g.reward?'+'+fe(g.reward)+' Förderprämie':'Großartig!'}</span></span></div>`).join('')}
   ${items.length?`<div class="sec"><h3>Deine Geschäfte</h3><div class="list">${items.map(it=>`<div class="li" style="cursor:default"><span class="ico">${it.icon}</span><span class="t"><b>${esc(it.name)}</b><span>${esc(it.kpi)}${it.delta!=null&&it.delta!==0?` <b class="${it.delta>0?'pos':'neg'}">${it.delta>0?'▲':'▼'} ${fn(Math.abs(it.delta))}</b>`:''}${it.stars?' · '+starsH(it.stars):''}${it.broke?' · ⚠️ Ausfall':''}</span></span><span class="v ${it.profit>=0?'pos':'neg'}">${it.kind==='dev'?'':sgn(it.profit)}</span></div>`).join('')}</div></div>`:'<div class="hint">Noch keine Geschäfte. Öffne „Bauen“ und leg los!</div>'}
   ${r.events.length?`<div class="sec"><h3>Was passiert ist</h3>${r.events.map(e=>`<div class="evt"><span class="e">${e.icon}</span><span class="${e.bad?'neg':''}">${esc(e.t)}</span></div>`).join('')}</div>`:''}
@@ -535,7 +625,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
   case'start':start();break;
   case'continue':G=store.get();afterLoad();break;
   case'open':{const keep=b.dataset.keep==='1'&&view;open(v,{id:id&&isNaN(+id)?id:id!==undefined?+id||id:undefined,tab:b.dataset.tab},keep);if(b.dataset.tab){view.tab=b.dataset.tab;renderSheet(true)}break}
-  case'tab':view.tab=v;renderSheet(true);break;
+  case'tab':if(view){view.tab=v;renderSheet(true)}break;
   case'back':back();break;case'close':close();break;
   case'place':startPlace(k,id);break;case'cancelPlace':endPlace();break;
   case'build':{let r;if(k==='cafe')r=K.act.openShop(G,id,b.dataset.p);if(k==='office')r=K.act.rentOffice(G,id,b.dataset.p);if(k==='factory')r=K.act.rentPlant(G,id,b.dataset.p);if(k==='hq')r=K.act.buildHQ(G,b.dataset.p);
@@ -592,6 +682,22 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
   case'foundBranch':G._fb=v;renderSheet();break;
   case'found':{const n=($('foundName').value||'').trim()||({cafe:'Kaffeehaus',soft:'Appwerk',prod:'Manufaktur'}[G._fb||'cafe']);const r=run(K.act.found(G,G._fb||'cafe',n.slice(0,26)));if(r&&r.ok){G.cur=r.id;open('build')}break}
   case'decide':{const r=K.act.decide(G,+id,+v);if(r.msg)toast(r.msg,'');refresh();if(!G.pending.length){renderSheet(true)}else renderSheet(true);break}
+  case'sector':view.p.sec=k;renderSheet();break;
+  case'trade':run(K.act.trade(G,k,+v));break;
+  case'secPct':view.p.pc=Math.max(0.01,Math.min(0.3,Math.round(((view.p.pc||0.05)+d*0.01)*100)/100));renderSheet();break;
+  case'secondary':if(confirm('Neue Aktien ausgeben?'))run(K.act.secondary(G,view.p.pc||0.05));break;
+  case'dividend':run(K.act.dividend(G,+v));break;
+  case'salary':run(K.act.salary(G,G.me.salary+d*(G.me.salary>=200000?50000:10000)),1);break;
+  case'buyLux':run(K.act.buyLux(G,k));break;case'appraise':run(K.act.appraise(G,+id));break;
+  case'sellLux':if(confirm('Wirklich versteigern? Das Auktionshaus behält 8 %.'))run(K.act.sellLux(G,+id));break;
+  case'buyClub':if(confirm('Verein kaufen?'))run(K.act.buyClub(G,id));break;
+  case'clubBudget':run(K.act.clubBudget(G,G.me.club.budget+d*Math.max(10000,Math.round(G.me.club.value*0.0005/10000)*10000)),1);break;
+  case'sellClub':if(confirm('Verein verkaufen?'))run(K.act.sellClub(G));break;
+  case'buyProp':if(confirm('Gebäude kaufen?'))run(K.act.buyProp(G,id));break;
+  case'sellProp':if(confirm('Gebäude verkaufen?'))run(K.act.sellProp(G,id));break;
+  case'leaseR':{const pp=K.plot(G,id);run(K.act.leaseR(G,id,(pp.leaseR||1)+d*0.05),1);break}
+  case'cityCamp':run(K.act.cityCamp(G,cur().id,id,k),1);break;
+  case'exec':run(K.act.exec(G,k));break;
   case'endTurn':endTurn();break;
   case'closeReport':$('modal').hidden=true;if(G.over)gameOver();else if(G.pending.length)open('decide');break;
   case'save':save();toast('Gespeichert.');break;case'help':open('help',null,true);break;

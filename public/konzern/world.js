@@ -64,7 +64,7 @@ function resize(){const w=canvas.clientWidth||innerWidth,h=canvas.clientHeight||
 
 // ---------- Grundstücke ----------
 const ZCOL={city:'#e6e0d4',wohn:'#a9cf8a',buero:'#d5d7d9',gewerbe:'#d6cbb3'};
-function plotSig(G,p){let s=p.owner+'|'+p.use;
+function plotSig(G,p){let s=p.owner+'|'+p.use+'|'+(p.prop||'');
   if(p.owner&&!p.owner.startsWith('c:')&&p.owner!=='H'){const f=G.firms.find(x=>x.id===p.owner);if(f){s+='|'+f.color+'|'+f.name;
     if(p.use==='cafe'){const sh=f.shops.find(x=>x.plot===p.id);s+='|'+(sh?sh.level+Object.keys(sh.ups).sort().join(','):0)}
     if(p.use==='office')s+='|'+Object.keys(f.oups||{}).sort().join(',');
@@ -89,7 +89,8 @@ function buildPlot(G,p,g){
   else if(p.use==='office')office(p,g,color,f?f.name:'');
   else if(p.use==='factory')factory(G,p,g,color,f);
   else if(p.use==='hq')tower(g,'#24272b');
-  else vacant(p,g)}
+  else vacant(p,g);
+  if(p.prop==='H'){B(0.08,3.2,0.08,'#24272b',-4.4,0.25,4.4,g);const fl=B(1.3,0.8,0.04,'#24272b',-3.7,2.6,4.4,g);B(1.1,0.12,0.05,'#d4a72c',-3.7,2.95,4.42,g)}}
 function windows(g,w,h,d,x,z,floors,color){for(let k=0;k<floors;k++)B(w*0.84,0.34,0.04,color||'#3d4651',x,1+k*(h/floors)+0.3,z+d/2+0.01,g)}
 function vacant(p,g){
   if(p.zone==='gewerbe'){for(let i=-4;i<=4;i+=1)B(0.06,0.9,0.06,'#9a9da2',i,0.25,-4.4,g);B(8.2,0.04,0.04,'#9a9da2',0,1.05,-4.4,g);
