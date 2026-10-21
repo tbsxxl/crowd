@@ -6,7 +6,7 @@ const px=c=>-WW/2+S+c*(P+S)+P/2,pz=r=>-DD/2+S+r*(P+S)+P/2;
 const streetX=i=>-WW/2+S/2+i*(P+S),streetZ=i=>-DD/2+S/2+i*(P+S);
 const grow=[],marks=[];let markGeo=null;
 let renderer,scene,camera,root,plotGroup,canvas,walkers,cars,ray=new THREE.Raycaster(),sel=null,selRing,hoverRing,cityId=null,sig={},bases=[],G0=null;
-const view={yaw:-0.62,tilt:0.98,zoom:1,tx:0,tz:2};
+const view={yaw:-0.62,tilt:0.98,zoom:1,tx:0,tz:-7};
 const mats={};
 const M=c=>mats[c]||(mats[c]=new THREE.MeshStandardMaterial({color:c,flatShading:true,roughness:0.85}));
 function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.anisotropy=4;return t}
@@ -23,21 +23,91 @@ function strataTex(len){return canvasTex(Math.round(len*8),128,(g,w,h)=>{
   for(let k=0;k<w*1.1;k++){const x=rnd()*w,y=h*0.1+rnd()*h*0.9,big=y/h>.75&&rnd()<.3;g.fillStyle=big?'rgba(250,244,230,.85)':(rnd()<.5?'rgba(255,250,240,.45)':'rgba(110,85,55,.22)');
     g.beginPath();g.ellipse(x,y,big?2+rnd()*3:0.8+rnd()*1.2,big?1.5+rnd()*2:0.6+rnd()*0.8,0,0,6.3);g.fill()}})}
 
+// Hausfarben je Stadt: Emden Backstein, Hamburg Backstein und Weiß, Berlin Putz in Pastell
+const CITY_STYLE={kiel:{house:['#a6472f','#b8553a','#8e3b2a','#c46a4a','#f2ece0','#9a4430'],roof:['#5a3b30','#3d4651','#6b3a2c'],office:['#c9a58f','#e8e5de','#b8553a']},
+  hamburg:{house:['#9a4a35','#f4f1ea','#e8e2d6','#b05a40','#dfe6ec'],roof:['#3d4651','#5f8f7a','#6f7f9a'],office:['#dfe6ec','#e8e5de','#9a4a35']},
+  berlin:{house:['#f0b8a1','#9fc4e2','#f3d68f','#e9a3ac','#bad9c3','#f6efe3'],roof:['#d8644b','#c95540','#6f7f9a'],office:['#dfe6ec','#e8e5de','#d3dbe2']}};
+// ---------- Wahrzeichen: ein Uferstreifen hinter der Stadt, je Stadt eigene, frei nachempfundene Modelle ----------
+const LD=26,LZ=-DD/2-MARGIN-LD/2; // Tiefe und Mitte des Streifens
+let landGroup=null;const landAnim=[];
+function cyl(rt,rb,h,col,x,y,z,g,seg){return add(new THREE.CylinderGeometry(rt,rb,h,seg||10),col,x,y+h/2,z,g)}
+function water(g,z0,z1,col){const m=new THREE.Mesh(new THREE.BoxGeometry(BW,0.3,z1-z0),new THREE.MeshStandardMaterial({color:col||'#5f9fc4',roughness:0.25,metalness:0.1}));m.position.set(0,-0.07,(z0+z1)/2);m.receiveShadow=true;g.add(m);
+  for(let i=0;i<26;i++){const w=B(1.2+Math.random()*1.6,0.03,0.08,'#cfe6f2',-BW/2+3+Math.random()*(BW-6),0.08,z0+1+Math.random()*(z1-z0-2),g);w.castShadow=false}
+  B(BW,0.5,0.6,'#b9b2a4',0,-0.25,z0-0.3,g);B(BW,0.5,0.6,'#b9b2a4',0,-0.25,z1+0.3,g)}
+function ground(g,z0,z1,col){B(BW,0.06,z1-z0,col,0,0,(z0+z1)/2,g)}
+function trees(g,n,x0,x1,z0,z1){for(let i=0;i<n;i++){const x=x0+Math.random()*(x1-x0),z=z0+Math.random()*(z1-z0);cyl(0.12,0.16,1,'#6b4a2f',x,0,z,g,5);add(new THREE.IcosahedronGeometry(0.8+Math.random()*0.4,0),['#6fae5a','#5e9e4e','#86be62'][i%3],x,1.7,z,g)}}
+function gableHouse(g,x,z,w,h,col,stepped){B(w,h,3,col,x,0,z,g);
+  if(stepped){for(let k=0;k<4;k++)B(w*(1-k*0.22),0.6,0.3,col,x,h+k*0.6,z+1.55,g);add(prism(w,2.4,3),'#5a3b30',x,h,z,g)}else add(prism(w,2.2,3.1),'#3d4651',x,h,z,g);
+  for(let k=0;k<Math.floor(h/1.3);k++)B(w*0.5,0.5,0.05,'#f4f1ea',x,0.6+k*1.3,z+1.52,g)}
+function boat(g,x,z,col,len,anim){const b=new THREE.Group();g.add(b);b.position.set(x,0,z);
+  B(len,0.9,1.8,col,0,-0.3,0,b);B(len*0.45,0.9,1.3,'#f4f1ea',-len*0.1,0.6,0,b);B(0.15,3,0.15,'#24272b',len*0.2,0.6,0,b);
+  if(anim)landAnim.push(t=>{b.position.y=Math.sin(t/900+x)*0.08;b.rotation.z=Math.sin(t/1300+x)*0.02});return b}
+function windmill(g,x,z){cyl(1.0,1.6,6,'#4a4f55',x,0,z,g,8);add(new THREE.ConeGeometry(1.2,1.4,8),'#2f3439',x,6.7,z,g);B(3.6,0.3,3.6,'#5a3b30',x,2.2,z,g);
+  const hub=new THREE.Group();hub.position.set(x,6.2,z+1.3);g.add(hub);for(let i=0;i<4;i++){const arm=new THREE.Group();arm.rotation.z=i*Math.PI/2;hub.add(arm);B(0.25,4.6,0.08,'#e9e4d8',0,0,0,arm);B(0.9,3.4,0.04,'#c9c2b2',0.55,0.9,0,arm)}
+  landAnim.push(t=>{hub.rotation.z=t/1400+x})}
+function crane(g,x,z,col){B(0.5,9,0.5,col,x-1,0,z-1,g);B(0.5,9,0.5,col,x+1,0,z-1,g);B(0.5,9,0.5,col,x-1,0,z+1,g);B(0.5,9,0.5,col,x+1,0,z+1,g);B(2.6,1.4,2.6,col,x,9,z,g);B(0.5,0.5,11,col,x,10.4,z+3.5,g);B(1.4,1,1.4,'#24272b',x,9.4,z-1.5,g)}
+function container(g,x,z,len){B(len,1.4,4,'#3d4651',x,-0.2,z,g);B(len*0.18,3,3.4,'#f4f1ea',x-len*0.4,1.2,z,g);const cols=['#cc3b33','#2f6fd0','#d4a72c','#3f9b62','#e07a2a','#9b6fb5'];
+  for(let i=0;i<Math.floor(len*0.7/1.6);i++)for(let k=0;k<2;k++)B(1.5,0.9,1.6,cols[(i*3+k)%6],x-len*0.25+i*1.6,1.2+k*0.9,z-0.9+((i+k)%2)*1.8,g)}
+const LANDMARKS={
+  kiel:{n:'Emden',ground:'#c9d7b4',build(g){ // Hafen am Ratsdelft, Backsteinrathaus mit Turm, Mühlen auf dem Wall, Giebelhäuser
+    water(g,LZ-3,LZ+5,'#5c9cbf');
+    boat(g,-18,LZ+1.5,'#c8363b',9,true);B(0.5,2.4,0.5,'#c8363b',-16,0.6,LZ+1.5,g);B(0.9,0.6,0.9,'#f2c14e',-16,3,LZ+1.5,g); // Feuerschiff
+    const sail=boat(g,12,LZ+0.5,'#6b4a2f',8,true);B(0.15,6,0.15,'#3b2a20',-1,0.6,0,sail);B(2.6,3.2,0.05,'#f4efe2',-1,2.4,0.1,sail);
+    // Rathaus am Delft
+    B(14,5.5,6,'#a6472f',-2,0,LZ+9,g);for(let i=0;i<5;i++)B(2.2,1.2,0.4,'#a6472f',-7.6+i*2.8,5.5,LZ+12,g);add(prism(14.4,3,6.2),'#5a3b30',-2,5.5,LZ+9,g);
+    for(let k=0;k<2;k++)for(let i=0;i<6;i++)B(1,1.4,0.05,'#f4f1ea',-7.5+i*2.2,1.2+k*2.2,LZ+12.02,g);
+    B(3.2,10,3.2,'#a6472f',-2,0,LZ+9,g);B(3.4,1,3.4,'#f4f1ea',-2,10,LZ+9,g);cyl(1.2,1.6,2,'#5f9e8a',-2,11,LZ+9,g,8);cyl(0.3,1.2,1.6,'#5f9e8a',-2,13,LZ+9,g,8);add(new THREE.ConeGeometry(0.3,2.2,8),'#5f9e8a',-2,15.7,LZ+9,g);
+    // Giebelhäuser am anderen Ufer
+    ['#a6472f','#b8553a','#8e3b2a','#c46a4a','#f2ece0','#a6472f','#b8553a'].forEach((c,i)=>gableHouse(g,-40+i*4.2,LZ-7,3.8,4+(i%3)*1.2,c,i%2===0));
+    // Wall mit Mühlen und Bäumen
+    B(26,1.2,8,'#7fae6a',30,0,LZ-7,g);windmill(g,24,LZ-7);windmill(g,36,LZ-8);trees(g,9,18,44,LZ-11,LZ-4);
+    // Backsteinkirche
+    B(9,6,5,'#9a4430',8,0,LZ-8,g);add(prism(9.2,3.5,5.2),'#5a3b30',8,6,LZ-8,g);B(2.6,11,2.6,'#9a4430',3.5,0,LZ-8,g);add(new THREE.ConeGeometry(1.9,4,4),'#5f9e8a',3.5,13,LZ-8,g).rotation.y=Math.PI/4;
+    trees(g,6,-46,46,LZ+7,LZ+12)}},
+  hamburg:{n:'Hamburg',ground:'#cfcac0',build(g){ // Elbe mit Containerschiff und Kränen, Konzerthaus auf dem Speicher, Kirchturm, Speicherstadt
+    water(g,LZ-6,LZ+4,'#6f93a8');container(g,-6,LZ-1,22);boat(g,26,LZ+1.8,'#f4f1ea',6,true);
+    for(let i=0;i<4;i++)crane(g,-38+i*7,LZ-10,i%2?'#cc3b33':'#2f6fd0');
+    // Konzerthaus: Backsteinsockel, Glasaufbau mit Wellendach
+    B(14,5,7,'#9a4a35',22,0,LZ-9,g);const glass=new THREE.MeshStandardMaterial({color:'#bcd8e8',roughness:0.1,metalness:0.4});
+    B(14,6,7,glass,22,5,LZ-9,g);for(let i=0;i<4;i++){const w=add(new THREE.CylinderGeometry(1.9,1.9,7,12,1,false,0,Math.PI),'#e8eef2',16.8+i*3.5,11,LZ-9,g);w.rotation.x=Math.PI/2;w.rotation.y=Math.PI/2;w.scale.set(1,1,0.55+0.3*(i%2))}
+    // Speicherstadt am Fleet
+    for(let i=0;i<4;i++){const x=-30+i*7;B(6,6.5,5,'#9a4a35',x,0,LZ+9,g);add(prism(6.2,1.8,5.2),'#5f8f7a',x,6.5,LZ+9,g);for(let k=0;k<3;k++)B(0.8,0.9,0.05,'#f4f1ea',x-1.8+k*1.8,2+k*0,LZ+11.55,g)}
+    // Kirchturm mit grünem Helm
+    B(4,14,4,'#9a4a35',8,0,LZ+9,g);B(4.4,0.8,4.4,'#e8e3d6',8,14,LZ+9,g);cyl(1.4,1.9,3,'#5f9e8a',8,14.8,LZ+9,g,8);cyl(0.5,1.2,2.4,'#5f9e8a',8,17.8,LZ+9,g,8);add(new THREE.ConeGeometry(0.5,3.2,8),'#5f9e8a',8,21.8,LZ+9,g);
+    trees(g,7,30,46,LZ+7,LZ+12)}},
+  berlin:{n:'Berlin',ground:'#d2d6c4',build(g){ // Spree mit Ausflugsschiff, Fernsehturm, Stadttor mit Säulen, Parlament mit Glaskuppel
+    water(g,LZ-1,LZ+4,'#6d9bb8');boat(g,-10,LZ+1.5,'#f4f1ea',7,true);
+    // Fernsehturm
+    cyl(0.7,1.2,16,'#d9dcdf',10,0,LZ-7,g,12);add(new THREE.SphereGeometry(2.4,16,12),new THREE.MeshStandardMaterial({color:'#c9ced4',metalness:0.5,roughness:0.3}),10,17.5,LZ-7,g);
+    cyl(1.2,1.2,0.6,'#8a8f96',10,19.6,LZ-7,g,12);cyl(0.3,0.42,3.4,'#e05a3a',10,20.2,LZ-7,g,8);cyl(0.16,0.3,2.4,'#f4f1ea',10,23.6,LZ-7,g,6);B(3,1.6,3,'#d9dcdf',10,0,LZ-7,g);
+    // Stadttor mit Säulen
+    B(16,1.2,4,'#e2d6b8',-28,0,LZ+9,g);for(let i=0;i<6;i++)cyl(0.45,0.5,6,'#e9dfc4',-34.5+i*2.6,1.2,LZ+9,g,8);B(16,1.8,4,'#e2d6b8',-28,7.2,LZ+9,g);B(5,1.2,2,'#e2d6b8',-28,9,LZ+9,g);B(1.8,1.6,1,'#5f8f7a',-28,10.2,LZ+9,g);
+    for(const dx of [-10.5,10.5])B(4,6,4,'#e2d6b8',-28+dx,0,LZ+9,g);
+    // Parlament mit Kuppel
+    B(18,6,9,'#ddd2b6',-28,0,LZ-8,g);for(const dx of [-8,8])for(const dz of [-3.5,3.5])B(3,8,3,'#d4c8aa',-28+dx,0,LZ-8+dz,g);
+    const dome=add(new THREE.SphereGeometry(3.4,16,10,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:'#cfe3ec',metalness:0.4,roughness:0.15,transparent:true,opacity:0.85}),-28,6,LZ-8,g);
+    trees(g,10,26,46,LZ-12,LZ-3);trees(g,6,-12,4,LZ+7,LZ+12)}}};
+function buildLand(id){if(!landGroup)return;while(landGroup.children.length){const c=landGroup.children.pop();c.traverse(o=>{if(o.geometry)o.geometry.dispose()})}landAnim.length=0;
+  const L=LANDMARKS[id];if(!L)return;ground(landGroup,LZ-LD/2,LZ+LD/2,L.ground);L.build(landGroup);
+  const sg=new THREE.Mesh(new THREE.PlaneGeometry(10,1.6),label(L.n.toUpperCase(),'#24272b','#ffffff'));sg.rotation.x=-Math.PI/2;sg.position.set(-BW/2+8,0.12,LZ+LD/2-2);landGroup.add(sg);
+  landGroup.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}})}
 function init(cv){
   canvas=cv;renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
   renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.setClearColor(0,0);
   scene=new THREE.Scene();camera=new THREE.OrthographicCamera(-10,10,10,-10,0.1,500);
   scene.add(new THREE.HemisphereLight(0xffffff,0xcfc6b6,0.8));
   const sun=new THREE.DirectionalLight(0xfffaf0,0.85);sun.position.set(-40,70,30);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
-  Object.assign(sun.shadow.camera,{left:-60,right:60,top:60,bottom:-60,near:1,far:200});sun.shadow.bias=-0.0005;sun.shadow.normalBias=0.03;scene.add(sun);
+  Object.assign(sun.shadow.camera,{left:-80,right:80,top:80,bottom:-80,near:1,far:220});sun.shadow.bias=-0.0005;sun.shadow.normalBias=0.03;scene.add(sun);
   // weicher Schatten unter dem Block
   const sh=new THREE.Mesh(new THREE.PlaneGeometry(BW*1.6,BD*1.6),new THREE.MeshBasicMaterial({transparent:true,depthWrite:false,map:canvasTex(256,256,(g,w,h)=>{const r=g.createRadialGradient(w/2,h/2,w*0.2,w/2,h/2,w/2);r.addColorStop(0,'rgba(36,39,43,.28)');r.addColorStop(1,'rgba(36,39,43,0)');g.fillStyle=r;g.fillRect(0,0,w,h)})}));
-  sh.rotation.x=-Math.PI/2;sh.position.y=-DEPTH-0.5;scene.add(sh);
+  sh.rotation.x=-Math.PI/2;sh.position.y=-DEPTH-0.5;sh.position.z=-LD/2;sh.scale.set(1,1.3,1);scene.add(sh);
   root=new THREE.Group();scene.add(root);
   // Block mit Erdschichten, Straßen obenauf
   const sx=new THREE.MeshLambertMaterial({map:strataTex(BD)}),sz=new THREE.MeshLambertMaterial({map:strataTex(BW)});
   const top=new THREE.MeshStandardMaterial({color:'#9a9da2',roughness:0.95});
   const blk=new THREE.Mesh(new THREE.BoxGeometry(BW,DEPTH,BD),[sx,sx,top,M('#7d6a4f'),sz,sz]);blk.position.y=-DEPTH/2;blk.receiveShadow=true;root.add(blk);
+  const sxl=new THREE.MeshLambertMaterial({map:strataTex(LD)}),ext=new THREE.Mesh(new THREE.BoxGeometry(BW,DEPTH,LD),[sxl,sxl,top,M('#7d6a4f'),sz,sz]);ext.position.set(0,-DEPTH/2,LZ);ext.receiveShadow=true;root.add(ext);
+  landGroup=new THREE.Group();root.add(landGroup);
   // Gehweg-Rand ringsum und Fahrbahnmarkierungen
   const walkM=M('#d9d4c9'),dash=M('#f3f1ea');
   for(const [w,d,x,z] of [[BW,MARGIN+1.2,0,-BD/2+(MARGIN+1.2)/2],[BW,MARGIN+1.2,0,BD/2-(MARGIN+1.2)/2],[MARGIN+1.2,BD,-BW/2+(MARGIN+1.2)/2,0],[MARGIN+1.2,BD,BW/2-(MARGIN+1.2)/2,0]])B(w,0.12,d,walkM,x,0,z);
@@ -58,7 +128,7 @@ function applyView(){view.tilt=Math.min(1.35,Math.max(0.35,view.tilt));view.zoom
   camera.lookAt(view.tx,0,view.tz);camera.zoom=view.zoom;camera.updateProjectionMatrix()}
 function resize(){const w=canvas.clientWidth||innerWidth,h=canvas.clientHeight||innerHeight;renderer.setSize(w,h,false);
   // Die Stadt soll mitten im freien Bereich liegen: neben dem Pult (Desktop) oder über dem Bottom-Sheet (Handy)
-  const mob=w<=760,aspect=w/h,span=mob?BW*0.47/aspect:BD*0.62,tw=2*span*aspect,th=2*span;
+  const mob=w<=760,aspect=w/h,span=mob?BW*0.47/aspect:(BD+LD)*0.52,tw=2*span*aspect,th=2*span;
   const cx=mob?w/2:w/2,cy=mob?h*0.44:h*0.52;
   camera.left=-cx/w*tw;camera.right=camera.left+tw;camera.top=cy/h*th;camera.bottom=camera.top-th;camera.updateProjectionMatrix()}
 
@@ -77,7 +147,7 @@ function plotSig(G,p){let s=p.owner+'|'+p.use+'|'+(p.prop||'')+'|b'+(window.K&&K
   if(p.owner&&p.owner.startsWith('c:')){const cp=G.comps.find(c=>'c:'+c.id===p.owner);s+='|'+(cp?cp.name:'')}
   return s}
 const dispKind=p=>p.kind||(p.zone==='gewerbe'?'halle':(p.use==='office'||p.use==='hq'||(!p.use&&p.zone==='buero'))?'etage':'laden');
-function setCity(G,id){if(cityId===id)return;cityId=id;sig={};for(const k in cells)delete cells[k];for(const k in anchors)delete anchors[k];
+function setCity(G,id){if(cityId===id)return;cityId=id;buildLand(id);sig={};for(const k in cells)delete cells[k];for(const k in anchors)delete anchors[k];
   while(plotGroup.children.length){const c=plotGroup.children.pop();c.traverse(o=>{if(o.geometry)o.geometry.dispose()})}bases=[];sync(G,true)}
 function sync(G,force){G0=G;if(!plotGroup)return;
   const byCell={};for(const p of G.plots){if(p.city!==cityId)continue;(byCell[p.r+'-'+p.c]=byCell[p.r+'-'+p.c]||[]).push(p)}
@@ -102,17 +172,17 @@ function buildCell(G,list,g){const p0=list[0];seed=(p0.r*31+p0.c*7+(p0.city||'')
   if(zone==='gewerbe'){const p=units[0],ug=unitGroup(g,p?p.id:def),I=info(p);hall(G,p,ug,deco(p,ug),I);if(p&&p.owner)pins.push([p,I,0,6.2,-1.4]);if(p&&p.prop==='H')flag(ug,-4.2,0.25,4.2)}
   else if(zone==='wohn'){ // zwei schmale Wohnhäuser, unten je ein Ladenlokal
     for(let i=0;i<2;i++){const p=units[i],sx=i?2.2:-2.2,ug=unitGroup(g,p?p.id:def),I=info(p),h=4.4+rnd()*2.6;
-      const col=['#f0b8a1','#9fc4e2','#f3d68f','#e9a3ac','#bad9c3','#f6efe3'][Math.floor(rnd()*6)];
-      B(4.3,h,6,col,sx,0.25,-0.6,ug);add(prism(4.5,1.2,6.2),['#d8644b','#c95540','#6f7f9a'][Math.floor(rnd()*3)],sx,0.25+h,-0.6,ug).rotation.y=0;
+      const CS=CITY_STYLE[cityId]||CITY_STYLE.kiel,col=CS.house[Math.floor(rnd()*CS.house.length)];
+      B(4.3,h,6,col,sx,0.25,-0.6,ug);add(prism(4.5,1.2,6.2),CS.roof[Math.floor(rnd()*CS.roof.length)],sx,0.25+h,-0.6,ug).rotation.y=0;
       for(let k=0;k<Math.floor((h-GF)/1.3);k++)for(const wx of [-1,0,1])B(0.7,0.7,0.05,'#3d4651',sx+wx*1.25,0.25+GF+0.35+k*1.3,FZ+0.01,ug);
       shopfront(G,p,ug,deco(p,ug),I,sx,4.1);if(p&&p.owner)pins.push([p,I,sx,h+2.9,0]);if(p&&p.prop==='H')flag(ug,sx+1.8,0.25,FZ+0.6)}}
   else if(zone==='city'){ // Geschäftshaus: zwei Läden unten, Büroetagen darüber
-    const h=6.6+rnd()*2.6,ep=units[2],eg=unitGroup(g,ep?ep.id:def),EI=info(ep),col=['#efe6d6','#e4d2bd','#d9dee4','#f1dcc8'][Math.floor(rnd()*4)];
+    const h=6.6+rnd()*2.6,ep=units[2],eg=unitGroup(g,ep?ep.id:def),EI=info(ep),col=(cityId==='kiel'?['#c46a4a','#b8553a','#efe6d6','#a6472f']:cityId==='hamburg'?['#efe6d6','#9a4a35','#e4d2bd','#d9dee4']:['#efe6d6','#e4d2bd','#d9dee4','#f1dcc8'])[Math.floor(rnd()*4)];
     etage(G,ep,eg,deco(ep,eg),EI,0.25+GF,h-GF,8.8,6,col,true);if(ep&&ep.owner)pins.push([ep,EI,0,h+(EI.hq?6.5:3.6),0]);if(ep&&ep.prop==='H')flag(eg,-4.2,h+0.6,2.2);
     for(let i=0;i<2;i++){const p=units[i],sx=i?2.2:-2.2,ug=unitGroup(g,p?p.id:def),I=info(p);B(4.4,GF,6,'#e9e2d4',sx,0.25,-0.6,ug);
       shopfront(G,p,ug,deco(p,ug),I,sx,4.1);if(p&&p.owner)pins.push([p,I,sx,h+1.6,FZ]);if(p&&p.prop==='H')flag(ug,sx+1.8,0.25,FZ+0.6)}}
   else{ // Büroturm: ein Laden und die Lobby unten, zwei Etagenblöcke darüber
-    const h=10+rnd()*4,mid=GF+(h-GF)/2,col=['#dfe6ec','#e8e5de','#d3dbe2'][Math.floor(rnd()*3)];
+    const h=10+rnd()*4,mid=GF+(h-GF)/2,col=(CITY_STYLE[cityId]||CITY_STYLE.berlin).office[Math.floor(rnd()*3)];
     for(const [i,y0,hh] of [[1,0.25+GF,mid-GF],[2,0.25+mid,h-mid]]){const p=units[i],ug=unitGroup(g,p?p.id:def),I=info(p);etage(G,p,ug,deco(p,ug),I,y0,hh,8.4,6.8,col,i===2);
       if(p&&p.owner)pins.push([p,I,i===1?2.6:-0.4,h+(i===1?1.8:I.hq?6.5:3.8),0]);if(p&&p.prop==='H')flag(ug,4,y0+0.2,2.6)}
     const lg=unitGroup(g,units[1]?units[1].id:def);B(4.2,GF,6.8,'#cfd6dc',2.1,0.25,-1,lg);B(2.4,1.3,0.06,'#bcd8e8',2.1,0.25,FZ+0.01,lg);
@@ -121,7 +191,7 @@ function buildCell(G,list,g){const p0=list[0];seed=(p0.r*31+p0.c*7+(p0.city||'')
   // Anker für Auswahl, Labels und Markierung
   units.forEach((p,i)=>{if(!p)return;const k=slots[i];let a;
     if(k==='halle')a={x:0,y:0.25,z:0,w:9.2,h:4.8,d:9.2};
-    else if(k==='laden'){const sx=zone==='buero'?-2.1:i?2.2:-2.2;a={x:sx,y:0.25,z:1.2,w:4.4,h:GF+0.3,d:7.2}}
+    else if(k==='laden'){const sx=zone==='buero'?-2.1:i?2.2:-2.2;a={x:sx,y:0.25,z:1.2,w:4.4,h:GF+0.3,d:7.2,fz:FZ-0.3}}
     else{const top=g.userData.top||8,y0=g.userData['y'+i]||0.25+GF,hh=g.userData['h'+i]||top-y0;a={x:0,y:y0,z:-0.6,w:9.2,h:hh,d:7.2}}
     a.x+=g.position.x;a.z+=g.position.z;anchors[p.id]=a});
   for(const [p,I,x,y,z] of pins){const sp=pin(I,p);sp.position.set(x,y,z);g.add(sp);(parts[p.id]=parts[p.id]||[]).push(sp);anchors[p.id].pin=y;anchors[p.id].pinX=x+g.position.x;anchors[p.id].pinZ=z+g.position.z}
@@ -235,11 +305,11 @@ function edgeBox(a,color,op){const k=[a.w,a.h,a.d].map(v=>v.toFixed(2)).join('x'
 function select(pid){sel=pid;if(selBox){root.remove(selBox);selBox=null}const a=pid&&anchors[pid];selRing.visible=!!a;
   if(a){selRing.scale.set(a.w/P*0.8,1,a.d/P*0.8);selRing.position.set(a.x,0.3,a.z);selBox=edgeBox(a,'#24272b',0.9);root.add(selBox)}}
 function hover(pid){if(hovBox){root.remove(hovBox);hovBox=null}const a=pid&&pid!==sel&&anchors[pid];hoverRing.visible=false;if(a){hovBox=edgeBox(a,'#24272b',0.35);root.add(hovBox)}}
-function project(pid,y){const a=anchors[pid];if(!a)return null;const pinX=a.pinX!==undefined?a.pinX:a.x,v=y==='pin'?new THREE.Vector3(pinX,(a.pin||a.y+a.h)+4.8,a.pinZ!==undefined?a.pinZ:a.z):new THREE.Vector3(a.x,y===undefined?a.y+a.h:Math.max(y,a.y+a.h*0.6),a.z);v.project(camera);
+function project(pid,y){const a=anchors[pid];if(!a)return null;const pinX=a.pinX!==undefined?a.pinX:a.x,v=y==='pin'?new THREE.Vector3(pinX,(a.pin||a.y+a.h)+4.8,a.pinZ!==undefined?a.pinZ:a.z):a.fz!==undefined&&y!==undefined?new THREE.Vector3(a.x,a.y+a.h*0.45,a.fz+(a.z-1.2)):new THREE.Vector3(a.x,y===undefined?a.y+a.h:Math.max(y,a.y+a.h*0.6),a.z);v.project(camera);
   const r=canvas.getBoundingClientRect();return{x:r.left+(v.x+1)/2*r.width,y:r.top+(1-v.y)/2*r.height,vis:v.z<1}}
 function highlight(list,color){for(const m of marks){root.remove(m)}marks.length=0;if(!list||!list.length)return;
   for(const pid of list){const a=anchors[pid];if(!a)continue;const m=boxAt({...a,w:a.w+0.3,h:a.h+0.3,d:a.d+0.3,y:a.y-0.15},new THREE.MeshBasicMaterial({color:color||'#3f9b62',transparent:true,opacity:0.4,depthWrite:false}));root.add(m);marks.push(m)}}
-let last=0;function frame(t){const dt=Math.min(0.05,(t-last)/1000||0.016);last=t;animate(dt*60);
+let last=0;function frame(t){const dt=Math.min(0.05,(t-last)/1000||0.016);last=t;animate(dt*60);for(const f of landAnim)f(t);
   for(let i=grow.length-1;i>=0;i--){const a=grow[i];if(a.pop){a.t+=dt/0.5;const k=Math.min(1,a.t),e=k<1?1-Math.pow(1-k,3)*Math.cos(k*7):1;const sc=Math.max(0.01,e);a.g.scale.set(a.g.isSprite?3.6*sc:sc,a.g.isSprite?4.5*sc:sc,1*(a.g.isSprite?1:sc));if(k>=1){if(!a.g.isSprite)a.g.scale.set(1,1,1);grow.splice(i,1)}continue}
     a.t+=dt/0.7;const k=Math.min(1,a.t),e=1+Math.sin(k*Math.PI)*0.18*(1-k)+(k<1?-(1-k)*(1-k):0);a.g.scale.set(1,Math.max(0.02,k<1?k*k*(3-2*k)*(1+0.15*Math.sin(k*Math.PI)):1),1);if(k>=1){a.g.scale.set(1,1,1);grow.splice(i,1)}}
   for(const m of marks)m.material.opacity=0.3+0.2*Math.sin(t/260);

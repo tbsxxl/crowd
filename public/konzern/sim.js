@@ -79,7 +79,7 @@ const RESEARCH={
     ki:{n:'KI-Funktionen',icon:'🤖',cost:40000,months:2,d:'+10 % Qualität für alle Apps'},games:{n:'Spiele-Engine',icon:'🎮',cost:30000,months:2,d:'Neues Genre: Spiele'},fintech:{n:'Banklizenz-Partner',icon:'🏦',cost:35000,months:2,d:'Neues Genre: Fintech'}},
   prod:{tisch:{n:'Tisch-Konstruktion',icon:'📐',cost:12000,months:1,d:'Neues Produkt: Tische'},back:{n:'Backstraße',icon:'🥖',cost:15000,months:1,d:'Neue Linie: Teig und Brötchen, beliefert auch eigene Restaurants'},
     auto:{n:'Automatisierung',icon:'🦾',cost:50000,months:2,d:'Linien einzeln automatisieren: +30 % Ausstoß, 2 Leute weniger'},qm:{n:'Qualitätsmanagement',icon:'🏅',cost:25000,months:2,d:'+6 % bei allen Auftragspreisen'}}};
-const CITIES=[{id:'kiel',n:'Kiel',traffic:1.0,rent:1.0},{id:'hamburg',n:'Hamburg',traffic:1.45,rent:1.5,unlock:{staff:12,cost:60000}},{id:'berlin',n:'Berlin',traffic:1.6,rent:1.35,unlock:{staff:50,cost:120000}}];
+const CITIES=[{id:'kiel',n:'Emden',traffic:1.0,rent:1.0},{id:'hamburg',n:'Hamburg',traffic:1.45,rent:1.5,unlock:{staff:12,cost:60000}},{id:'berlin',n:'Berlin',traffic:1.6,rent:1.35,unlock:{staff:50,cost:120000}}];
 const ZONES={
   city:{n:'Innenstadt',traffic:[4200,7000],rent:[3600,6200],size:[80,140],uses:['cafe','office','hq']},
   wohn:{n:'Wohnviertel',traffic:[1500,3000],rent:[1700,2600],size:[100,170],uses:['cafe']},
@@ -93,7 +93,7 @@ const DEPTS={hr:{n:'Personal',icon:'🤝',d:'Bessere Stimmung, halb so viele Kü
 const COMP_CAFE={kiel:[['Trattoria Bella','#8a6a52',0.66,1.0,3],['Fischhaus Förde','#6b7a8f',0.56,0.9,2]],hamburg:[['Elbküche','#4f7d8c',0.72,1.08,4],['Trattoria Bella','#8a6a52',0.66,1.0,2]],berlin:[['Spreeblick Grill','#7d5c8c',0.7,1.02,4],['Kiezküche','#a07a3a',0.6,0.88,3]]};
 const COMP_APPS=[['Notio','prod',0.7,90000],['Listly','prod',0.58,40000],['FitBuddy','fit',0.62,120000],['RunRun','fit',0.55,60000],['Pixelquest','game',0.66,400000],['Klickfarm','game',0.5,250000],['Spargroschen','fin',0.68,50000]];
 const COMP_PROD={kiel:[['Nordholz Werke','#9a8f7a']],hamburg:[['Hanse Möbel','#7a8a9a'],['Speicherstadt Rösterei','#8a6a52']],berlin:[['Spree Manufaktur','#7a7a8a']]};
-const BUYERS={stuhl:['Möbelhaus Nord','Wohnwelt','Schulträger Kiel','Hotelkette Seeblick'],tisch:['Wohnwelt','Möbelhaus Nord','Kantinenbau AG'],bohnen:['Bohnenwerk','Supermarkt Regional','Hotelkette Seeblick','Bürokaffee GmbH'],gebaeck:['Supermarkt Regional','Kantinenbau AG','Tankstellen-Shops']};
+const BUYERS={stuhl:['Möbelhaus Nord','Wohnwelt','Schulträger Emden','Hotelkette Seeblick'],tisch:['Wohnwelt','Möbelhaus Nord','Kantinenbau AG'],bohnen:['Bohnenwerk','Supermarkt Regional','Hotelkette Seeblick','Bürokaffee GmbH'],gebaeck:['Supermarkt Regional','Kantinenbau AG','Tankstellen-Shops']};
 const APP_NAMES=['Taskly','Fokus','Planwerk','Pulse','Kraftakt','Moneta','Zenith','Kompass','Nordlicht','Orbit','Brise','Spark','Atlas','Quokka','Lumen'];
 const GOALS=[ // der Reihe nach, mit Förderprämie
   {k:'first',n:'Eröffne dein erstes Geschäft',d:'Eine Filiale, eine veröffentlichte App oder eine laufende Linie.',reward:3000,test:G=>G.firms.some(f=>f.branch==='cafe'?f.shops.length:f.branch==='soft'?G.apps.some(a=>a.owner===f.id&&a.state==='live'):f.plants.some(p=>p.lines.length))},
@@ -452,7 +452,7 @@ function sumF(m,k){let s=0;for(const id in m.f)s+=m.f[id][k]||0;return s}
 
 // ---------- Entscheidungen ----------
 const EVENTS={
-  blogger:{branch:'cafe',icon:'📸',when:(G,f)=>f.shops.length,make:(G,f)=>{const s=pick(G,f.shops);return{ref:s.id,t:'Die Food-Bloggerin @kielisst möchte deine Filiale ('+shopName(G,s)+') testen. 40.000 Menschen lesen mit.'}},
+  blogger:{branch:'cafe',icon:'📸',when:(G,f)=>f.shops.length,make:(G,f)=>{const s=pick(G,f.shops);return{ref:s.id,t:'Die Food-Bloggerin @emdenisst möchte deine Filiale ('+shopName(G,s)+') testen. 40.000 Menschen lesen mit.'}},
     opts:[{n:'Einladen und groß auftischen',d:'Kostet 300 €. Meistens gibt es einen begeisterten Artikel.',run:(G,f,e)=>{const s=f.shops.find(x=>x.id===e.ref);pay(G,f.id,'mkt',300);if(!s)return'';if(rand(G)<0.75){s.rep=Math.min(1,s.rep+0.1);f.aware=Math.min(1,f.aware+0.05);return'Begeisterter Artikel! Ruf und Bekanntheit steigen.'}s.rep-=0.03;return'Der Artikel ist lauwarm: „Nett, aber zu bemüht.“'}},
       {n:'Ganz normal bedienen',d:'Was zählt, ist der echte Eindruck.',run:(G,f,e)=>{const s=f.shops.find(x=>x.id===e.ref);if(!s)return'';if(s.rep>0.7){s.rep=Math.min(1,s.rep+0.08);f.aware=Math.min(1,f.aware+0.04);return'„Ehrlich gut!“ Der Artikel macht die Runde.'}s.rep-=0.06;return'Der Artikel ist kritisch, der Ruf leidet.'}}],def:1},
   rent:{branch:'cafe',icon:'🏠',when:(G,f)=>f.shops.length,make:(G,f)=>{const s=pick(G,f.shops);return{ref:s.id,t:'Der Vermieter deiner Filiale ('+shopName(G,s)+') will die Miete um 8 % erhöhen.'}},
@@ -568,7 +568,7 @@ function migrate(G){
   for(const k in G.execs){const e=G.execs[k];if(e===true){const p=person(G);G.execs[k]=Object.assign(p,{since:G.month,salary:marketPay(G,k),deleg:{},grants:[]})}else if(!e)delete G.execs[k]}
   for(const k in G.depts)if(G.depts[k]===true)G.depts[k]=dneed(G);
   if(!G.macro)G.macro={rate:0.025,gdp:0.012,infl:0.02};if(!G.dues)G.dues=[];if(G.divPS===undefined)G.divPS=0;if(!G.deptWage)G.deptWage=60000;
-  for(const cp of G.comps)if(!cp.qrev)cp.qrev=[];mgrMigrate(G);for(const f of G.firms)if(f.branch==='cafe'&&!(f.menu&&f.menu.pasta)){f.menu={};for(const k in PRODUCTS)f.menu[k]={on:['pasta','pizza','salat','limo','espresso','tiramisu'].includes(k),q:k==='limo'?1:2,price:PRODUCTS[k].ref};for(const s of f.shops)s.special=null}}
+  for(const cp of G.comps)if(!cp.qrev)cp.qrev=[];if(G.me.club){const C=CLUBS.find(x=>x.id===G.me.club.id);if(C)G.me.club.n=C.n}for(const st of G.stocks||[]){const d=STOCKS.find(x=>x[0]===st.tk);if(d)st.n=d[1]}for(const l of G.me.lux)if(l.k==='wein')l.n=LUX.wein.n;mgrMigrate(G);for(const f of G.firms)if(f.branch==='cafe'&&!(f.menu&&f.menu.pasta)){f.menu={};for(const k in PRODUCTS)f.menu[k]={on:['pasta','pizza','salat','limo','espresso','tiramisu'].includes(k),q:k==='limo'?1:2,price:PRODUCTS[k].ref};for(const s of f.shops)s.special=null}}
 function econ(G){return 1+clamp(G.macro?G.macro.gdp:0.012,-0.04,0.05)*2-0.024}
 // monatlich: Gehälter, Loyalität, Vesting, Rücktritte
 function execMonth(G,rep){
@@ -659,15 +659,15 @@ function leadActions(A){
   A.deptWage=(G,v)=>{G.deptWage=clamp(Math.round(v/5000)*5000,35000,150000);return{ok:true}}}
 // ---------- Privat: Gehalt, Aktien, Luxus, Verein ----------
 const SECTORS={kaffee:'Gastronomie',tech:'Technologie',auto:'Auto',fin:'Finanzen',handel:'Handel',energie:'Energie'};
-const STOCKS=[['FBG','Friesenhügel','kaffee',16.9,21e6,0.004,0.06,0.013],['TRC','Trunk Coffee','kaffee',41,8e6,0.006,0.07,0.01],['MTRS','Metrosoft','tech',58,40e6,0.01,0.09,0.006],
-  ['PXL','Pixelwerk','tech',22,15e6,0.012,0.13,0],['NAU','Nordauto','auto',74,30e6,0.003,0.07,0.025],['VLT','Voltwagen','auto',31,12e6,0.009,0.12,0],
+const STOCKS=[['FBG','Friesenkrug','kaffee',16.9,21e6,0.004,0.06,0.013],['TRC','Tafelhaus Gruppe','kaffee',41,8e6,0.006,0.07,0.01],['MTRS','Datenwerk','tech',58,40e6,0.01,0.09,0.006],
+  ['PXL','Pixelwerk','tech',22,15e6,0.012,0.13,0],['NAU','Nordauto','auto',74,30e6,0.003,0.07,0.025],['VLT','Stromer Mobil','auto',31,12e6,0.009,0.12,0],
   ['HBK','Hanse Bank','fin',12,90e6,0.003,0.06,0.04],['ELB','Elbe Versicherung','fin',96,9e6,0.004,0.04,0.03],['KTH','Kaufhaus Thoma','handel',19,20e6,0.001,0.07,0.035],
   ['WND','Windkraft Nord','energie',27,25e6,0.007,0.08,0.02],['GAS','Ostsee Energie','energie',44,18e6,0.002,0.06,0.045]];
-const LUX={wein:{n:'Romanée-Conti 1945',sub:'Zwei Flaschen Rotwein',icon:'🍷',p:[40000,180000],vol:0.07,up:0},uhr:{n:'Vintage-Uhr',sub:'Seltener Chronograph',icon:'⌚',p:[60000,250000],vol:0.05,up:0},
+const LUX={wein:{n:'Grand Cru 1945',sub:'Zwei Flaschen alter Burgunder',icon:'🍷',p:[40000,180000],vol:0.07,up:0},uhr:{n:'Vintage-Uhr',sub:'Seltener Chronograph',icon:'⌚',p:[60000,250000],vol:0.05,up:0},
   kunst:{n:'Gemälde',sub:'Klassische Moderne',icon:'🖼️',p:[400000,2500000],vol:0.09,up:0.001},auto:{n:'Oldtimer 300 SL',sub:'Flügeltürer, 1955',icon:'🏎️',p:[1200000,1800000],vol:0.05,up:0.001},
-  yacht:{n:'Segelyacht',sub:'32 Meter, Liegeplatz Kiel',icon:'⛵',p:[3000000,6000000],vol:0.04,up:0.004},villa:{n:'Villa am Wasser',sub:'Elbchaussee, Hamburg',icon:'🏡',p:[6000000,12000000],vol:0.025,up:0.0015},
+  yacht:{n:'Segelyacht',sub:'32 Meter, Liegeplatz Emden',icon:'⛵',p:[3000000,6000000],vol:0.04,up:0.004},villa:{n:'Villa am Wasser',sub:'Elbchaussee, Hamburg',icon:'🏡',p:[6000000,12000000],vol:0.025,up:0.0015},
   jet:{n:'Privatjet',sub:'Mittelstrecke, 8 Plätze',icon:'🛩️',p:[18000000,30000000],vol:0.03,up:0.006}};
-const CLUBS=[{id:'kiel',n:'Holstein SV',city:'kiel',price:28e6,league:'2. Liga',c1:'#2f6fd0',owner:'Mitglieder e. V.'},{id:'hh',n:'Hamburger Kickers',city:'hamburg',price:120e6,league:'1. Liga',c1:'#24272b',owner:'Hanse Invest'},{id:'ber',n:'Berlin SC',city:'berlin',price:300e6,league:'1. Liga',c1:'#2f6fd0',owner:'Familie Schneider'}];
+const CLUBS=[{id:'kiel',n:'Emder Seehunde',city:'kiel',price:28e6,league:'2. Liga',c1:'#2f6fd0',owner:'Mitglieder e. V.'},{id:'hh',n:'Hanse Möwen Hamburg',city:'hamburg',price:120e6,league:'1. Liga',c1:'#24272b',owner:'Hanse Invest'},{id:'ber',n:'Spree-Adler Berlin',city:'berlin',price:300e6,league:'1. Liga',c1:'#2f6fd0',owner:'Familie Schneider'}];
 function genMarket(G){G.stocks=STOCKS.map(([tk,n,sec,price,shares,drift,vol,div])=>({tk,n,sec,price,shares,drift,vol,div,hist:[price]}));for(let i=0;i<23;i++)stepStocks(G,true)}
 function gauss(G){return Math.sqrt(-2*Math.log(rand(G)+1e-9))*Math.cos(6.2832*rand(G))}
 function stepStocks(G,warm){const shock={};for(const k in SECTORS)shock[k]=gauss(G)*0.03;const mkt=gauss(G)*0.025+(G.macro?G.macro.gdp*0.08:0);
@@ -678,8 +678,8 @@ function marketsMonth(G,rep){stepStocks(G);const me=G.me;let div=0;
   for(const l of me.lux){l.value=Math.max(1000,l.value*Math.exp(0.002+gauss(G)*LUX[l.k].vol));const up=l.value*LUX[l.k].up;me.cash-=up}}
 function privateMonth(G,rep){if(ME)G.me.kmM=0;const sal=G.me.salary/12*W;if(sal>0){pay(G,'H','staff',sal);G.me.cash+=sal*0.58}}
 // ---------- Fußballverein: Liga, Kader, Trikots, Transfers, Finanzen ----------
-const TEAMS={'1. Liga':['München 1900','Dortmund Borussen','Leipzig Rasen','Leverkusen Werkself','Frankfurt Adler','Stuttgart VfB','Wolfsburg Wölfe','Freiburg Breisgau','Bremen Werder','Mainz 05','Köln Geißböcke','Augsburg Fugger','Bochum Ruhr','Heidenheim Ostalb','Union Köpenick','Gladbach Fohlen','Hoffenheim TSG','Darmstadt Lilien','Schalke Knappen','Hamburger Kickers','Berlin SC'],
-  '2. Liga':['Hannover Roten','Düsseldorf Fortuna','Paderborn 07','Karlsruhe Badener','Nürnberg Clubberer','Fürth Kleeblatt','Magdeburg Elbe','Rostock Hansa','Braunschweig Löwen','Elversberg SV','Kaiserslautern Betze','Münster Preußen','Ulm Spatzen','Regensburg Jahn','St. Pauli Kiez','Osnabrück Lila','Wiesbaden Wehen','Holstein SV','Hamburger Kickers']};
+const TEAMS={'1. Liga':['Isar 1900','Ruhrkumpel 09','Sachsenblitz','Werkself Rhein','Mainadler','Neckar 93','Wolfsheide','Schwarzwald Kickers','Weserstrand','Rheinhessen 05','Domstadt FC','Lechtal','Zechen-Union','Ostalb 46','Köpenicker Eiserne','Fohlenweide','Kraichgau','Lilienfeld','Spree-Adler Berlin','Hanse Möwen Hamburg'],
+  '2. Liga':['Leinestadt 96','Rheinufer Fortuna','Paderquelle 07','Fächerstadt SC','Frankenclub','Kleeblattstadt','Elbaue 1965','Ostseewelle','Löwenstadt','Saarhöhe','Pfalzberg','Münsterland 06','Donauspatzen','Regenburg SSV','Kiezpiraten','Lila Weiß 99','Taunusquelle','Emder Seehunde','Hanse Möwen Hamburg']};
 const POS=[['TW',2],['ABW',6],['MIT',6],['ST',4]];
 const CLUB_STAD={kiel:15000,hh:57000,ber:74000};
 const OWNERS=['Familie Schneider','Familie Albrecht','Hanse Invest','Mitglieder e. V.','Brauerei Nordlicht','Familie Petersen'];
@@ -734,8 +734,8 @@ function clubActions(A){
   A.sellPlayer=(G,pid)=>{const c=G.me.club;if(!c)return{ok:false};const i=c.players.findIndex(p=>p.id===pid);if(i<0)return{ok:false};if(c.players.length<=16)return{ok:false,msg:'Mindestens 16 Spieler müssen bleiben.'};
     const p=c.players[i],v=Math.round(p.val*rr(G,0.8,1.05)/10000)*10000;G.me.cash+=v;c.players.splice(i,1);return{ok:true,msg:p.name+' verkauft für '+fmtE(v)+'.'}}}
 // ---------- Reisen ----------
-const GEO={kiel:[54.32,10.13],hamburg:[53.55,9.99],berlin:[52.52,13.40]};
-const AIRPORTS={kiel:'Flughafen Kiel-Holtenau',hamburg:'Flughafen Hamburg',berlin:'Flughafen Berlin Brandenburg'};
+const GEO={kiel:[53.37,7.21],hamburg:[53.55,9.99],berlin:[52.52,13.40]};
+const AIRPORTS={kiel:'Flughafen Emden',hamburg:'Flughafen Hamburg',berlin:'Flughafen Berlin Brandenburg'};
 function dist(a,b){const [x1,y1]=GEO[a],[x2,y2]=GEO[b],k=Math.PI/180,d=Math.acos(Math.sin(x1*k)*Math.sin(x2*k)+Math.cos(x1*k)*Math.cos(x2*k)*Math.cos((y2-y1)*k))*6371;return Math.round(d)}
 function flights(G){const me=G.me,jet=me.lux.some(l=>l.k==='jet');return CITIES.filter(c=>c.id!==me.loc).map(c=>{const km=dist(me.loc,c.id);return{id:c.id,n:c.n,km,cost:jet?Math.round(km*12):Math.round(90+km*0.9),jet,open:!!G.cities[c.id]}})}
 function travelActions(A){A.fly=(G,id)=>{const f=flights(G).find(x=>x.id===id);if(!f)return{ok:false};if(G.me.cash<f.cost)return{ok:false,msg:'Privat fehlen dir '+fmtE(f.cost-G.me.cash)+'.'};
@@ -744,7 +744,7 @@ function travelActions(A){A.fly=(G,id)=>{const f=flights(G).find(x=>x.id===id);i
     if(fm.office&&plot(G,fm.office).city===id||(fm.plants||[]).some(p=>plot(G,p.plot).city===id)||here.length)fm.moraleBoost=(fm.moraleBoost||0)+0.05}}
   return{ok:true,msg:'Gelandet in '+cityName(id)+(f.jet?' (Privatjet)':'')+'.'+(boost?' Chefbesuch in '+boost+' Filiale(n): Ruf und Stimmung steigen.':'')}}}
 // ---------- Adressen ----------
-const STREETS={kiel:['Holstenstraße','Dänische Straße','Knooper Weg','Holtenauer Straße','Schauenburgerstraße','Brunswiker Straße','Sophienblatt','Hamburger Chaussee','Wilhelminenstraße','Kirchhofallee'],
+const STREETS={kiel:['Neutorstraße','Große Straße','Am Delft','Brückstraße','Kirchstraße','Boltentorstraße','Lookvenne','Am Stadtgarten','Zwischen beiden Sielen','Ringstraße'],
   hamburg:['Jungfernstieg','Mönckebergstraße','Ottenser Hauptstraße','Schanzenstraße','Eppendorfer Weg','Lange Reihe','Mühlenkamp','Großer Burstah','Grindelallee','Wandsbeker Chaussee'],
   berlin:['Invalidenstraße','Wilhelmstraße','Torstraße','Kastanienallee','Oranienstraße','Friedrichstraße','Kantstraße','Bergmannstraße','Schönhauser Allee','Turmstraße']};
 function address(p){if(!p||!STREETS[p.city])return'';const h=(p.r*7+p.c*13+(p.city.length*3))%10,n=100+((p.r*37+p.c*91+(p.u||0)*17)%480);return STREETS[p.city][h]+' '+n+', '+cityName(p.city)}
