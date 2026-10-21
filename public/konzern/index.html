@@ -168,6 +168,14 @@ table.cf td{padding:5px 0;font-size:13.5px}table.cf td:last-child{text-align:rig
 .execCard{align-items:center;text-align:center}.execCard .bar{width:100%}
 .cands{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.cand{min-width:min(280px,82%);scroll-snap-align:center;display:flex;flex-direction:column;gap:6px}.cand .ava,.execCard .ava,.execHead .ava{flex:none;align-self:center}
 @media (max-width:440px){.execHead{flex-direction:column;align-items:center}.mast{font-size:26px}}
+/* Sprechblase, Verein, Bewertungen */
+.say{display:flex;gap:10px;align-items:flex-end;justify-content:space-between;background:var(--ink);color:#fff;border-radius:12px;padding:12px 10px 0 14px;min-height:70px}.say p{margin:0 0 12px;font-size:14px;line-height:1.4;align-self:center}.sayAva{flex:none;display:flex}
+.clubHero{display:flex;align-items:flex-end;justify-content:space-between;background:linear-gradient(180deg,#dfeaf3,#f3f1ea)}.clubHero .stad{font-size:84px;line-height:1}.pl2{display:flex;gap:2px}
+table.league td{padding:3px 4px;font-size:12.5px}table.league td:nth-child(2){width:60%}table.league tr.me{background:rgba(212,167,44,.22);font-weight:700}table.league tr.zone td:first-child{color:var(--muted)}
+.swatches{display:flex;gap:6px;flex-wrap:wrap}.swatches button{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);cursor:pointer}.swatches button[aria-pressed="true"]{outline:3px solid var(--ink);outline-offset:2px}
+.pmini{flex:none;width:32px;display:flex;justify-content:center}
+.revs{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.rev{min-width:min(260px,78%);scroll-snap-align:start;display:flex;flex-direction:column;gap:6px}
+.revAva{position:relative;display:flex}.revAva i{position:absolute;left:-14px;top:-4px;font-style:normal;background:#3f9b62;border-radius:10px;padding:1px 5px;font-size:13px}
 /* Geld über den Gebäuden */
 .floats{position:fixed;inset:0;pointer-events:none;z-index:2;overflow:hidden}
 .money{position:absolute;transform:translate(-50%,-100%);font-family:var(--f-display);font-weight:500;font-size:19px;padding:3px 10px;border-radius:999px;background:var(--card);border:1px solid var(--line);white-space:nowrap;animation:rise 3.2s ease-out forwards;box-shadow:0 6px 16px -8px rgba(36,39,43,.4)}
@@ -220,6 +228,7 @@ table.cf td{padding:5px 0;font-size:13.5px}table.cf td:last-child{text-align:rig
 <div class="topBtns" id="topBtns" hidden>
   <button class="ib panel" data-a="open" data-v="wealth" aria-label="Vermögen">👤<small>Vermögen</small></button>
   <button class="ib panel" data-a="open" data-v="bank" aria-label="Börse">🏦<small>Börse</small></button>
+  <button class="ib panel" data-a="open" data-v="airport" aria-label="Flughafen">✈️<small>Reisen</small></button>
   <button class="ib panel" data-a="open" data-v="fin" aria-label="Finanzen">📊<small>Finanzen</small></button>
   <button class="ib panel" data-a="open" data-v="group" aria-label="Konzern">🏛️<small>Konzern</small></button>
   <button class="ib panel" data-a="open" data-v="goals" aria-label="Ziele">🎯<small>Ziele</small></button>
@@ -333,9 +342,12 @@ function endPlace(){place=null;$('placeBar').hidden=true;World.highlight(null)}
 // Grundstück (frei, Konkurrenz)
 VIEWS.plot=({id})=>{const p=K.plot(G,id);if(!p)return null;const z=K.ZONES[p.zone];let b=kpis([[fn(p.traffic),'Passanten am Tag'],[fe(p.rent),'Miete im Monat'],[fn(p.size)+' m²','Fläche']]);
   if(p.owner&&p.owner.startsWith('c:')){const cp=G.comps.find(c=>'c:'+c.id===p.owner);
+    if(cp&&cp.branch==='cafe'){const cs=K.compShop(G,cp,p);b=say('Das ist eine Filiale von '+esc(cp.name)+'. Hier siehst du, was die Gäste über sie sagen.')+b;
+      b+=`<div class="sec"><h3>Kundenrezensionen</h3><div class="card"><div class="row" style="align-items:flex-start"><span><b class="serif" style="font-size:44px;line-height:1">${String(K.stars(cs.all)).replace('.',',')}</b><br>${starsH(K.stars(cs.all))}<br><span class="sub">${fn(cs.n)} Bewertungen</span></span>
+        ${catStars([['Preis',cs.cat.preis],['Produkt',cs.cat.produkt],['Service',cs.cat.service],['Atmosphäre',cs.cat.atmo]])}</div></div>${reviewCards(cs.reviews)}</div>`}
     b+=`<div class="card"><div class="ch"><span class="ico">🏪</span><span class="t"><b>${esc(cp?cp.name:'Konkurrenz')}</b><span>${cp&&cp.branch==='cafe'?'Café-Kette · Qualität '+pct(cp.q)+' · Preise '+pct(cp.price):'Konkurrent'}</span></span></div>
       ${cp?`<button class="btn" data-a="open" data-v="group" data-tab="market" data-keep="1">Übernahme prüfen · ${fe(K.takeoverPrice(G,cp))}</button>`:''}</div>`;
-    return{eyebrow:z.n+' · '+K.cityName(p.city)+' · '+K.unitName(p),title:'Konkurrenz',body:b+propCard(p)+housemates(p)}}
+    return{eyebrow:'Konkurrenz · '+K.unitName(p),title:esc(cp?cp.name:'Konkurrenz'),sub:esc(K.address(p)),body:b+propCard(p)+housemates(p)}}
   if(p.owner){const uses={cafe:'Deine Filiale',office:'Dein Büro',factory:'Deine Fabrik',hq:'Konzernzentrale'};const ff=p.owner!=='H'&&K.firm(G,p.owner);
     return{eyebrow:z.n+' · '+K.cityName(p.city)+' · '+K.unitName(p),title:uses[p.use]||'Dein Standort',sub:ff?esc(ff.name):'',body:b+(propCard(p)||'')+housemates(p)}}
   if(!G.cities[p.city])return{eyebrow:z.n,title:'Noch nicht erschlossen',body:b+'<div class="warnbox">Erschließe diese Stadt im Bereich Konzern.</div>'};
@@ -348,7 +360,7 @@ VIEWS.plot=({id})=>{const p=K.plot(G,id);if(!p)return null;const z=K.ZONES[p.zon
     if(f.branch==='prod'&&us.includes('factory')&&(!kind||kind==='factory'))acts+=`<div class="card"><div class="ch"><span class="ico">🏭</span><span class="t"><b>Halle für ${esc(f.name)}</b><span>Platz für ${Math.floor(p.size/500)} Linien</span></span></div><button class="btn ink" data-a="build" data-k="factory" data-id="${f.id}" data-p="${p.id}">Mieten · ${fe(p.rent*3)} Kaution</button></div>`}
   if(us.includes('hq')&&!G.hq&&(!kind||kind==='hq'))acts+=`<div class="card"><div class="ch"><span class="ico">🏛️</span><span class="t"><b>Konzernzentrale</b><span>${K.totalStaff(G)<25?'Erst ab 25 Mitarbeitenden':'Für Abteilungen und den Börsengang'}</span></span></div><button class="btn ${K.totalStaff(G)<25?'':'ink'}" data-a="build" data-k="hq" data-p="${p.id}" ${K.totalStaff(G)<25?'aria-disabled="true"':''}>Bauen · 250.000 €</button></div>`;
   if(!acts)acts=`<div class="sub">${p.kind==='laden'?'Ladenlokale eignen sich für Cafés und Läden.':p.kind==='etage'?'Büroetagen eignen sich für Büros und die Konzernzentrale.':p.zone==='gewerbe'?'Hallen eignen sich nur für Fabriken.':'Für deine Firmen ist hier nichts möglich.'}</div>`;
-  const un=K.unitName(p);return{eyebrow:z.n+' · '+K.cityName(p.city),title:(p.kind==='etage'||p.kind==='halle'?'Freie ':'Freies ')+un,sub:'zu mieten · '+fn(p.size)+' m²',body:b+acts+propCard(p)+housemates(p)}};
+  const un=K.unitName(p);return{eyebrow:z.n+' · '+K.cityName(p.city),title:(p.kind==='etage'||p.kind==='halle'?'Freie ':'Freies ')+un,sub:esc(K.address(p))+' · '+fn(p.size)+' m²',body:b+acts+propCard(p)+housemates(p)}};
 function housemates(p){const o=G.plots.filter(q=>q.city===p.city&&q.r===p.r&&q.c===p.c&&q!==p);if(!o.length)return'';
   return`<div class="sec"><h3>Im selben Gebäude</h3><div class="list">${o.map(q=>{let who='frei, zu mieten',ic='🔑';
     if(q.owner==='H'){who='Deine Konzernzentrale';ic='🏛️'}else if(q.owner&&q.owner.startsWith('c:')){const cp=G.comps.find(c=>'c:'+c.id===q.owner);who=cp?cp.name:'Konkurrenz';ic='🏪'}
@@ -356,7 +368,10 @@ function housemates(p){const o=G.plots.filter(q=>q.city===p.city&&q.r===p.r&&q.c
     return li(`data-a="open" data-v="plot" data-id="${q.id}" data-keep="1"`,ic,K.unitName(q)+(q.kind==='laden'?' · '+(q.u===0?'links':'rechts'):''),who,fn(q.size)+' m²',fe(q.rent)+'/Monat')}).join('')}</div></div>`}
 function propCard(p){const v=K.propValue(G,p);
   if(p.prop==='H'){const inc=K.propIncome(G,p),self=p.owner&&!p.owner.startsWith('c:');
-    let h=`<div class="card"><div class="ch"><span class="ico">🏢</span><span class="t"><b>Immobilie im Besitz</b><span>Marktwert ${fe(v)}</span></span></div>`;
+    const gross=self?p.rent:inc,maint=v*0.0012,mgmt=gross*0.05,net=gross-maint-mgmt;
+    let h=`<div class="card"><div class="ch"><span class="ico">🏢</span><span class="t"><b>Immobilie im Besitz</b><span>${esc(K.address(p))}</span></span></div>
+      ${kpis([[fn(p.size)+' m²','Fläche'],[fe(v),'Geschätzter Wert'],[p.buyP?fe(p.buyP):'–','Kaufpreis']])}
+      <table><tr><td>${self?'Gesparte Miete':'Mieteinnahmen'} im Monat</td><td>${fe(gross)}</td></tr><tr><td>Wartung</td><td>${fe(-maint)}</td></tr><tr><td>Verwaltung (5 %)</td><td>${fe(-mgmt)}</td></tr><tr class="sum"><td>Ertrag im Monat</td><td class="${net>=0?'pos':'neg'}">${sgn(net)}</td></tr><tr><td>Rendite (ROI)</td><td>${(net*12/(p.buyP||v)*100).toFixed(2).replace('.',',')} %</td></tr>${p.buyP?`<tr><td>Wertänderung seit Kauf</td><td class="${v>=p.buyP?'pos':'neg'}">${sgn(v-p.buyP)}</td></tr>`:''}</table>`;
     if(self)h+=`<div class="sub">Du nutzt die Fläche selbst und sparst ${fe(p.rent)} Miete im Monat (${(p.rent*12/v*100).toFixed(1).replace('.',',')} % Rendite).</div>`;
     else if(p.owner)h+=`<div class="sub">Vermietet an die Konkurrenz: ${fe(p.rent)} im Monat (${(p.rent*12/v*100).toFixed(1).replace('.',',')} % Rendite).</div>`;
     else h+=`<div class="row"><span><span class="lbl">Miete</span><br><span class="sub">${pct(p.leaseR||1)} vom Marktpreis · Auslastung ${pct(K.leaseOcc(p))}</span></span>${step('leaseR',fe(p.rent*(p.leaseR||1)),`data-id="${p.id}"`)}</div><div class="sub">Einnahmen ${fe(inc)} im Monat, ${(inc*12/v*100).toFixed(1).replace('.',',')} % Rendite. Höhere Miete senkt die Auslastung.</div>`;
@@ -377,8 +392,11 @@ VIEWS.list=()=>{let b='';const last=G.report;
     b+='</div></div>'}
   return{eyebrow:K.monthName(G.month),title:'Meine Geschäfte',body:b}};
 // Café-Filiale
+function shopHello(f,s,fc,st){if(fc.dem>fc.cap*1.1)return'Hallo Chef! Wir sind völlig überrannt, die Schlange reicht bis auf die Straße. Wir brauchen mehr Leute.';
+  if(st&&st.profit<0)return'Hallo Chef. Ehrlich gesagt läuft es gerade nicht gut, es kommen zu wenige Gäste.';if(fc.dem<fc.cap*0.5)return'Hallo Chef. Es ist ruhig heute, wir hätten Platz für viel mehr Gäste.';
+  if(s.rep>0.8)return'Hallo Chef! Die Gäste lieben uns, schau dir die Bewertungen an.';return'Hallo Chef. Wie geht’s Ihnen heute? Hier läuft alles rund.'}
 VIEWS.shop=({id})=>{const [f,s]=K.shopOf(G,+id);if(!s)return null;const p=K.plot(G,s.plot),fc=K.shopForecast(G,f,s),st=s.stat;const t=T()||'team';
-  let b=kpis([[st?fn(st.guests):'–','Gäste letzter Monat'],[st?fe(st.rev):'–','Umsatz'],[st?sgn(st.profit):'–','Gewinn',st?(st.profit>=0?'pos':'neg'):'']]);
+  let b=(t==='team'?say(shopHello(f,s,fc,st),BARISTA):'')+kpis([[st?fn(st.guests):'–','Gäste letzter Monat'],[st?fe(st.rev):'–','Umsatz'],[st?sgn(st.profit):'–','Gewinn',st?(st.profit>=0?'pos':'neg'):'']]);
   const over=fc.dem>fc.cap*1.02;
   b+=`<div class="card soft cap"><div class="row"><span class="lbl">Nachfrage diesen Monat</span><span class="sub">${fn(fc.dem)} Gäste</span></div>${bar(Math.min(1,fc.dem/Math.max(fc.dem,fc.cap)),'warn')}
     <div class="row"><span class="lbl">Kapazität</span><span class="sub">${fn(fc.cap)} Gäste</span></div>${bar(Math.min(1,fc.cap/Math.max(fc.dem,fc.cap)),over?'bad':'good')}
@@ -404,10 +422,10 @@ VIEWS.shop=({id})=>{const [f,s]=K.shopOf(G,+id);if(!s)return null;const p=K.plot
     if(p.prop!=='H')b+=`<div class="card soft"><div class="ch"><span class="ico">🏢</span><span class="t"><b>Ladenlokal kaufen statt mieten</b><span>Kaufpreis ${fe(K.propValue(G,p))}, dann keine Miete mehr (${fe(p.rent)} im Monat).</span></span></div><button class="btn" data-a="open" data-v="plot" data-id="${p.id}" data-keep="1">Zur Immobilie →</button></div>`}
   if(t==='rev'){const sat=st?st.sat:s.rep,cat=[['Preis',Math.min(1,fc.ms.price)],['Produkt',fc.ms.quality],['Service',Math.min(1,(st?st.served:1)*0.75+(s.manager?0.12:0)+(s.train||0)*0.05)],['Atmosphäre',fc.comfort]];
     b+=`<div class="card"><div class="row" style="align-items:flex-start"><span><b class="serif" style="font-size:44px;line-height:1">${String(K.stars(s.rep)).replace('.',',')}</b><br>${starsH(K.stars(s.rep))}<br><span class="sub">${fn(s.rcount||0)} Bewertungen</span></span>
-      <span style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">${cat.map(([n,v])=>`<span class="row" style="gap:8px"><span class="sub">${n}</span>${starsH(K.stars(v))}<b>${String(K.stars(v)).replace('.',',')}</b></span>`).join('')}</span></div></div>`;
-    for(const r of s.reviews||[])b+=`<div class="card soft">${starsH(r.s)}<div class="quote">${esc(r.t)}</div></div>`;if(!(s.reviews||[]).length)b+='<div class="sub">Bewertungen gibt es nach dem ersten Monat.</div>'}
+      ${catStars(cat)}</div></div>`;
+    b+=reviewCards((s.reviews||[]).map((r,i)=>Object.assign({look:s.id*31+i+(s.hist?s.hist.length:0)*7,k:/Kaffee|Cappuccino|Kuchen|schmeckt|Qualität/.test(r.t)?'produkt':/teuer|Preis/.test(r.t)?'preis':/gemütlich|eingerichtet|Terrasse/.test(r.t)?'atmo':'service'},r)));if(!(s.reviews||[]).length)b+='<div class="sub">Bewertungen gibt es nach dem ersten Monat.</div>'}
   b+=`<button class="btn bad" data-a="closeShop" data-id="${s.id}">Filiale schließen</button>`;
-  return{eyebrow:esc(f.name)+' · '+K.cityName(p.city),title:K.ZONES[p.zone].n,sub:starsH(K.stars(s.rep))+' '+K.LEVELS[s.level].n+' · seit '+K.monthName(s.opened)+(p.prop==='H'?' · im eigenen Gebäude':''),tabs:[['team','Team'],['up','Ausbau'],['act','Marketing'],['fin','Finanzen'],['rev','Bewertungen']],body:b,after:()=>World.select(p.id)}};
+  return{eyebrow:esc(f.name)+' · '+K.ZONES[p.zone].n,title:esc(K.address(p).split(',')[0]),sub:K.cityName(p.city)+' · '+starsH(K.stars(s.rep))+' '+K.LEVELS[s.level].n+' · seit '+K.monthName(s.opened)+(p.prop==='H'?' · im eigenen Gebäude':''),tabs:[['team','Team'],['up','Ausbau'],['act','Marketing'],['fin','Finanzen'],['rev','Bewertungen']],body:b,after:()=>World.select(p.id)}};
 function shareNear(f,s,p){const out=[];const cols=['#24272b','#c8643c','#2f6fd0','#9b6fb5','#d4a72c','#3f9b62','#8a8f96'];let i=0;
   for(const q of G.plots){if(q.use!=='cafe'||q.city!==p.city||Math.abs(q.r-p.r)>1||Math.abs(q.c-p.c)>1)continue;let a=0,n='';
     if(q.owner&&q.owner.startsWith('c:')){const cp=G.comps.find(c=>'c:'+c.id===q.owner);if(!cp)continue;a=Math.pow(cp.q,0.8)*0.8*Math.min(1.5,Math.max(0.3,Math.exp(-1.8*(cp.price-1))))*(0.35+0.65*cp.rep);n=cp.name}
@@ -578,27 +596,81 @@ VIEWS.bank=()=>{const t=T()||'market';let b='';const me=G.me;
 // Persönliches Vermögen
 VIEWS.wealth=()=>{const w=K.wealth(G),me=G.me,t=T()||'over';let b='';
   if(t==='over'){const parts=[{n:'Bargeld',v:Math.max(0,w.cash),c:'#2f6fd0'},{n:'Aktien',v:w.own+w.stocks,c:'#2f8a55'},{n:'Immobilien',v:w.re,c:'#d14f8a'},{n:'Andere',v:w.lux+w.club,c:'#d4a72c'}];
-    b+=`<div class="card"><div class="row"><span><b class="serif" style="font-size:24px">Du</b><br><span class="sub">CEO von ${esc(G.firms[0].name)}</span></span><span style="font-size:44px">👤</span></div>
+    const wh=me.wh||[],prevW=wh.length>1?wh[wh.length-2]:null;
+    b+=`<div class="card"><div class="row"><span><b class="serif" style="font-size:24px">Du</b><br><span class="sub">CEO von ${esc(G.firms[0].name)} · in ${K.cityName(me.loc||'kiel')}</span></span>${avatar({g:'m',look:me.look||1,suit:'#eef3f7',shirt:'#ffffff'},84)}</div>
       <div class="row"><span><span class="lbl">Jährliches Gehalt</span><br><span class="sub">Zahlt der Konzern, netto ${fe(me.salary*0.58)} im Jahr</span></span>${step('salary',fe(me.salary),'')}</div></div>
-      <div class="card"><div class="eyebrow">Gesamtvermögen</div><b class="serif" style="font-size:40px;line-height:1.1">${fe(w.total)}</b><div class="row" style="align-items:center;margin-top:6px">${donut(parts,130)}${legend(parts)}</div></div>`;
+      <div class="card"><div class="eyebrow">Gesamtvermögen</div><b class="serif" style="font-size:40px;line-height:1.1">${fe(w.total)}</b>${prevW!=null?dl(w.total,prevW):''}${wh.length>2?spark(wh,300,40,'#2f8a55'):''}<div class="row" style="align-items:center;margin-top:6px">${donut(parts,130)}${legend(parts)}</div></div>`;
     b+=`<div class="sec"><h3>Aktien</h3>${li('data-a="open" data-v="group" data-tab="firms" data-keep="1"',K.BRANCHES[G.firms[0].branch].icon,esc(G.firms[0].name)+' (Holding)',pct(G.owner)+' der Anteile'+(G.public?' · börsennotiert':''),fe(w.own),'aktueller Wert')}`;
     for(const tk in me.stocks){const s=G.stocks.find(x=>x.tk===tk),p=me.stocks[tk];b+=li(`data-a="open" data-v="bank" data-keep="1"`,'📈',esc(s.n),fn(p.n)+' Aktien · Kostenbasis '+fe(p.cost),fe(p.n*s.price),sgn(p.n*s.price-p.cost),p.n*s.price>=p.cost?'pos':'neg')}
     b+=`<button class="btn" data-a="open" data-v="bank" data-keep="1">🏦 Zum Aktienmarkt</button></div>`;
     b+=`<div class="sec"><h3>Immobilien und andere Vermögenswerte</h3>`;
     for(const l of me.lux){const L=K.LUX[l.k];b+=`<div class="card"><div class="ch"><span class="ico">${L.icon}</span><span class="t"><b>${L.n}</b><span>${L.sub}</span></span></div><div class="row"><span><span class="sub">Kaufpreis</span><br><b>${fe(l.cost)}</b></span><span style="text-align:right"><span class="sub">Fairer Marktwert</span><br><b class="${l.known?(l.value>=l.cost?'pos':'neg'):''}">${l.known?fe(l.value):'???'}</b></span></div>
       <div class="btns">${l.known?'':`<button class="btn" data-a="appraise" data-id="${l.id}">Gutachten · ${fe(Math.max(500,l.cost*0.01))}</button>`}<button class="btn" data-a="sellLux" data-id="${l.id}">Versteigern</button></div></div>`}
-    if(me.club){const C=K.CLUBS.find(x=>x.id===me.club.id);b+=li('data-a="tab" data-v="club"','⚽',C.n,me.club.league+(me.club.hist[0]?' · zuletzt Platz '+me.club.hist[0].rank:''),fe(me.club.value),'Wert')}
-    b+=`<div class="btns"><button class="btn" data-a="tab" data-v="lux">🛍️ Luxus kaufen</button><button class="btn" data-a="tab" data-v="club">⚽ Fußballverein</button></div></div>`}
+    if(me.club){const C=K.CLUBS.find(x=>x.id===me.club.id);b+=li('data-a="open" data-v="club" data-keep="1"','⚽',C.n,me.club.league+(me.club.hist[0]?' · zuletzt Platz '+me.club.hist[0].rank:''),fe(me.club.value),'Wert')}
+    b+=`<div class="btns"><button class="btn" data-a="tab" data-v="lux">🛍️ Luxus kaufen</button><button class="btn" data-a="${me.club?'open':'tab'}" data-v="club" data-keep="1">⚽ Fußballverein</button><button class="btn" data-a="open" data-v="airport" data-keep="1">✈️ Flughafen</button></div></div>`}
   if(t==='lux'){b+=`<div class="sub">Privates Geld: ${fe(me.cash)}. Der faire Wert ist unbekannt, bis du ein Gutachten machst. Manche Dinge kosten laufend Unterhalt.</div><div class="grid2">`;
     for(const [k,L] of Object.entries(K.LUX))b+=upCard('buyLux',`data-k="${k}"`,L.icon,L.n,L.sub+(L.up?' · Unterhalt':''),fe(L.p[0])+' – '+fe(L.p[1]),false,me.cash<L.p[0]?'zu teuer':null);b+='</div>'}
-  if(t==='club'){const c=me.club;if(!c){b+='<div class="sub">Ein eigener Fußballverein: Prestige, Saisonergebnisse und ein Wert, der mit dem Erfolg steigt oder fällt.</div>';
-      for(const C of K.CLUBS)b+=`<div class="card"><div class="ch"><span class="ico">🏟️</span><span class="t"><b>${C.n}</b><span>${K.cityName(C.city)} · ${C.league}</span></span></div><button class="btn ${me.cash>=C.price?'ink':''}" data-a="buyClub" data-id="${C.id}" ${me.cash>=C.price?'':'aria-disabled="true"'}>Kaufen · ${fe(C.price)}</button></div>`}
-    else{const C=K.CLUBS.find(x=>x.id===c.id);b+=`<div class="card" style="text-align:center"><div style="font-size:60px">🏟️</div><b class="serif" style="font-size:28px">${C.n}</b><div class="sub">${K.cityName(C.city)} · ${c.league}</div></div>`;
-      b+=kpis([[fe(c.value),'Vereinswert'],[pct(c.str),'Kaderstärke'],[c.hist[0]?c.hist[0].rank+'.':'–','Letzte Saison']]);
-      b+=`<div class="card"><div class="row"><span><span class="lbl">Kaderbudget</span><br><span class="sub">Gehälter und Transfers im Monat, aus deinem Privatgeld</span></span>${step('clubBudget',fe(c.budget),'')}</div><div class="sub">Mehr Budget macht die Mannschaft stärker. Die Saison endet jedes Jahr im Mai. Platz 1 bis 4 steigert den Wert deutlich.</div></div>`;
-      if(c.hist.length)b+=`<table>${c.hist.slice(0,6).map(h=>`<tr><td>Saison ${h.y}</td><td>${h.rank}. Platz</td></tr>`).join('')}</table>`;
-      b+=`<button class="btn bad" data-a="sellClub">Verein verkaufen · ${fe(c.value*0.95)}</button>`}}
+  if(t==='club'){const c=me.club;if(c)b+=`<button class="btn ink wide" data-a="open" data-v="club" data-keep="1">⚽ ${esc(c.n)} öffnen</button>`;
+    else{b+='<div class="sub">Ein eigener Profiverein: Liga mit 18 Teams, Kader mit Spielern, Trikots, Transfers und Einnahmen aus Tickets, TV und Fanshop. Bezahlt wird privat.</div>';
+      for(const C of K.CLUBS)b+=`<div class="card"><div class="row"><span class="ch"><span class="ico">🏟️</span><span class="t"><b>${C.n}</b><span>${K.cityName(C.city)} · ${C.league} · Stadion ${fn(K.CLUB_STAD[C.id])} Plätze<br>Eigentümer: ${C.owner}</span></span></span>${jerseySvg({c1:C.c1,c2:'#ffffff',style:'streifen'},48)}</div><button class="btn ${me.cash>=C.price?'ink':''}" data-a="buyClub" data-id="${C.id}" ${me.cash>=C.price?'':'aria-disabled="true"'}>Kaufen · ${fe(C.price)}</button></div>`}}
   return{eyebrow:'Persönliches Vermögen',title:fe(w.total),tabs:[['over','Übersicht'],['lux','Luxus'],['club','Verein']],body:b}};
+// ---------- Sprechblase mit Person ----------
+const say=(t,who)=>`<div class="say"><p>${t}</p><span class="sayAva">${avatar(who||ASSIST,58)}</span></div>`;
+const BARISTA={g:'f',look:777,hair:'#5b3a26',suit:'#9b6fb5',shirt:'#ffffff',skin:'#efc3a4'};
+// ---------- Trikot und Spieler ----------
+const JCOLS=['#2f6fd0','#cc3b33','#24272b','#ffffff','#2f8a55','#d4a72c','#9b6fb5','#7fb5e6','#e07a2a','#8a1f2b'];
+const JSTYLES={uni:'Einfarbig',streifen:'Streifen',ring:'Ringel',schaerpe:'Schärpe',halb:'Halb und halb'};
+function jerseySvg(j,size){const id='j'+Math.random().toString(36).slice(2,7);let pat='';
+  if(j.style==='streifen')pat=[22,34,46,58,70].map(x=>`<rect x="${x}" y="0" width="6" height="100" fill="${j.c2}"/>`).join('');
+  if(j.style==='ring')pat=[30,46,62,78].map(y=>`<rect x="0" y="${y}" width="100" height="7" fill="${j.c2}"/>`).join('');
+  if(j.style==='schaerpe')pat=`<path d="M20 20 L34 20 L84 96 L70 96 Z" fill="${j.c2}"/>`;if(j.style==='halb')pat=`<rect x="50" y="0" width="50" height="100" fill="${j.c2}"/>`;
+  return`<svg viewBox="0 0 100 100" width="${size||90}" height="${size||90}" aria-hidden="true"><defs><clipPath id="${id}"><path d="M30 12 L42 8 Q50 16 58 8 L70 12 L92 28 L82 44 L74 38 L74 94 L26 94 L26 38 L18 44 L8 28 Z"/></clipPath></defs>
+    <g clip-path="url(#${id})"><rect width="100" height="100" fill="${j.c1}"/>${pat}</g><path d="M30 12 L42 8 Q50 16 58 8 L70 12 L92 28 L82 44 L74 38 L74 94 L26 94 L26 38 L18 44 L8 28 Z" fill="none" stroke="rgba(36,39,43,.35)" stroke-width="2"/><path d="M42 8 Q50 16 58 8" fill="none" stroke="${j.c2}" stroke-width="3"/></svg>`}
+function playerSvg(p,j,size){const r=n=>{let x=(p.look||1)*9301+n*49297;x=(x*233280+n)%2147483647;return(x%1000)/1000};const skin=['#f6d2c4','#efc3a4','#d9a07c','#b9784f','#8d5a3b'][Math.floor(r(1)*5)],hair=['#24272b','#5b3a26','#a0522d','#d9a441','#7a4a2a'][Math.floor(r(2)*5)];
+  return`<svg viewBox="0 0 60 120" width="${(size||100)/2}" height="${size||100}" aria-hidden="true"><ellipse cx="30" cy="116" rx="16" ry="3" fill="rgba(0,0,0,.12)"/>
+    <rect x="21" y="78" width="7" height="30" fill="${skin}"/><rect x="32" y="78" width="7" height="30" fill="${skin}"/><rect x="20" y="92" width="9" height="18" fill="#fff"/><rect x="31" y="92" width="9" height="18" fill="#fff"/><rect x="19" y="108" width="10" height="5" rx="2" fill="#24272b"/><rect x="31" y="108" width="10" height="5" rx="2" fill="#24272b"/>
+    <rect x="19" y="66" width="22" height="16" fill="${j.c2==='#ffffff'&&j.c1==='#ffffff'?'#24272b':'#ffffff'}"/>
+    <g transform="translate(5 26) scale(.5)">${jerseySvg(j,100).replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'')}</g>
+    <rect x="26" y="20" width="8" height="8" fill="${skin}"/><ellipse cx="30" cy="14" rx="8" ry="10" fill="${skin}"/><path d="M22 12 Q22 2 30 2 Q39 2 38 13 Q35 7 30 7 Q25 8 22 12 Z" fill="${hair}"/></svg>`}
+// ---------- Fußballverein ----------
+VIEWS.club=()=>{const c=G.me.club;if(!c)return null;const C=K.CLUBS.find(x=>x.id===c.id),t=T()||'home',j=c.jersey;let b='';
+  if(t==='home'){const me=c.table.find(x=>x.me),tab=c.table.slice().sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)),rank=tab.indexOf(me)+1;
+    b+=say(esc(C.n)+' ist ein Profiverein aus '+K.cityName(C.city)+'. Die Saison läuft von August bis Mai, danach öffnet das Transferfenster.');
+    b+=`<div class="card clubHero"><div class="stad">🏟️</div><div class="pl2">${c.players.slice().sort((a,b)=>b.r-a.r).slice(0,2).map(p=>playerSvg(p,j,110)).join('')}</div></div>`;
+    b+=`<div class="card"><div class="eyebrow">${c.league} · Spieltag ${c.md} von 34</div><div class="row"><span><b class="serif" style="font-size:34px">${rank}.</b> <span class="sub">/ 18 Teams</span></span><span class="sub">S <b>${me.w}</b> · U <b>${me.d}</b> · N <b>${me.l}</b> · Punkte <b>${me.pts}</b></span></div>
+      <table class="league">${tab.map((x,i)=>`<tr class="${x.me?'me':''}${c.league==='1. Liga'&&i>=16||c.league==='2. Liga'&&i<2?' zone':''}"><td>${i+1}</td><td>${esc(x.n)}</td><td>${x.w+x.d+x.l}</td><td>${x.gf}:${x.ga}</td><td><b>${x.pts}</b></td></tr>`).join('')}</table></div>`;
+    if(c.hist.length)b+=`<div class="sec"><h3>Vergangene Saisons</h3><table>${c.hist.slice(0,6).map(h=>`<tr><td>Saison ${h.y}/${String(h.y+1).slice(2)} · ${h.lg}</td><td>${h.rank}. Platz · ${h.pts} Pkt.</td></tr>`).join('')}</table></div>`;
+    b+=kpis([[fe(c.value),'Vereinswert'],[(K.squadStr(c)).toFixed(1),'Kaderstärke'],[fn(c.fans),'Fans']]);
+    b+=`<div class="sub">Eigentümer: du, seit ${K.monthName(c.since)}.</div><button class="btn bad" data-a="sellClub">Verein verkaufen · ${fe(c.value*0.95)}</button>`}
+  if(t==='jersey'){const d=view.p.jd||Object.assign({},j);view.p.jd=d;
+    b+=`<div class="card" style="text-align:center">${jerseySvg(d,150)}<div class="sub">${JSTYLES[d.style]}</div></div>
+      <div class="lbl">Grundfarbe</div><div class="swatches">${JCOLS.map(x=>`<button data-a="jc" data-k="c1" data-v="${x}" style="background:${x}" aria-pressed="${d.c1===x}" aria-label="Farbe"></button>`).join('')}</div>
+      <div class="lbl">Zweitfarbe</div><div class="swatches">${JCOLS.map(x=>`<button data-a="jc" data-k="c2" data-v="${x}" style="background:${x}" aria-pressed="${d.c2===x}" aria-label="Farbe"></button>`).join('')}</div>
+      ${seg('jstyle',Object.entries(JSTYLES),d.style)}
+      <button class="btn ink" data-a="jersey">Neues Trikot vorstellen · 250.000 €</button><div class="sub">Ein neues Trikot verkauft sich im ersten Monat anderthalbmal so gut.</div>
+      <div class="row"><span><span class="lbl">Preis im Fanshop</span><br><span class="sub">${c.fin?'Letzter Monat '+fe(c.fin.merch)+' Merchandising':''}</span></span>${step('jprice',fe(j.price),'')}</div>`}
+  if(t==='players'){const order={TW:0,ABW:1,MIT:2,ST:3},ps=c.players.slice().sort((a,b)=>order[a.pos]-order[b.pos]||b.r-a.r);
+    b+=`<div class="sub">Kaderstärke ${K.squadStr(c).toFixed(1)} (beste Elf). ${c.players.length} Spieler, Gehälter ${fe(c.players.reduce((s,p)=>s+p.sal,0))} im Jahr.</div><div class="list">`;
+    for(const p of ps)b+=`<div class="li" style="cursor:default"><span class="pmini">${playerSvg(p,j,48)}</span><span class="t"><b>${esc(p.name)}</b><span>${p.pos} · ${p.age} Jahre · Gehalt ${fe(p.sal)}</span></span><span class="v"><b class="serif" style="font-size:20px">${p.r}</b><small>${fe(p.val)}</small></span><button class="btn" data-a="sellPlayer" data-id="${p.id}" style="margin-left:6px">Verkaufen</button></div>`;
+    b+='</div>'}
+  if(t==='transfer'){const win=[6,7,0].includes(G.month%12);b+=say(win?'Das Transferfenster ist offen. Diese Spieler sind zu haben:':'Das Transferfenster öffnet im Juli und Januar. Bis dahin kannst du die Liste ansehen.',{g:'m',look:5150,hair:'#24272b',suit:'#5a6270'});
+    b+='<div class="list">';for(const p of c.market)b+=`<div class="li" style="cursor:default"><span class="pmini">${playerSvg(p,{c1:'#c9ccd0',c2:'#ffffff',style:'uni'},48)}</span><span class="t"><b>${esc(p.name)}</b><span>${p.pos} · ${p.age} J. · ${esc(p.from)} · Gehalt ${fe(p.sal)}</span></span><span class="v"><b class="serif" style="font-size:20px">${p.r}</b><small>${fe(p.price)}</small></span><button class="btn ${win?'ink':''}" data-a="signPlayer" data-id="${p.id}" ${win?'':'aria-disabled="true"'} style="margin-left:6px">Holen</button></div>`;
+    b+='</div>'+(c.market.length?'':'<div class="sub">Gerade keine Angebote.</div>')}
+  if(t==='fin'){const f=c.fin;if(!f)b+='<div class="sub">Zahlen gibt es nach dem ersten Monat.</div>';
+    else b+=`<table><tr><td>Tickets (${f.home} Heimspiele, ${pct(f.fill)} Auslastung)</td><td>${fe(f.tickets)}</td></tr><tr><td>Fanshop und Trikots</td><td>${fe(f.merch)}</td></tr><tr><td>TV-Gelder</td><td>${fe(f.tv)}</td></tr><tr><td>Sponsoren</td><td>${fe(f.spon)}</td></tr>
+      <tr><td>Spielergehälter</td><td>${fe(-f.wages)}</td></tr><tr><td>Stadion und Betrieb</td><td>${fe(-f.upk)}</td></tr><tr class="sum"><td>Ergebnis für dich</td><td class="${f.net>=0?'pos':'neg'}">${sgn(f.net)}</td></tr></table>`;
+    b+=`<div class="row"><span><span class="lbl">Ticketpreis</span><br><span class="sub">Stadion mit ${fn(K.CLUB_STAD[c.id])} Plätzen</span></span>${step('ticket',fe(c.ticket),'')}</div>`}
+  return{eyebrow:'Fußball · '+c.league,title:esc(C.n),tabs:[['home','Franchise'],['jersey','Trikots'],['players','Spieler'],['transfer','Transfer'],['fin','Finanzen']],body:b}};
+// ---------- Flughafen ----------
+VIEWS.airport=()=>{const me=G.me,fl=K.flights(G);let b=say('Willkommen am '+K.AIRPORTS[me.loc]+'. Wohin geht es heute? Ein Besuch vor Ort hebt Ruf und Stimmung deiner Geschäfte dort.',{g:'m',look:31337,hair:'#d9a441',suit:'#8a8f96'});
+  b+=`<div class="card"><div class="row"><span>📍 Du bist in <b>${K.cityName(me.loc)}</b></span></div>${kpis([[fn(me.kmM||0)+' km','Diesen Monat geflogen'],[fn(me.km||0)+' km','Insgesamt']])}</div><div class="sec"><h3>✈️ Abflüge</h3><div class="list">`;
+  for(const f of fl)b+=`<button class="li" data-a="fly" data-id="${f.id}"><span class="ico">${f.jet?'🛩️':'✈️'}</span><span class="t"><b>${f.n}</b><span>${fn(f.km)} km${f.open?'':' · noch nicht erschlossen'}</span></span><span class="v">${fe(f.cost)}<small>${f.jet?'Privatjet':'Ticket'}</small></span></button>`;
+  b+='</div></div>';if(!me.lux.some(l=>l.k==='jet'))b+='<div class="sub">Mit einem eigenen Privatjet (Luxus) fliegst du ohne Ticket.</div>';
+  return{eyebrow:'Reisen',title:K.AIRPORTS[me.loc],body:b}};
+// ---------- Bewertungskarten ----------
+const CATICO={produkt:'☕',preis:'💶',atmo:'🛋️',service:'🙂'};
+function reviewCards(list){return`<div class="revs">${list.map((r,i)=>`<div class="card rev"><div class="row">${starsH(r.s)}<span class="revAva"><i>${CATICO[r.k]||'💬'}</i>${avatar({g:r.g||(i%2?'f':'m'),look:r.look||((r.t||'').length*97+i)},52)}</span></div><div class="quote" style="font-size:14px">${esc(r.t)}</div></div>`).join('')}</div>`}
+function catStars(cat){return`<span style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">${cat.map(([n,v])=>`<span class="row" style="gap:8px"><span class="sub">${n}</span>${starsH(K.stars(v))}<b>${String(K.stars(v)).replace('.',',')}</b></span>`).join('')}</span>`}
 // Ziele
 VIEWS.goals=()=>{let b='<div class="sub">Für jedes erreichte Ziel gibt es eine Förderprämie.</div><div class="list">';const next=K.GOALS.find(x=>!G.goals[x.k]);
   for(const g of K.GOALS){const done=G.goals[g.k]!==undefined;b+=`<div class="li" style="${done?'background:rgba(47,138,85,.07)':g===next?'border-color:var(--ink)':'opacity:.7'}"><span class="ico">${done?'✅':g===next?'🎯':'⬜'}</span><span class="t"><b>${g.n}</b><span>${done?'erreicht im '+K.monthName(G.goals[g.k]-1):g.d||''}</span></span><span class="v">${g.reward?fe(g.reward):''}</span></div>`}
@@ -825,8 +897,14 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
   case'salary':run(K.act.salary(G,G.me.salary+d*(G.me.salary>=200000?50000:10000)),1);break;
   case'buyLux':run(K.act.buyLux(G,k));break;case'appraise':run(K.act.appraise(G,+id));break;
   case'sellLux':if(confirm('Wirklich versteigern? Das Auktionshaus behält 8 %.'))run(K.act.sellLux(G,+id));break;
-  case'buyClub':if(confirm('Verein kaufen?'))run(K.act.buyClub(G,id));break;
-  case'clubBudget':run(K.act.clubBudget(G,G.me.club.budget+d*Math.max(10000,Math.round(G.me.club.value*0.0005/10000)*10000)),1);break;
+  case'buyClub':if(confirm('Verein kaufen?')){const r=run(K.act.buyClub(G,id));if(r&&r.ok)open('club',{},true)}break;
+  case'jc':view.p.jd[k]=v;renderSheet();break;case'jstyle':view.p.jd.style=v;renderSheet();break;
+  case'jersey':if(confirm('Neues Trikot für 250.000 € vorstellen?')){run(K.act.jersey(G,{design:{c1:view.p.jd.c1,c2:view.p.jd.c2,style:view.p.jd.style}}))}break;
+  case'jprice':run(K.act.jersey(G,{price:G.me.club.jersey.price+d*5}),1);break;
+  case'ticket':run(K.act.clubTicket(G,G.me.club.ticket+d*2),1);break;
+  case'signPlayer':if(confirm('Spieler verpflichten?'))run(K.act.signPlayer(G,+id));break;
+  case'sellPlayer':if(confirm('Spieler verkaufen?'))run(K.act.sellPlayer(G,+id));break;
+  case'fly':{const r=run(K.act.fly(G,id));if(r&&r.ok){save();if(G.cities[id]){G.cityCur=id;World.setCity(G,id)}refresh();renderSheet()}break}
   case'sellClub':if(confirm('Verein verkaufen?'))run(K.act.sellClub(G));break;
   case'buyProp':if(confirm('Fläche kaufen (Teileigentum)?'))run(K.act.buyProp(G,id));break;
   case'sellProp':if(confirm('Gebäude verkaufen?'))run(K.act.sellProp(G,id));break;

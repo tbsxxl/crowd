@@ -390,7 +390,7 @@ function endTurn(G){
   if(rand(G)<0.08){const g=pick(G,Object.keys(GENRES)),cp=addComp(G,{branch:'soft',name:pick(G,APP_NAMES)+' '+pick(G,['Labs','Studio','Apps']),color:'#8a8f96',q:rr(G,0.5,0.75)});
     G.apps.push({id:uid(G),owner:'c:'+cp.id,name:pick(G,APP_NAMES),genre:g,scope:'M',state:'live',progress:1,work:1,quality:cp.q,bugs:15,users:5000,payers:0,model:'freemium',price:4.99,fresh:1,released:G.month})}
   if(G.cash<-dispo(G)){G.insolvT=(G.insolvT||0)+1;rep.events.push({icon:'⚠️',bad:true,t:'Der Dispo ist überzogen ('+G.insolvT+' von 3). Nach drei Monaten im Minus droht die Insolvenz.'});if(G.insolvT>=3)G.over='insolvent'}else G.insolvT=0;
-  marketsMonth(G,rep);clubMonth(G,rep);
+  marketsMonth(G,rep);clubMonth(G,rep);G.me.wh.push(wealth(G).total);if(G.me.wh.length>24)G.me.wh.shift();
   G.month++;G.ev={};
   if(G.month%12===0){if(!G.rentFreeze)for(const p of G.plots)p.rent=Math.round(p.rent*1.02/10)*10;G.rentFreeze=false}
   const ne=rep.events.length;marketNews(G,rep);for(const e of rep.events.slice(ne))paper(rep,'wirtschaft',e.t.split(':')[0],e.t,{icon:'bank'});
@@ -526,7 +526,8 @@ function ex(G,k){const e=G.execs&&G.execs[k];if(!e)return 0;if(e===true)return 1
 function grantValue(G,gr,unvestedOnly){const left=unvestedOnly?gr.n*(1-(gr.vested||0)/4):gr.n,px=G.sharePrice||0;return gr.type==='rsu'?left*px:left*Math.max(0,px-gr.strike)}
 // ältere Spielstände ergänzen
 function migrate(G){
-  if(!G.me)G.me={cash:10000,salary:36000,stocks:{},lux:[],club:null};if(!G.execs)G.execs={};if(!G.re)G.re=1;if(!G.stocks)genMarket(G);
+  if(!G.me)G.me={cash:10000,salary:36000,stocks:{},lux:[],club:null};if(!G.me.loc)G.me.loc=G.cityCur||'kiel';if(!G.me.wh)G.me.wh=[];if(G.me.look===undefined)G.me.look=(G.rs>>>3)%100000;
+  if(G.me.club&&!G.me.club.players)initClub(G,CLUBS.find(x=>x.id===G.me.club.id),G.me.club);if(!G.execs)G.execs={};if(!G.re)G.re=1;if(!G.stocks)genMarket(G);
   for(const k in G.execs){const e=G.execs[k];if(e===true){const p=person(G);G.execs[k]=Object.assign(p,{since:G.month,salary:marketPay(G,k),deleg:{},grants:[]})}else if(!e)delete G.execs[k]}
   for(const k in G.depts)if(G.depts[k]===true)G.depts[k]=dneed(G);
   if(!G.macro)G.macro={rate:0.025,gdp:0.012,infl:0.02};if(!G.dues)G.dues=[];if(G.divPS===undefined)G.divPS=0;if(!G.deptWage)G.deptWage=60000;
@@ -629,7 +630,7 @@ const LUX={wein:{n:'Romanée-Conti 1945',sub:'Zwei Flaschen Rotwein',icon:'🍷'
   kunst:{n:'Gemälde',sub:'Klassische Moderne',icon:'🖼️',p:[400000,2500000],vol:0.09,up:0.001},auto:{n:'Oldtimer 300 SL',sub:'Flügeltürer, 1955',icon:'🏎️',p:[1200000,1800000],vol:0.05,up:0.001},
   yacht:{n:'Segelyacht',sub:'32 Meter, Liegeplatz Kiel',icon:'⛵',p:[3000000,6000000],vol:0.04,up:0.004},villa:{n:'Villa am Wasser',sub:'Elbchaussee, Hamburg',icon:'🏡',p:[6000000,12000000],vol:0.025,up:0.0015},
   jet:{n:'Privatjet',sub:'Mittelstrecke, 8 Plätze',icon:'🛩️',p:[18000000,30000000],vol:0.03,up:0.006}};
-const CLUBS=[{id:'kiel',n:'Holstein SV',city:'kiel',price:12e6,league:'2. Liga'},{id:'hh',n:'Hamburger Kickers',city:'hamburg',price:80e6,league:'1. Liga'},{id:'ber',n:'Berlin SC',city:'berlin',price:300e6,league:'1. Liga'}];
+const CLUBS=[{id:'kiel',n:'Holstein SV',city:'kiel',price:28e6,league:'2. Liga',c1:'#2f6fd0',owner:'Mitglieder e. V.'},{id:'hh',n:'Hamburger Kickers',city:'hamburg',price:120e6,league:'1. Liga',c1:'#24272b',owner:'Hanse Invest'},{id:'ber',n:'Berlin SC',city:'berlin',price:300e6,league:'1. Liga',c1:'#2f6fd0',owner:'Familie Schneider'}];
 function genMarket(G){G.stocks=STOCKS.map(([tk,n,sec,price,shares,drift,vol,div])=>({tk,n,sec,price,shares,drift,vol,div,hist:[price]}));for(let i=0;i<23;i++)stepStocks(G,true)}
 function gauss(G){return Math.sqrt(-2*Math.log(rand(G)+1e-9))*Math.cos(6.2832*rand(G))}
 function stepStocks(G,warm){const shock={};for(const k in SECTORS)shock[k]=gauss(G)*0.03;const mkt=gauss(G)*0.025+(G.macro?G.macro.gdp*0.08:0);
@@ -638,12 +639,83 @@ function marketsMonth(G,rep){stepStocks(G);const me=G.me;let div=0;
   if(G.month%3===2)for(const tk in me.stocks){const s=G.stocks.find(x=>x.tk===tk);if(s)div+=me.stocks[tk].n*s.price*s.div/4}
   if(div){me.cash+=div*0.75;rep.events.push({icon:'💶',t:'Dividenden auf dein Depot: +'+fmtE(div*0.75)+' (nach Steuer).'})}
   for(const l of me.lux){l.value=Math.max(1000,l.value*Math.exp(0.002+gauss(G)*LUX[l.k].vol));const up=l.value*LUX[l.k].up;me.cash-=up}}
-function privateMonth(G,rep){const sal=G.me.salary/12;if(sal>0){pay(G,'H','staff',sal);G.me.cash+=sal*0.58}}
-function clubMonth(G,rep){const c=G.me.club;if(!c)return;const C=CLUBS.find(x=>x.id===c.id);
-  const inc=c.value*0.003*(1.2-c.lastRank/22)+(c.league==='1. Liga'?250000:40000);G.me.cash+=inc-c.budget;c.str+=(c.budget/(c.budget+c.value*0.006)-c.str)*0.15;
-  if(G.month%12===4){const rank=clamp(Math.round(18-c.str*17+gauss(G)*2.2),1,18);c.hist.unshift({y:yearOf(G.month),rank});c.lastRank=rank;
-    let t=C.n+' beendet die Saison auf Platz '+rank+'.';if(rank===1){c.value*=1.35;t+=' Meisterschaft! 🏆';G.ms.title=G.month}else if(rank<=4)c.value*=1.12;else if(rank>=16){c.value*=0.85;t+=' Abstiegszone …'}else c.value*=1.0+(10-rank)*0.008;
-    rep.events.push({icon:'⚽',t})}}
+function privateMonth(G,rep){G.me.kmM=0;const sal=G.me.salary/12;if(sal>0){pay(G,'H','staff',sal);G.me.cash+=sal*0.58}}
+// ---------- Fußballverein: Liga, Kader, Trikots, Transfers, Finanzen ----------
+const TEAMS={'1. Liga':['München 1900','Dortmund Borussen','Leipzig Rasen','Leverkusen Werkself','Frankfurt Adler','Stuttgart VfB','Wolfsburg Wölfe','Freiburg Breisgau','Bremen Werder','Mainz 05','Köln Geißböcke','Augsburg Fugger','Bochum Ruhr','Heidenheim Ostalb','Union Köpenick','Gladbach Fohlen','Hoffenheim TSG','Darmstadt Lilien','Schalke Knappen','Hamburger Kickers','Berlin SC'],
+  '2. Liga':['Hannover Roten','Düsseldorf Fortuna','Paderborn 07','Karlsruhe Badener','Nürnberg Clubberer','Fürth Kleeblatt','Magdeburg Elbe','Rostock Hansa','Braunschweig Löwen','Elversberg SV','Kaiserslautern Betze','Münster Preußen','Ulm Spatzen','Regensburg Jahn','St. Pauli Kiez','Osnabrück Lila','Wiesbaden Wehen','Holstein SV','Hamburger Kickers']};
+const POS=[['TW',2],['ABW',6],['MIT',6],['ST',4]];
+const CLUB_STAD={kiel:15000,hh:57000,ber:74000};
+const OWNERS=['Familie Schneider','Familie Albrecht','Hanse Invest','Mitglieder e. V.','Brauerei Nordlicht','Familie Petersen'];
+function lvlOf(lg){return lg==='1. Liga'?74:65}
+function genPlayer(G,lg,pos,q){const age=Math.round(rr(G,18,33)),r=clamp(Math.round((q||lvlOf(lg))+gauss(G)*5-(age<21?4:0)),45,94);
+  return{id:uid(G),name:pick(G,FIRST.m)+' '+pick(G,LAST),pos,age,r,look:(rand(G)*1e6)|0,sal:pSal(r),val:pVal(r,age)}}
+function pSal(r){return Math.round(Math.pow(1.13,r-50)*90000/1000)*1000}
+function pVal(r,age){return Math.round(Math.pow(1.17,r-50)*90000*(age<24?1.4:age>30?0.55:1)/10000)*10000}
+function squadStr(c){const best=c.players.slice().sort((a,b)=>b.r-a.r);const gk=best.find(p=>p.pos==='TW'),field=best.filter(p=>p!==gk).slice(0,10);return((gk?gk.r:50)+field.reduce((s,p)=>s+p.r,0))/11}
+function newTable(G,c){const names=TEAMS[c.league].filter(n=>n!==c.n).sort(()=>rand(G)-0.5).slice(0,17),base=lvlOf(c.league);
+  c.table=names.map(n=>({n,str:base+gauss(G)*4,w:0,d:0,l:0,gf:0,ga:0,pts:0})).concat([{n:c.n,me:true,str:0,w:0,d:0,l:0,gf:0,ga:0,pts:0}]);c.md=0}
+function initClub(G,C,c){c=c||{};const lg=c.league||C.league;Object.assign(c,{id:C.id,n:C.n,league:lg,hist:c.hist||[],value:c.value||C.price});
+  if(!c.players){c.players=[];for(const [p,n] of POS)for(let i=0;i<n;i++)c.players.push(genPlayer(G,lg,p,lvlOf(lg)+((c.str||0.45)-0.45)*20))}
+  c.jersey=c.jersey||{c1:C.c1||'#2f6fd0',c2:'#ffffff',style:'streifen',price:79};c.fans=c.fans||Math.round(CLUB_STAD[C.id]*12);c.ticket=c.ticket||(lg==='1. Liga'?38:24);
+  c.market=c.market||[];c.fin=c.fin||null;c.since=c.since===undefined?G.month:c.since;if(!c.table)newTable(G,c);if(!c.revA){const sq=c.players.reduce((s,p)=>s+p.val,0);c.revA=Math.max(c.value*0.15,(c.value-sq*0.6)/2.2)}delete c.budget;delete c.str;return c}
+function clubMarket(G,c){c.market=[];for(let i=0;i<6;i++){const p=genPlayer(G,c.league,pick(G,['TW','ABW','ABW','MIT','MIT','ST','ST']),lvlOf(c.league)+rr(G,-4,10));p.price=Math.round(p.val*rr(G,0.9,1.35)/10000)*10000;p.from=pick(G,TEAMS[pick(G,['1. Liga','2. Liga'])]);c.market.push(p)}}
+function match(G,a,b,home){const d=(a-b)/6+(home?0.25:-0.25);const ga=Math.max(0,Math.round(1.35+d*0.55+gauss(G)*1.05)),gb=Math.max(0,Math.round(1.35-d*0.55+gauss(G)*1.05));return[ga,gb]}
+function rec(t,f,a){t.gf+=f;t.ga+=a;if(f>a){t.w++;t.pts+=3}else if(f===a){t.d++;t.pts++}else t.l++}
+const SEASON=[7,8,9,10,11,0,1,2,3,4],MDAYS=[4,3,4,3,4,3,3,4,3,3];
+function clubMonth(G,rep){const c=G.me.club;if(!c)return;const C=CLUBS.find(x=>x.id===c.id);if(!c.players)initClub(G,C,c);
+  const mi=SEASON.indexOf(G.month%12),me=c.table.find(t=>t.me);me.str=squadStr(c);let home=0,res=[];
+  if(mi>=0){for(let k=0;k<MDAYS[mi];k++){const order=c.table.slice().sort(()=>rand(G)-0.5);for(let i=0;i<order.length;i+=2){const A0=order[i],B0=order[i+1],h=rand(G)<0.5;const [x,y]=match(G,A0.str,B0.str,h);rec(A0,x,y);rec(B0,y,x);
+      if(A0.me||B0.me){const mine=A0.me?[x,y]:[y,x],hm=A0.me?h:!h;if(hm)home++;res.push(mine)}}c.md++}
+    for(const t of c.table)if(!t.me)t.str+=gauss(G)*0.3}
+  // Finanzen des Monats
+  const sorted=c.table.slice().sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)),rank=sorted.indexOf(me)+1,form=res.length?res.reduce((s,[a,b])=>s+(a>b?1:a===b?0.4:0),0)/res.length:0.5;
+  c.fans=Math.round(c.fans*(1+(form-0.45)*0.04+(c.league==='1. Liga'?0.004:0)));const cap=CLUB_STAD[c.id];
+  const fill=clamp(c.fans/(cap*14)*(0.85+form*0.3)*Math.exp(-(c.ticket/(c.league==='1. Liga'?38:24)-1)*0.9),0.2,1);
+  const tickets=home*cap*fill*c.ticket*0.7,jA=Math.exp(-(c.jersey.price/79-1)*1.6),merch=c.fans*0.012*jA*c.jersey.price*(c.jersey.fresh?1.5:1)*0.45;c.jersey.fresh=false;
+  const tv=(c.league==='1. Liga'?2.5e6:0.9e6)*(mi>=0?1:0.3)*(1.15-rank/40),spon=c.value*0.0012,wages=c.players.reduce((s,p)=>s+p.sal,0)/12,upk=cap*6;
+  const net=tickets+merch+tv+spon-wages-upk;G.me.cash+=net;c.fin={tickets,merch,tv,spon,wages,upk,net,fill,home,res,rank};
+  const sq=c.players.reduce((s,p)=>s+p.val,0);c.revA=(c.revA||c.value/3)*0.92+(tickets+merch+tv+spon)*12*0.08;c.value=Math.round(Math.max(sq*1.2,c.revA*2.2+sq*0.6)/100000)*100000;
+  if(res.length&&rep){const w=res.filter(([a,b])=>a>b).length,d=res.filter(([a,b])=>a===b).length;rep.events.push({icon:'⚽',t:C.n+': '+w+' Siege, '+d+' Remis, '+(res.length-w-d)+' Niederlagen im Monat · Platz '+rank+' · '+(net>=0?'+':'')+fmtE(net)+' für dich.'})}
+  if(G.month%12===4&&mi>=0){const old=c.league;c.hist.unshift({y:yearOf(G.month)-1,lg:old,rank,w:me.w,d:me.d,l:me.l,pts:me.pts});let t=C.n+' beendet die Saison '+(yearOf(G.month)-1)+'/'+String(yearOf(G.month)).slice(2)+' auf Platz '+rank+' ('+old+').';
+    if(rank===1&&old==='1. Liga'){t+=' Deutscher Meister! 🏆';G.ms.title=G.month;c.fans=Math.round(c.fans*1.15)}
+    if(old==='2. Liga'&&rank<=2){c.league='1. Liga';t+=' Aufstieg in die 1. Liga!';c.fans=Math.round(c.fans*1.25);c.ticket=Math.max(c.ticket,34)}
+    if(old==='1. Liga'&&rank>=17){c.league='2. Liga';t+=' Abstieg in die 2. Liga.';c.fans=Math.round(c.fans*0.8)}
+    rep.events.push({icon:'🏆',t});paper(rep,'top',C.n+': Platz '+rank,t,{icon:'politik'});
+    for(const p of c.players){p.age++;p.r=clamp(p.r+(p.age<24?Math.round(rr(G,0,4)):p.age>30?-Math.round(rr(G,1,4)):Math.round(rr(G,-1,2))),40,95);p.val=pVal(p.r,p.age)}}
+  if(G.month%12===6){newTable(G,c);clubMarket(G,c);if(rep)rep.events.push({icon:'🔄',t:C.n+': Das Transferfenster ist offen.'})}
+  if(G.month%12===0)clubMarket(G,c)}
+function clubActions(A){
+  A.buyClub=(G,id)=>{const C=CLUBS.find(x=>x.id===id);if(G.me.club)return{ok:false,msg:'Du besitzt schon einen Verein.'};if(G.me.cash<C.price)return{ok:false,msg:'Privat fehlen dir '+fmtE(C.price-G.me.cash)+'.'};
+    G.me.cash-=C.price;G.me.club=initClub(G,C,{value:C.price});clubMarket(G,G.me.club);news(G,'Du kaufst '+C.n+'!','ms');return{ok:true,msg:C.n+' gehört jetzt dir!'}};
+  A.sellClub=G=>{const c=G.me.club;if(!c)return{ok:false};G.me.cash+=c.value*0.95;G.me.club=null;return{ok:true,msg:'Verein verkauft für '+fmtE(c.value*0.95)+'.'}};
+  A.clubTicket=(G,v)=>{const c=G.me.club;if(!c)return{ok:false};c.ticket=clamp(Math.round(v),8,150);return{ok:true}};
+  A.jersey=(G,ch)=>{const c=G.me.club;if(!c)return{ok:false};if(ch.design){if(G.me.cash<250000)return{ok:false,msg:'Ein neues Trikot kostet 250.000 € Design und Produktion.'};G.me.cash-=250000;Object.assign(c.jersey,ch.design,{fresh:true});return{ok:true,msg:'Neues Trikot vorgestellt! Die Fans stürmen den Shop.'}}
+    if(ch.price!==undefined)c.jersey.price=clamp(Math.round(ch.price),29,199);return{ok:true}};
+  A.signPlayer=(G,pid)=>{const c=G.me.club;if(!c)return{ok:false};if(![6,7,0].includes(G.month%12))return{ok:false,msg:'Das Transferfenster ist geschlossen (offen im Juli, August und Januar).'};const i=c.market.findIndex(p=>p.id===pid);if(i<0)return{ok:false};const p=c.market[i];
+    if(c.players.length>=26)return{ok:false,msg:'Der Kader ist voll (26). Verkaufe zuerst jemanden.'};if(G.me.cash<p.price)return{ok:false,msg:'Privat fehlen dir '+fmtE(p.price-G.me.cash)+'.'};
+    G.me.cash-=p.price;c.market.splice(i,1);delete p.from;c.players.push(p);return{ok:true,msg:p.name+' wechselt für '+fmtE(p.price)+' zu '+c.n+'.'}};
+  A.sellPlayer=(G,pid)=>{const c=G.me.club;if(!c)return{ok:false};const i=c.players.findIndex(p=>p.id===pid);if(i<0)return{ok:false};if(c.players.length<=16)return{ok:false,msg:'Mindestens 16 Spieler müssen bleiben.'};
+    const p=c.players[i],v=Math.round(p.val*rr(G,0.8,1.05)/10000)*10000;G.me.cash+=v;c.players.splice(i,1);return{ok:true,msg:p.name+' verkauft für '+fmtE(v)+'.'}}}
+// ---------- Reisen ----------
+const GEO={kiel:[54.32,10.13],hamburg:[53.55,9.99],berlin:[52.52,13.40]};
+const AIRPORTS={kiel:'Flughafen Kiel-Holtenau',hamburg:'Flughafen Hamburg',berlin:'Flughafen Berlin Brandenburg'};
+function dist(a,b){const [x1,y1]=GEO[a],[x2,y2]=GEO[b],k=Math.PI/180,d=Math.acos(Math.sin(x1*k)*Math.sin(x2*k)+Math.cos(x1*k)*Math.cos(x2*k)*Math.cos((y2-y1)*k))*6371;return Math.round(d)}
+function flights(G){const me=G.me,jet=me.lux.some(l=>l.k==='jet');return CITIES.filter(c=>c.id!==me.loc).map(c=>{const km=dist(me.loc,c.id);return{id:c.id,n:c.n,km,cost:jet?Math.round(km*12):Math.round(90+km*0.9),jet,open:!!G.cities[c.id]}})}
+function travelActions(A){A.fly=(G,id)=>{const f=flights(G).find(x=>x.id===id);if(!f)return{ok:false};if(G.me.cash<f.cost)return{ok:false,msg:'Privat fehlen dir '+fmtE(f.cost-G.me.cash)+'.'};
+  G.me.cash-=f.cost;G.me.loc=id;G.me.km=(G.me.km||0)+f.km;G.me.kmM=(G.me.kmM||0)+f.km;
+  let boost=0;if(G.me.visit!==G.month+':'+id){G.me.visit=G.month+':'+id;for(const fm of G.firms){const here=(fm.shops||[]).filter(s=>plot(G,s.plot).city===id);for(const s of here){s.rep=Math.min(1,s.rep+0.03);boost++}
+    if(fm.office&&plot(G,fm.office).city===id||(fm.plants||[]).some(p=>plot(G,p.plot).city===id)||here.length)fm.moraleBoost=(fm.moraleBoost||0)+0.05}}
+  return{ok:true,msg:'Gelandet in '+cityName(id)+(f.jet?' (Privatjet)':'')+'.'+(boost?' Chefbesuch in '+boost+' Filiale(n): Ruf und Stimmung steigen.':'')}}}
+// ---------- Adressen ----------
+const STREETS={kiel:['Holstenstraße','Dänische Straße','Knooper Weg','Holtenauer Straße','Schauenburgerstraße','Brunswiker Straße','Sophienblatt','Hamburger Chaussee','Wilhelminenstraße','Kirchhofallee'],
+  hamburg:['Jungfernstieg','Mönckebergstraße','Ottenser Hauptstraße','Schanzenstraße','Eppendorfer Weg','Lange Reihe','Mühlenkamp','Großer Burstah','Grindelallee','Wandsbeker Chaussee'],
+  berlin:['Invalidenstraße','Wilhelmstraße','Torstraße','Kastanienallee','Oranienstraße','Friedrichstraße','Kantstraße','Bergmannstraße','Schönhauser Allee','Turmstraße']};
+function address(p){if(!p||!STREETS[p.city])return'';const h=(p.r*7+p.c*13+(p.city.length*3))%10,n=100+((p.r*37+p.c*91+(p.u||0)*17)%480);return STREETS[p.city][h]+' '+n+', '+cityName(p.city)}
+// Bewertungen der Konkurrenz
+function compShop(G,cp,p){const h=(p.r*31+p.c*17+(p.u||0)*7)%100/100,cat={preis:clamp(Math.exp(-1.8*(cp.price-1))*0.75,0.1,1),produkt:cp.q,service:clamp(0.55+cp.rep*0.4+(h-0.5)*0.1,0,1),atmo:clamp(0.6+h*0.3,0,1)};
+  const all=(cat.preis+cat.produkt*1.4+cat.service+cat.atmo)/4.4,n=Math.round(800+cp.rep*6000*(0.6+h));
+  const lines=[cat.produkt>0.7?'„Richtig guter Kaffee, die Bohnen sind top.“':'„Der Kaffee ist okay, mehr nicht.“',cat.preis<0.55?'„Ganz schön teuer für das, was man bekommt.“':'„Faire Preise.“',cat.atmo>0.75?'„Sehr gemütlich, tolle Einrichtung.“':'„Etwas ungemütlich, eher zum Mitnehmen.“',cat.service>0.75?'„Freundliches Personal, schnell bedient.“':'„Lange Wartezeit an der Theke.“'];
+  return{cat,all,n,reviews:lines.map((t,i)=>({t,s:Math.max(1,Math.min(5,Math.round((Object.values(cat)[i]*5+all*5)/2))),look:p.r*100+p.c*10+i,g:i%2?'f':'m',k:['produkt','preis','atmo','service'][i]}))}}
 function wealth(G){const me=G.me;const own=valuation(G).mine;let st=0,stCost=0;for(const tk in me.stocks){const s=G.stocks.find(x=>x.tk===tk);if(s){st+=me.stocks[tk].n*s.price;stCost+=me.stocks[tk].cost}}
   const lux=me.lux.filter(l=>l.k!=='villa').reduce((s,l)=>s+l.value,0),re=me.lux.filter(l=>l.k==='villa').reduce((s,l)=>s+l.value,0),club=me.club?me.club.value:0;
   return{cash:me.cash,own,stocks:st,stCost,lux,re,club,total:me.cash+own+st+lux+re+club}}
@@ -745,7 +817,7 @@ A.takeover=(G,cid)=>{const cp=G.comps.find(c=>c.id===cid);if(!cp)return{ok:false
   G.comps=G.comps.filter(c=>c!==cp);G.ms.takeover=G.month;news(G,'Übernahme: '+cp.name+' gehört jetzt zu dir.','ms');return{ok:true,msg:cp.name+' übernommen!'}};
 A.founderDev=(G,on)=>{G.founderDev=!!on;return{ok:true}};
 A.buyProp=(G,pid)=>{const p=plot(G,pid);if(!p||p.prop)return{ok:false};if(p.owner==='H')return{ok:false};if(!G.cities[p.city])return{ok:false,msg:'Diese Stadt ist noch nicht erschlossen.'};
-  const v=propValue(G,p),c=v*1.05;if(!can(G,c))return noMoney(c);pay(G,'H','other',v*0.05);buyAsset(G,'H','Immobilie '+ZONES[p.zone].n+' '+cityName(p.city),v,1e9,'prop:'+p.id);p.prop='H';p.leaseR=1;
+  const v=propValue(G,p),c=v*1.05;if(!can(G,c))return noMoney(c);pay(G,'H','other',v*0.05);buyAsset(G,'H','Immobilie '+ZONES[p.zone].n+' '+cityName(p.city),v,1e9,'prop:'+p.id);p.prop='H';p.leaseR=1;p.buyP=Math.round(c);p.buyM=G.month;
   news(G,'Immobilie gekauft: '+ZONES[p.zone].n+', '+cityName(p.city)+'.','good');return{ok:true,msg:'Fläche gekauft!'}};
 A.sellProp=(G,pid)=>{const p=plot(G,pid);if(!p||p.prop!=='H')return{ok:false};if(p.owner==='H')return{ok:false,msg:'Die Zentrale steht hier.'};const v=propValue(G,p)*0.97;
   const a=G.assets.filter(x=>x.ref==='prop:'+p.id),book=a.reduce((s,x)=>s+x.book,0);G.assets=G.assets.filter(x=>x.ref!=='prop:'+p.id);earn(G,'H',null,v,'inv');L(G,'H').other+=book-v;p.prop=null;
@@ -766,10 +838,7 @@ A.buyLux=(G,k)=>{const L0=LUX[k];const price=Math.round(rr(G,L0.p[0],L0.p[1])/10
   G.me.cash-=price;G.me.lux.push({id:uid(G),k,cost:price,value:price*rr(G,0.75,1.25),known:false});return{ok:true,msg:L0.n+' gekauft für '+fmtE(price)+'.'}};
 A.appraise=(G,id)=>{const l=G.me.lux.find(x=>x.id===id);if(!l||l.known)return{ok:false};const fee=Math.max(500,l.cost*0.01);if(G.me.cash<fee)return{ok:false,msg:'Das Gutachten kostet '+fmtE(fee)+'.'};G.me.cash-=fee;l.known=true;return{ok:true,msg:'Gutachten: fairer Marktwert '+fmtE(l.value)+'.'}};
 A.sellLux=(G,id)=>{const i=G.me.lux.findIndex(x=>x.id===id);if(i<0)return{ok:false};const l=G.me.lux[i],v=l.value*0.92;G.me.cash+=v;G.me.lux.splice(i,1);return{ok:true,msg:'Verkauft für '+fmtE(v)+' (nach Auktionsgebühr).'}};
-A.buyClub=(G,id)=>{const C=CLUBS.find(x=>x.id===id);if(G.me.club)return{ok:false,msg:'Du besitzt schon einen Verein.'};if(G.me.cash<C.price)return{ok:false,msg:'Privat fehlen dir '+fmtE(C.price-G.me.cash)+'.'};
-  G.me.cash-=C.price;G.me.club={id,value:C.price,str:0.45,budget:C.price*0.004,league:C.league,lastRank:10,hist:[]};news(G,'Du kaufst '+C.n+'!','ms');return{ok:true,msg:C.n+' gehört jetzt dir!'}};
-A.clubBudget=(G,v)=>{if(!G.me.club)return{ok:false};G.me.club.budget=Math.max(0,Math.round(v/10000)*10000);return{ok:true}};
-A.sellClub=G=>{const c=G.me.club;if(!c)return{ok:false};G.me.cash+=c.value*0.95;G.me.club=null;return{ok:true,msg:'Verein verkauft.'}};
+clubActions(A);travelActions(A);
 A.secondary=(G,pct)=>{if(!G.public)return{ok:false,msg:'Erst nach dem Börsengang.'};pct=clamp(pct,0.01,0.3);const n=Math.round(G.shares*pct),gross=n*G.sharePrice,fee=gross*0.068,net=gross-fee;
   equity(G,net);G.owner*=G.shares/(G.shares+n);G.shares+=n;G.sharePrice*=0.97;news(G,'Kapitalerhöhung: '+fn(n)+' neue Aktien, Erlös '+fmtE(net)+'.','fin');return{ok:true,msg:'Kapitalerhöhung: +'+fmtE(net)}};
 A.decide=(G,id,opt)=>decide(G,id,opt);
@@ -792,6 +861,6 @@ function curLedger(G){return{m:G.month,f:G.led.f,H:G.led.H,cf:G.led.cf}}
 
 const K={MONTHS,BRANCHES,WAGE,PRODUCTS,QMULT,QUAL,QN,LEVELS,CAFE_UPS,CAFE_ACTIONS,HOURS,GENRES,SCOPES,FOCUS,MODELS,CAMPAIGNS,OFFICE_UPS,RAW,GOODS,LINES,SHIFTS,GMULT,GQUAL,SUPPLIERS,PLANT_UPS,RESEARCH,CITIES,ZONES,COLS,ROWS,STAGES,DEPTS,GOALS,
   newGame,endTurn,act:A,plot,firm,staffOf,adminOf,totalStaff,hqStaff,stage,menuStats,shopForecast,forecastShop,shopCost,officeCost,softTeam,desks,rating,goodsTotal,lineOut,lineNeed,rawPrice,wholesalePrice,storageCap,reserved,effGrade,
-  balance,valuation,firmValue,compValue,takeoverPrice,loanOffer,ipoCheck,pl,curLedger,dateStr:G=>monthName(G.month),monthName,yearOf,cityName,dispo,fmtE,fmtN:fn,freePlots,stars,eventOpts,productivity,summer,shopOf,lineOf,sumF,wageOf,propValue,propIncome,leaseOcc,rentOf,CITY_CAMPS,EXECS,SECTORS,LUX,CLUBS,wealth,genMarket,ex,dcov,dneed,deptN,marketPay,cands,grantValue,migrate,econ,BOARD_Q,UNITS,KINDS,usesOf,unitName,YIELD};
+  balance,valuation,firmValue,compValue,takeoverPrice,loanOffer,ipoCheck,pl,curLedger,dateStr:G=>monthName(G.month),monthName,yearOf,cityName,dispo,fmtE,fmtN:fn,freePlots,stars,eventOpts,productivity,summer,shopOf,lineOf,sumF,wageOf,propValue,propIncome,leaseOcc,rentOf,CITY_CAMPS,EXECS,SECTORS,LUX,CLUBS,wealth,genMarket,flights,dist,AIRPORTS,address,compShop,squadStr,TEAMS,CLUB_STAD,pSal,ex,dcov,dneed,deptN,marketPay,cands,grantValue,migrate,econ,BOARD_Q,UNITS,KINDS,usesOf,unitName,YIELD};
 if(typeof module!=='undefined'&&module.exports)module.exports=K;else root.K=K;
 })(typeof window!=='undefined'?window:globalThis);
