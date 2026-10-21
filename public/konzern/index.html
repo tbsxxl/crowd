@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Gründerzeit</title>
+<script>if(/\/konzern$/.test(location.pathname))location.replace(location.pathname+"/"+location.search)</script>
 <meta name="description" content="Wirtschaftssimulation: Vom Start-up zum Konzern">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
@@ -148,9 +149,14 @@ canvas.chart{width:100%;height:120px;display:block}
 <div class="plotCard panel" id="plotCard" hidden></div>
 <div class="news" id="news"></div>
 <div class="toast panel" id="toast" hidden></div>
-<div class="menu" id="menu" hidden></div>
+<div class="menu" id="menu"><div class="menuCard panel"><div class="eyebrow">Wirtschaftssimulation</div><h1>Gründerzeit.</h1><p class="lead" id="bootMsg">Lädt …</p><noscript><p class="lead">Bitte JavaScript aktivieren.</p></noscript></div></div>
 <div class="over" id="over" hidden></div>
 
+<script>
+// Fehler sichtbar machen statt einer leeren Seite
+window.addEventListener('error',function(e){var m=document.getElementById('bootMsg');var t='Fehler: '+(e.message||'Skript konnte nicht geladen werden')+(e.filename?' ('+e.filename.split('/').pop()+':'+e.lineno+')':'');
+  if(m)m.textContent=t;else{var d=document.createElement('div');d.className='toast panel bad';d.textContent=t;document.body.appendChild(d)}},true);
+</script>
 <script src="../vendor/three-r128-bloom.js"></script>
 <script src="sim.js"></script>
 <script src="world.js"></script>
@@ -341,6 +347,9 @@ function marketPane(){const city=World.city||G.cityCur;
   for(const cp of cafes){const n=G.plots.filter(p=>p.owner==='c:'+cp.id).length,price=Math.round(K.compValue(G,cp)*1.35/1000)*1000;
     h+=`<div class="item"><div class="hd"><b><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${cp.color}"></span> ${esc(cp.name)}</b><span class="mono">${n} Filialen</span></div>
     <div class="row"><span class="mono">Qualität ${pct(cp.q)} · Preise ${pct(cp.price)} · Ruf ${pct(cp.rep)}</span><button class="btn" data-a="takeover" data-id="${cp.id}" ${n?'':'aria-disabled="true"'}>Übernehmen · ${fe(price)}</button></div></div>`}
+  h+=`</section><section><span class="eyebrow">Freie Grundstücke in ${K.cityName(city)}</span>`;
+  for(const p of G.plots.filter(p=>p.city===city&&!p.owner).sort((a,b)=>b.traffic-a.traffic).slice(0,8))
+    h+=`<div class="row"><span>${K.ZONES[p.zone].n} <span class="mono">${fn(p.traffic)} Passanten · ${fe(p.rent)} Miete · ${fn(p.size)} m²</span></span><button class="btn" data-a="pickPlot" data-id="${p.id}">Auswählen</button></div>`;
   h+=`</section><section><span class="eyebrow">Fabriken in ${K.cityName(city)}</span>`;
   for(const cp of G.comps.filter(c=>c.branch==='prod'&&c.city===city)){const price=Math.round(K.compValue(G,cp)*1.35/1000)*1000;
     h+=`<div class="item"><div class="hd"><b>${esc(cp.name)}</b><span class="mono">drückt die Auftragspreise</span></div><div class="row"><span class="mono">Werk im Gewerbegebiet</span><button class="btn" data-a="takeover" data-id="${cp.id}">Übernehmen · ${fe(price)}</button></div></div>`}
@@ -445,6 +454,7 @@ function onAction(e){const b=e.target.closest('[data-a]');if(!b||b.getAttribute(
   case'newGame':if(confirm('Neues Spiel beginnen? Der aktuelle Spielstand wird überschrieben.')){store.del();G=null;showMenu()}break;
   case'closeCard':selPlot=null;World.select(null);plotCard();break;
   case'gotoMarket':setTab('market');break;
+  case'pickPlot':selPlot=id;World.select(id);plotCard();break;
   case'openShop':run(K.act.openShop(G,id,selPlot));break;
   case'rentOffice':run(K.act.rentOffice(G,id,selPlot));break;
   case'rentPlant':run(K.act.rentPlant(G,id,selPlot));break;
@@ -495,7 +505,9 @@ function loop(t){const dt=Math.min(0.25,(t-lastT)/1000||0);lastT=t;
 function gameOver(){save();const v=K.valuation(G);const o=$('over');o.hidden=false;o.innerHTML=`<div class="panel menuCard" style="max-width:420px"><div class="eyebrow">Insolvenz</div><h2>Das war's.</h2><p class="lead">${esc(G.firms[0].name)} ist am ${K.dateStr(G)} zahlungsunfähig. Höchster Stand: ${fn(Math.max(...G.months.map(m=>m.staff),1))} Mitarbeitende.</p><div class="btns"><button class="btn ink" data-a="restart">Neues Spiel</button></div></div>`}
 addEventListener('visibilitychange',()=>{if(document.hidden)save()});addEventListener('pagehide',save);
 
-World.init(cv);
+if(typeof World==='undefined')window.World={view:{yaw:0,tilt:1,zoom:1},applyView(){},city:null};
+let glOk=true;try{World.init(cv)}catch(e){glOk=false;console.error(e)}
+if(!glOk){World.frame=()=>{};World.sync=()=>{};World.setCity=()=>{};World.plotAt=()=>null;World.project=()=>null;World.select=()=>{};World.hover=()=>{};World.resize=()=>{};World.applyView=()=>{};Object.defineProperty(World,'city',{get:()=>G&&G.cityCur,configurable:true});setTimeout(()=>toast('Die 3D-Ansicht startet auf diesem Gerät nicht. Grundstücke findest du trotzdem im Bereich Markt.','bad'),500)}
 const saved=store.get();if(saved&&saved.v===1){G=saved;afterLoad();if(G.over)gameOver()}else showMenu();
 requestAnimationFrame(loop);
 window.__G=()=>G; // für Tests
