@@ -147,6 +147,27 @@ canvas.chart{width:100%;height:150px;display:block}
 .goalWin .e{font-size:30px}
 .evt{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.4}
 .evt .e{font-size:18px;line-height:1.2}
+/* Ergebnisse, Zeitung, Fälle, Vorstand */
+.resTop{display:grid;grid-template-columns:1fr 1fr;gap:14px}.big2{font-family:var(--f-display);font-weight:500;font-size:34px;line-height:1.05;font-variant-numeric:tabular-nums}
+table.cf td{padding:5px 0;font-size:13.5px}table.cf td:last-child{text-align:right;font-weight:700}
+.paper{background:#eceae3;border:1px solid var(--line);border-radius:8px;padding:16px 16px 8px;color:#1d1f22}
+.mast{font-family:var(--f-display);font-weight:700;font-size:32px;text-align:center;letter-spacing:-.02em;line-height:1}
+.pdate{text-align:right;font-size:12px;border-bottom:3px double #1d1f22;padding:4px 0 6px}
+.ptabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;border-bottom:1.5px solid #1d1f22;padding:6px 0}
+.ptabs button{border:0;background:none;font:inherit;font-size:14px;padding:4px 8px;cursor:pointer;color:#1d1f22;border-radius:6px}.ptabs button[aria-pressed="true"]{font-weight:800;background:rgba(0,0,0,.06)}
+.pcols{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;padding-top:10px}.pcols article{padding:8px 0 12px;border-bottom:1px solid rgba(0,0,0,.18)}
+.pcols h4{font-size:16px;line-height:1.2;margin:6px 0 4px}.pcols p{font-size:12.5px;line-height:1.45;margin:0;color:#3a3c40}
+.artImg{display:flex;gap:10px;align-items:flex-end;justify-content:center;min-height:56px}.artChart{width:100%;display:flex;align-items:center;gap:6px}.artChart svg:last-child{flex:1}
+@media (max-width:440px){.pcols{grid-template-columns:1fr}.resTop{grid-template-columns:1fr}}
+.case{gap:12px}.caseHead{display:flex;gap:12px;align-items:center}.caseHead .ico{font-size:26px}.caseHead b{font-size:17px}.caseHead .x{margin-left:auto}
+.caseBody{display:flex;gap:10px;align-items:flex-end;justify-content:space-between;background:var(--soft);border-radius:12px;padding:16px 12px 0 16px;min-height:130px}
+.caseBody p{margin:0 0 16px;font-size:15.5px;line-height:1.45;align-self:center}.caseAva{display:flex;flex-direction:column;align-items:center;font-size:10.5px;color:var(--muted);flex:none}
+.caseOpts .li .ico{font-weight:800}
+.skill{gap:8px}.skill .sub{width:72px}.skill .sbar{flex:1;height:9px;border-radius:5px;background:var(--line);overflow:hidden}.skill .sbar i{display:block;height:100%;background:#3f9b62;border-radius:5px}.skill b{width:26px;text-align:right}
+.execHead{display:flex;gap:14px;align-items:flex-start}.execHead>div{flex:1;min-width:0}
+.execCard{align-items:center;text-align:center}.execCard .bar{width:100%}
+.cands{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.cand{min-width:min(280px,82%);scroll-snap-align:center;display:flex;flex-direction:column;gap:6px}.cand .ava,.execCard .ava,.execHead .ava{flex:none;align-self:center}
+@media (max-width:440px){.execHead{flex-direction:column;align-items:center}.mast{font-size:26px}}
 /* Geld über den Gebäuden */
 .floats{position:fixed;inset:0;pointer-events:none;z-index:2;overflow:hidden}
 .money{position:absolute;transform:translate(-50%,-100%);font-family:var(--f-display);font-weight:500;font-size:19px;padding:3px 10px;border-radius:999px;background:var(--card);border:1px solid var(--line);white-space:nowrap;animation:rise 3.2s ease-out forwards;box-shadow:0 6px 16px -8px rgba(36,39,43,.4)}
@@ -231,7 +252,7 @@ const $=id=>document.getElementById(id),fe=K.fmtE,fn=K.fmtN,pct=v=>Math.round(v*
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const sgn=v=>(v>0?'+':'')+fe(v);
 const SAVE='gz.save.v2';
-const store={get(){try{const s=localStorage.getItem(SAVE);const g=s?JSON.parse(s):null;if(g){g.me=g.me||{cash:10000,salary:36000,stocks:{},lux:[],club:null};g.execs=g.execs||{};g.re=g.re||1;if(!g.stocks)K.genMarket(g)}return g}catch(e){return null}},set(v){try{localStorage.setItem(SAVE,JSON.stringify(v))}catch(e){}},del(){try{localStorage.removeItem(SAVE)}catch(e){}}};
+const store={get(){try{const s=localStorage.getItem(SAVE);const g=s?JSON.parse(s):null;if(g)K.migrate(g)return g}catch(e){return null}},set(v){try{localStorage.setItem(SAVE,JSON.stringify(v))}catch(e){}},del(){try{localStorage.removeItem(SAVE)}catch(e){}}};
 let G=null,view=null,place=null,newBranch='cafe',newFin='own',mobile=matchMedia('(max-width:760px)').matches;
 const cur=()=>K.firm(G,G.cur)||G.firms[0];
 
@@ -521,9 +542,8 @@ VIEWS.group=(pp,forceTab)=>{const t=forceTab||T()||'firms',st=K.stage(G);let b='
     b+=`</div><div class="card"><div class="lbl">Neue Firma gründen · 25.000 €</div>${seg('foundBranch',Object.entries(K.BRANCHES).map(([k,B])=>[k,B.icon+' '+B.n]),G._fb||'cafe')}
       <input type="text" id="foundName" maxlength="26" placeholder="Name der Firma"><button class="btn ink" data-a="found">Gründen</button><div class="sub">Eine eigene Rösterei oder Backstraße beliefert deine Cafés zu Herstellkosten.</div></div>`}
   if(t==='cities'){for(const c of K.CITIES){const on=!!G.cities[c.id];b+=`<div class="card"><div class="row"><span><span class="lbl">${c.n}</span><br><span class="sub">Laufkundschaft ${pct(c.traffic)} · Mieten ${pct(c.rent)}</span></span>${on?`<button class="btn ${World.city===c.id?'':'ink'}" data-a="city" data-id="${c.id}">${World.city===c.id?'Du bist hier':'Ansehen'}</button>`:`<button class="btn" data-a="unlock" data-id="${c.id}">Erschließen · ${fe(c.unlock.cost)}</button>`}</div>${on?'':`<div class="sub">ab ${c.unlock.staff} Mitarbeitenden</div>`}</div>`}}
-  if(t==='hq'){if(!G.hq)b+=`<div class="hint">Ab 25 Mitarbeitenden kannst du eine Zentrale bauen (250.000 €). Danach schaltest du Abteilungen frei.</div><button class="btn ink" data-a="place" data-k="hq" ${K.totalStaff(G)<25?'aria-disabled="true"':''}>Bauplatz wählen</button>`;
-    else{b+='<div class="sec"><h3>Abteilungen</h3>';for(const [k,D] of Object.entries(K.DEPTS))b+=`<div class="card"><div class="row"><span class="ch"><span class="ico">${D.icon}</span><span class="t"><b>${D.n}</b><span>${D.d}. ${fe(4000+30*K.totalStaff(G))}/Monat.</span></span></span>${tog('dept',G.depts[k],`data-k="${k}"`)}</div></div>`;
-      b+='</div><div class="sec"><h3>Vorstand</h3><div class="sub">Führungskräfte auf C-Level übernehmen Aufgaben für den ganzen Konzern.</div>';for(const [k,E] of Object.entries(K.EXECS))b+=`<div class="card"><div class="row"><span class="ch"><span class="ico">${E.icon}</span><span class="t"><b>${E.n} · ${E.long}</b><span>${E.d}. ${fe(E.salary)}/Monat.</span></span></span>${tog('exec',G.execs[k],`data-k="${k}"`)}</div></div>`;b+='</div>'}
+  if(t==='hq'){if(!G.hq)b+=`<div class="hint">Ab 25 Mitarbeitenden kannst du eine Konzernzentrale beziehen (250.000 €). Danach baust du Abteilungen auf und stellst einen Vorstand ein.</div><button class="btn ink" data-a="place" data-k="hq" ${K.totalStaff(G)<25?'aria-disabled="true"':''}>Büroetage wählen</button>`;
+    else b+=hqBody();
     b+=`<div class="sec"><h3>Börse</h3>${G.public?kpis([[G.sharePrice.toFixed(2).replace('.',',')+' €','Aktienkurs'],[pct(G.owner),'Dein Anteil'],[fe(K.valuation(G).mine),'Dein Vermögen']]):K.ipoCheck(G).map(x=>`<div class="row"><span>${x.ok?'✅':'⬜'} ${x.t}</span></div>`).join('')+`<button class="btn ink" data-a="ipo" ${K.ipoCheck(G).every(x=>x.ok)?'':'aria-disabled="true"'}>Börsengang</button>`}</div>`}
   if(t==='market'){b+='<div class="sub">Übernimm Konkurrenten mit allen Filialen, Apps oder Werken. Der Preis liegt 35 % über ihrem Wert.</div>';
     for(const cp of G.comps.filter(c=>c.branch!=='soft'||G.apps.some(a=>a.owner==='c:'+c.id))){const n=cp.branch==='soft'?G.apps.filter(a=>a.owner==='c:'+cp.id):G.plots.filter(p=>p.owner==='c:'+cp.id);if(!n.length)continue;
@@ -593,9 +613,112 @@ VIEWS.help=()=>({title:'So spielst du',body:`<div class="card"><b>1. Planen</b><
   <div class="card"><b>3. Entscheiden</b><div class="sub">Manchmal passiert etwas: Bloggerinnen, Mieterhöhungen, Eilaufträge. Du entscheidest vor dem nächsten Abschluss.</div></div>
   <div class="card"><b>4. Wachsen</b><div class="sub">Folge den Zielen oben. Gründe weitere Firmen, erschließe Städte, baue eine Zentrale und geh an die Börse.</div></div>`});
 
+// ---------- Menschen: flache Porträts ohne Gesicht ----------
+function avatar(o,size){const r=n=>{let x=(o.look||1)*9301+n*49297;x=(x*233280+n)%2147483647;return(x%1000)/1000};size=size||96;
+  const skin=o.skin||['#f6d2c4','#efc3a4','#d9a07c','#b9784f','#8d5a3b','#f3dccf'][Math.floor(r(1)*6)],hair=o.hair||['#24272b','#5b3a26','#a0522d','#d9a441','#e8c66b','#c0c3c7','#7a4a2a','#e07a2a'][Math.floor(r(2)*8)];
+  const suit=o.suit||['#3b4a6b','#5a6270','#2f3e55','#7a6a58','#4b3a6b','#6b2f3a','#d8dde3'][Math.floor(r(3)*7)],shirt=o.shirt||(r(4)<0.7?'#f7f7f4':'#dfe9f3'),tie=['#c8363b','#2f6fd0','#3f9b62','#d4a72c','#24272b'][Math.floor(r(5)*5)];
+  const f=o.g==='f',long=f&&r(6)<0.75,gl=r(7)<0.25,beard=!f&&r(8)<0.3,tieOn=!f&&r(9)<0.8;
+  return`<svg viewBox="0 0 100 110" width="${size}" height="${size*1.1}" aria-hidden="true" class="ava">
+    ${long?`<path d="M26 40 Q22 80 30 92 L70 92 Q78 80 74 40 Z" fill="${hair}"/>`:''}
+    <path d="M12 110 Q12 76 34 70 L66 70 Q88 76 88 110 Z" fill="${suit}"/>
+    <path d="M40 70 L50 92 L60 70 Z" fill="${shirt}"/>${tieOn?`<path d="M48 74 L52 74 L54 96 L50 100 L46 96 Z" fill="${tie}"/>`:''}
+    <path d="M34 70 L46 92 L40 72 Z M66 70 L54 92 L60 72 Z" fill="rgba(0,0,0,.18)"/>
+    <rect x="43" y="56" width="14" height="16" rx="5" fill="${skin}"/>
+    <ellipse cx="50" cy="42" rx="17" ry="20" fill="${skin}"/>
+    ${beard?`<path d="M34 46 Q36 64 50 64 Q64 64 66 46 Q60 56 50 56 Q40 56 34 46 Z" fill="${hair}" opacity=".85"/>`:''}
+    <path d="M32 40 Q30 18 50 18 Q72 18 68 42 Q64 30 52 28 Q42 34 32 40 Z" fill="${hair}"/>
+    ${gl?`<g fill="none" stroke="#24272b" stroke-width="1.6"><circle cx="43" cy="42" r="4.5"/><circle cx="57" cy="42" r="4.5"/><path d="M47.5 42 H52.5"/></g>`:''}</svg>`}
+const ASSIST={g:'f',look:4242,hair:'#7a4a2a',suit:'#eef3f7',shirt:'#ffffff',skin:'#f6d2c4'};
+// Pins und Bilder für die Zeitung
+function glyphSvg(k){return{cafe:'<path d="M-9 -4 H7 L5 9 H-7 Z" fill="#fff"/><path d="M7 -1 Q12 -1 12 3 Q12 7 6 7" stroke="#fff" stroke-width="2" fill="none"/>',soft:'<rect x="-10" y="-7" width="20" height="13" rx="2" fill="#fff"/><rect x="-12" y="7" width="24" height="3" rx="1" fill="#fff"/>',
+  prod:'<path d="M-11 10 V-2 L-4 2 V-2 L3 2 V-9 H8 V10 Z" fill="#fff"/>'}[k]||'<circle r="7" fill="#fff"/>'}
+function artImg(a){let h='';
+  if(a.logo)h+=`<svg viewBox="-20 -24 40 46" width="64" height="74" aria-hidden="true"><path d="M-16 -20 H16 Q20 -20 20 -16 V10 Q20 14 16 14 H5 L0 21 L-5 14 H-16 Q-20 14 -20 10 V-16 Q-20 -20 -16 -20 Z" fill="${a.logo.color}"/><g transform="translate(0,-3)">${glyphSvg(a.logo.icon)}</g></svg>`;
+  if(a.person)h+=avatar(a.person,64);
+  if(a.icon==='bank')h+=`<svg viewBox="0 0 60 50" width="72" height="60" aria-hidden="true"><path d="M4 18 L30 4 L56 18 Z" fill="#8a8f96"/><rect x="6" y="18" width="48" height="4" fill="#9aa1a8"/>${[10,20,30,40,48].map(x=>`<rect x="${x}" y="23" width="4" height="18" fill="#c9ccd0"/>`).join('')}<rect x="4" y="41" width="52" height="5" fill="#8a8f96"/></svg>`;
+  if(a.icon==='politik')h+=`<svg viewBox="0 0 60 50" width="72" height="60" aria-hidden="true"><ellipse cx="30" cy="20" rx="14" ry="12" fill="#b9c3cc"/><rect x="10" y="22" width="40" height="20" fill="#e8e5de"/>${[14,22,30,38,46].map(x=>`<rect x="${x-1}" y="25" width="3" height="15" fill="#c9ccd0"/>`).join('')}<path d="M44 6 V16" stroke="#24272b"/><path d="M44 6 H52 V9 H44 Z" fill="#24272b"/><path d="M44 9 H52 V12 H44Z" fill="#cc3b33"/><path d="M44 12 H52 V15 H44 Z" fill="#d4a72c"/></svg>`;
+  if(a.icon==='cafe'&&!a.logo)h+=`<svg viewBox="0 0 60 50" width="64" height="54" aria-hidden="true"><path d="M14 16 H40 L37 42 H17 Z" fill="#c8643c"/><path d="M40 20 Q50 20 48 28 Q46 34 38 34" stroke="#c8643c" stroke-width="3" fill="none"/><path d="M22 4 Q26 9 22 13 M30 4 Q34 9 30 13" stroke="#8a8f96" stroke-width="2" fill="none"/></svg>`;
+  if(a.chart){const v=a.chart.bars||a.chart.line,w=200,H=70,mx=Math.max(...v),mn=Math.min(0,...v)*(a.chart.line?0:1),lo=a.chart.line?Math.min(...v):mn,sp=(mx-lo)||1,col=a.chart.up?'#2f6fd0':'#cc3b33';
+    const X=i=>10+i*(w-20)/Math.max(1,v.length-1),Y=x=>H-6-(x-lo)/sp*(H-16);
+    h=`<div class="artChart">${h}<svg viewBox="0 0 ${w} ${H}" width="100%" height="${H}" aria-hidden="true">${a.chart.bars?v.map((x,i)=>`<rect x="${X(i)-8}" y="${Y(x)}" width="16" height="${H-6-Y(x)}" fill="${col}" opacity=".22"/>`).join(''):''}
+      <polyline fill="none" stroke="${col}" stroke-width="2.4" points="${v.map((x,i)=>X(i).toFixed(1)+','+Y(x).toFixed(1)).join(' ')}"/>${v.map((x,i)=>`<circle cx="${X(i)}" cy="${Y(x)}" r="3.4" fill="#fff" stroke="${col}" stroke-width="2"/>`).join('')}</svg></div>`}
+  return h?`<div class="artImg">${h}</div>`:''}
+const PAPER_TABS=[['top','Top'],['handel','Handel'],['wirtschaft','Wirtschaft'],['markt','Markt'],['politik','Politik']];
+let paperTab='top';
+function paperHtml(r){const all=r.paper||[];if(!all.length)return'';let list=all.filter(a=>a.cat===paperTab||(paperTab==='top'&&a.top));if(paperTab==='top'&&list.length<2)list=list.concat(all.filter(a=>!list.includes(a)).slice(0,4-list.length));
+  return`<div class="paper" id="paper"><div class="mast">Der Wirtschaftskurier.</div><div class="pdate">${K.monthName(r.month)}</div><div class="ptabs">${PAPER_TABS.map(([k,n])=>`<button data-a="paperTab" data-k="${k}" aria-pressed="${paperTab===k}">${n}</button>`).join('')}</div>
+    <div class="pcols">${list.length?list.map(a=>`<article>${artImg(a)}<h4>${esc(a.title)}</h4><p>${esc(a.text)}</p></article>`).join(''):'<p class="sub">Heute keine Meldungen in dieser Rubrik.</p>'}</div></div>`}
+// ---------- Fälle: Vorfälle und Entscheidungen nacheinander, mit Assistentin ----------
+let cases=[],caseI=0;
+function startCases(r){cases=[...(r?r.incidents||[]:[]).map(x=>({inc:x})),...G.pending.map(e=>({ev:e.id}))];caseI=0;showCase()}
+function showCase(){const m=$('modal');while(caseI<cases.length&&cases[caseI].ev&&!G.pending.some(e=>e.id===cases[caseI].ev))caseI++;
+  if(caseI>=cases.length){m.hidden=true;refresh();return}m.hidden=false;const c=cases[caseI],decs=cases.filter(x=>x.ev).length,di=cases.slice(0,caseI+1).filter(x=>x.ev).length;
+  let head,sub,text,btns;
+  if(c.inc){const x=c.inc;head=x.title;sub=x.kind==='shop'?'':esc(G.firms[0].name);text=esc(x.t);
+    btns=x.kind==='board'?`<button class="btn ink" data-a="caseBoard">Zur Sitzung</button><button class="btn" data-a="caseNext">Später</button>`:`<button class="btn ink" data-a="caseNext">Weiter</button>`}
+  else{const e=G.pending.find(e=>e.id===c.ev),f=K.firm(G,e.fid),shop=/Filiale/.test(e.t);head=shop?'Vorfall in der Filiale':'Vorfall im Unternehmen';sub=esc(f?f.name:'');text=esc(e.t);
+    btns=`<div class="list caseOpts">${K.eventOpts(e).map((o,i)=>`<button class="li" data-a="caseOpt" data-id="${e.id}" data-v="${i}"><span class="ico">${'ABC'[i]}</span><span class="t"><b>${esc(o.n)}</b><span>${esc(o.d)}</span></span></button>`).join('')}</div><div class="sub" style="text-align:center">Fall ${di} von ${decs}</div>`}
+  m.innerHTML=`<div class="report panel case" role="dialog" aria-label="${esc(head)}"><div class="caseHead"><span class="ico">${c.inc?(c.inc.kind==='board'?'🏛️':'📋'):(G.pending.find(e=>e.id===c.ev)||{}).icon||'❓'}</span><span><b>${esc(head)}</b><br><span class="sub">${sub}</span></span><button class="x" data-a="caseClose" aria-label="Schließen">×</button></div>
+    <div class="caseBody"><p>${text}</p><div class="caseAva">${avatar(ASSIST,110)}<span>Lena, Assistenz</span></div></div>${c.inc?`<div class="btns" style="justify-content:center">${btns}</div>`:btns}</div>`}
+// ---------- Abfrage vor dem Monatsabschluss ----------
+function askEnd(){let noask=false;try{noask=localStorage.getItem('gz.noask')==='1'}catch(e){}if(noask){doEnd();return}
+  const w=[];if(G.pending.length)w.push(G.pending.length+(G.pending.length>1?' Fälle sind offen und bekommen die Standardwahl.':' Fall ist offen und bekommt die Standardwahl.'));
+  if(G.cash<0)w.push('Die Kasse ist im Minus. Drei Monate im Dispo führen zur Insolvenz.');
+  for(const f of G.firms)if(f.branch==='cafe')for(const s of f.shops)if(s.stat&&s.stat.dem>s.stat.cap*1.15){w.push('In '+K.ZONES[K.plot(G,s.plot).zone].n+' fehlen Baristas, Gäste gehen wieder.');break}
+  const due=(G.dues||[]).filter(d=>d.m===G.month+1);for(const d of due)w.push(d.t+' wird nächsten Monat fällig: '+fe(d.amt)+'.');
+  const m=$('modal');m.hidden=false;m.innerHTML=`<div class="report panel case" role="dialog" aria-label="Monat abschließen"><div class="caseHead"><span class="ico">🗓️</span><span><b>Fertig für diesen Monat?</b><br><span class="sub">${K.monthName(G.month)}</span></span><button class="x" data-a="caseClose" aria-label="Schließen">×</button></div>
+    <div class="caseBody"><p>Bist du diesen Monat mit deinen Geschäften fertig?${w.length?'<br><br>'+w.map(x=>'• '+esc(x)).join('<br>'):''}</p><div class="caseAva">${avatar(ASSIST,110)}<span>Lena, Assistenz</span></div></div>
+    <div class="btns" style="justify-content:center"><button class="btn ink" data-a="confirmEnd" style="min-width:110px">Ja</button><button class="btn" data-a="caseClose" style="min-width:110px">Nein</button></div>
+    <label class="sub" style="display:flex;gap:8px;align-items:center;justify-content:center"><input type="checkbox" id="noask"> Nicht mehr fragen</label></div>`}
+// ---------- Vorstand und Zentrale ----------
+const skill=(n,v)=>`<div class="row skill"><span class="sub">${n}</span><span class="sbar"><i style="width:${v}%"></i></span><b>${Math.round(v)}</b></div>`;
+function hqBody(){let b='';const need=K.dneed(G);
+  b+=`<div class="sec"><h3>Abteilungen</h3><div class="sub">Jede Abteilung braucht bei deiner Größe ${need} Köpfe für die volle Wirkung. Jahresgehalt pro Kopf ${fe(G.deptWage)}.</div>`;
+  for(const [k,D] of Object.entries(K.DEPTS)){const n=K.deptN(G,k),cov=K.dcov(G,k),own=Object.entries(K.EXECS).find(([ek,E])=>E.dept===k&&G.execs[ek]&&G.execs[ek].deleg.dept);
+    b+=`<div class="card"><div class="row"><span class="ch"><span class="ico">${D.icon}</span><span class="t"><b>${D.n}</b><span>${D.d}${own?' · geführt von '+esc(G.execs[own[0]].name):''}</span></span></span>${step('deptN',n+' / '+need,`data-k="${k}"`)}</div>${bar(cov,cov>=1?'good':'')}</div>`}
+  b+=`<div class="row"><span class="sub">Gehalt pro Kopf und Jahr</span>${step('deptWage',fe(G.deptWage),'')}</div></div>`;
+  b+=`<div class="sec"><h3>Vorstand</h3><div class="sub">Führungskräfte wirken auf den ganzen Konzern. Ihre Expertise bestimmt die Wirkung, ihre Loyalität, ob sie bleiben. Du kannst ihnen Aufgaben übertragen.</div><div class="grid2">`;
+  for(const [k,E] of Object.entries(K.EXECS)){const e=G.execs[k];
+    b+=e?`<button class="up execCard" data-a="open" data-v="exec" data-id="${k}" data-keep="1">${avatar(e,64)}<b>${esc(e.name)}</b><small>${E.n} · ${E.de}</small>${bar(e.loy/100,e.loy<45?'bad':'good')}<small>Loyalität ${Math.round(e.loy)}</small></button>`
+      :`<button class="up execCard" data-a="open" data-v="hire" data-id="${k}" data-keep="1"><span class="e">${E.icon}</span><b>${E.n} gesucht</b><small>${E.de}. ${E.d}.</small><small class="pos">Einstellen →</small></button>`}
+  b+='</div></div>';if(G.public)b+=`<button class="btn wide" data-a="open" data-v="board" data-keep="1">🏛️ Vorstandssitzung · Dividende und Vergütung</button>`;return b}
+VIEWS.exec=({id})=>{const e=G.execs[id],E=K.EXECS[id];if(!e)return null;const mp=K.marketPay(G,id);let b='';
+  b+=`<div class="card"><div class="execHead">${avatar(e,120)}<div><b class="serif" style="font-size:26px">${esc(e.name)}</b><div class="sub">${E.de}</div><div class="eyebrow" style="margin-top:10px">${E.n} seit</div><b>${K.monthName(e.since)}</b>
+    <div class="eyebrow" style="margin-top:10px">Führungskompetenzen</div>${skill('Führung',e.lead)}${skill('Expertise',e.exp)}${skill('Loyalität',e.loy)}</div></div></div>`;
+  b+=`<div class="sub">Wirkung: ${E.d} (Stärke ${pct(K.ex(G,id))}).</div>`;
+  b+=`<div class="sec"><h3>Delegation der Führungskräfte</h3>${Object.entries(E.deleg).map(([d,n])=>`<div class="row"><span>${n}</span>${tog('deleg',e.deleg[d],`data-k="${id}" data-v="${d}"`)}</div>`).join('')}<div class="sub">Delegierte Aufgaben erledigt ${e.name.split(' ')[0]} jeden Monat selbst. Was passiert ist, steht im Monatsbericht.</div></div>`;
+  b+=`<div class="sec"><h3>Jährliches Gehalt</h3><div class="row">${step('execSal',fe(e.salary),`data-k="${id}"`)}<span class="sub" style="text-align:right">Marktüblich ${fe(mp)}<br><b class="${e.salary>=mp?'pos':'neg'}">${e.salary>=mp?'+':''}${Math.round((e.salary/mp-1)*100)} %</b></span></div></div>`;
+  b+=`<div class="sec"><h3>Zuschüsse</h3>${(e.grants||[]).map(g=>`<div class="card"><div class="row"><span><b>${fn(g.n)} ${g.type==='rsu'?'RSU':'Aktienoptionen bei '+g.strike.toFixed(2).replace('.',',')+' €'}</b><br><span class="sub">4 Jahre Vesting · ${g.vested||0}/4 unverfallbar</span></span><b>${fe(K.grantValue(G,g))}</b></div></div>`).join('')||'<div class="sub">Noch keine Aktienzuschüsse.</div>'}
+    ${G.public?`<button class="btn wide" data-a="open" data-v="grant" data-id="${id}" data-keep="1">Zuschuss hinzufügen</button>`:'<div class="sub">Aktienoptionen und RSU kannst du nach dem Börsengang vergeben. Sie binden Führungskräfte langfristig.</div>'}</div>`;
+  b+=`<button class="btn bad" data-a="fireExec" data-k="${id}">Entlassen · Abfindung ${fe(e.salary/2)}</button>`;
+  return{eyebrow:'Zentrale',title:E.n+'-Profil',body:b}};
+VIEWS.hire=({id})=>{const E=K.EXECS[id];if(G.execs[id])return VIEWS.exec({id});const list=K.cands(G,id);view.p.offer=view.p.offer||{};let b=`<div class="hint">${E.de}: ${E.d}. Der Headhunter bekommt 10 % des Jahresgehalts, auch wenn jemand absagt.</div><div class="cands">`;
+  list.forEach((c,i)=>{const o=view.p.offer[i]||c.demand;b+=`<div class="card cand">${avatar(c,96)}<b class="serif" style="font-size:22px">${esc(c.name)}</b><div class="eyebrow">Aktuelle Stelle</div><div class="sub">${esc(c.job)}<br>${esc(c.at)}</div>
+    <div class="eyebrow">Führungskompetenzen</div>${skill('Führung',c.lead)}${skill('Expertise',c.exp)}${skill('Loyalität',c.loy)}<div class="eyebrow">Aktuelles Gehalt</div><b>${fe(c.cur)}</b>
+    <div class="eyebrow">Angebot</div><div class="row">${step('offerStep',fe(o),`data-v="${i}"`)}<span class="sub">${o>=c.demand?'+':''}${Math.round((o/c.demand-1)*100)} %</span></div><button class="btn ink" data-a="offerExec" data-k="${id}" data-v="${i}">Angebot machen</button></div>`});
+  b+='</div>'+(list.length?'':'<div class="sub">Nächsten Monat gibt es neue Bewerbungen.</div>');return{eyebrow:'Zentrale',title:'Einstellen: '+E.long,body:b}};
+VIEWS.grant=({id})=>{const e=G.execs[id];if(!e)return null;const p=view.p;p.type=p.type||'opt';p.n=p.n||Math.round(G.shares*0.0005/1000)*1000||1000;if(p.strike===undefined)p.strike=Math.round(G.sharePrice*2)/2;
+  const px=G.sharePrice,val=x=>p.type==='rsu'?p.n*x:p.n*Math.max(0,x-p.strike);let b=seg('gType',[['opt','Aktienoption'],['rsu','RSU']],p.type);
+  b+=`<div class="sub">${p.type==='rsu'?'Eine RSU ist eine Aktie, die nach der Sperrfrist ohne Zuzahlung übertragen wird. Sie behält auch bei fallendem Kurs einen Wert.':'Eine Aktienoption erlaubt es, unverfallbare Aktien zum Basispreis zu kaufen. Liegt der Kurs dann unter dem Basispreis, verfällt sie.'}</div>`;
+  b+=`<div class="row"><span><span class="lbl">Zuschussanteile</span><br><span class="sub">${(p.n/G.shares*100).toFixed(3).replace('.',',')} % von ${fn(G.shares)} Aktien</span></span>${step('gN',fn(p.n),'')}</div>`;
+  if(p.type==='opt')b+=`<div class="row"><span><span class="lbl">Basispreis</span><br><span class="sub">Aktueller Kurs ${px.toFixed(2).replace('.',',')} €</span></span>${step('gStrike',p.strike.toFixed(2).replace('.',',')+' €','')}</div>`;
+  b+=`<div class="sec"><h3>Zuschuss-Simulation</h3>${kpis([1.2,1.45,1.9].map(k=>[fe(val(px*k)),'bei '+(px*k).toFixed(2).replace('.',',')+' €']))}</div>
+    <div class="sub">Alle Zuschüsse haben eine Sperrfrist von 4 Jahren mit einem Jahr Cliff: 25 % werden nach einem Jahr unverfallbar, weitere 25 % nach zwei Jahren und so weiter. Neue Aktien verwässern deinen Anteil leicht.</div>
+    <button class="btn ink" data-a="grantAdd" data-k="${id}">Hinzufügen</button>`;
+  return{eyebrow:e.name,title:'Zuschuss hinzufügen',body:b}};
+VIEWS.board=()=>{let b=`<div class="caseBody"><p>Die Mitglieder des Aufsichtsrats sind heute alle anwesend. Wir sind bereit, die vierteljährliche Sitzung abzuhalten.</p><div class="caseAva">${avatar(ASSIST,80)}</div></div>`;
+  if(!G.public)return{eyebrow:'Zentrale',title:'Vorstandssitzung',body:b+'<div class="hint">Die Vorstandssitzung mit Quartalsdividende gibt es nach dem Börsengang.</div>'};
+  const y=G.divPS*4/Math.max(0.01,G.sharePrice);
+  b+=`<div class="sec"><h3>Dividenden</h3><div class="sub">Beschließe eine vierteljährliche Dividende. Sie wird am Quartalsende ausgezahlt, solange die Kasse reicht.</div>
+    <div class="eyebrow">Aktuelle Dividende</div><b class="serif" style="font-size:28px">${G.divPS.toFixed(2).replace('.',',')} €</b> <span class="sub">/Aktie/Quartal (Rendite ${(y*100).toFixed(2).replace('.',',')} %)</span>
+    <div class="row">${step('divStep',G.divPS.toFixed(2).replace('.',',')+' €','')}<span class="sub">Pro Quartal ${fe(G.divPS*G.shares)}<br>davon an dich ${fe(G.divPS*G.shares*G.owner*0.75)} nach Steuer</span></div></div>
+    <div class="sec"><h3>CEO-Vergütung</h3><div class="sub">Der Aufsichtsrat genehmigt dein Grundgehalt. Da du gründest, gibt es keine Aktienvergütung.</div><div class="eyebrow">Derzeitiges Grundgehalt</div><b class="serif" style="font-size:28px">${fe(G.me.salary)}</b>
+    <div class="row">${step('salary',fe(G.me.salary),'')}<span class="sub">netto ${fe(G.me.salary*0.58)} im Jahr</span></div></div>`;
+  return{eyebrow:'Zentrale',title:'Vorstandssitzung',body:b}};
 // ---------- Monatsabschluss ----------
-function endTurn(){if(G.pending.length){open('decide');return}
-  close();endPlace();const r=K.endTurn(G);if(!r)return;save();World.sync(G);refresh();floatMoney(r);setTimeout(()=>report(r),650);chime(r.net>=0)}
+let lastRep=null;function endTurn(){askEnd()}
+function doEnd(){$('modal').hidden=true;
+  close();endPlace();const r=K.endTurn(G);lastRep=r;paperTab='top';if(!r)return;save();World.sync(G);refresh();floatMoney(r);setTimeout(()=>report(r),650);chime(r.net>=0)}
 function floatMoney(r){const el=$('floats');el.innerHTML='';const byPlot={};
   for(const it of r.items){let pid=it.plot;if(it.kind==='app'||it.kind==='dev'){const f=K.firm(G,it.fid);pid=f&&f.office;if(!pid)continue}if(!pid)continue;byPlot[pid]=(byPlot[pid]||0)+it.profit}
   let k=0;for(const pid in byPlot){const p=K.plot(G,pid);if(p.city!==World.city)continue;const pr=World.project(pid,9);if(!pr||!pr.vis)continue;const v=byPlot[pid];
@@ -604,15 +727,22 @@ function floatMoney(r){const el=$('floats');el.innerHTML='';const byPlot={};
 function report(r){const m=$('modal');m.hidden=false;const prev=G.months[G.months.length-2];
   const items=r.items.slice().sort((a,b)=>b.profit-a.profit);
   m.innerHTML=`<div class="report panel" role="dialog" aria-label="Monatsbericht"><div><div class="eyebrow">Monatsbericht</div><h2>${K.monthName(r.month)}</h2></div>
-  <div><div class="big ${r.net>=0?'pos':'neg'}" id="bigNet">${sgn(0)}</div><div class="sub">Ergebnis nach Steuern${prev?' · Vormonat '+sgn(prev.net):''}</div></div>
-  ${kpis([[fe(r.rev),'Umsatz'],[fe(r.cash),'Kasse',r.cash<0?'neg':''],[fe(K.wealth(G).total),'Dein Vermögen']])}
+  <div class="resTop"><div><div class="eyebrow">Umsatz im Monat</div><div class="big2">${fe(r.rev)}</div>${dl(r.rev,prev?K.pl(prev).rev:null)}</div>
+    <div><div class="eyebrow">Nettoeinkommen</div><div class="big2 ${r.net>=0?'pos':'neg'}" id="bigNet">${sgn(0)}</div>${dl(r.net,prev?prev.net:null)}</div></div>
+  ${cfTable()}
+  ${kpis([[fe(r.cash),'Kasse',r.cash<0?'neg':''],[fe(K.wealth(G).total),'Dein Vermögen'],[fn(r.staff),'Mitarbeitende']])}
   ${r.goals.map(g=>`<div class="goalWin"><span class="e">🏆</span><span><b>Ziel erreicht: ${esc(g.n)}</b><br><span class="sub">${g.reward?'+'+fe(g.reward)+' Förderprämie':'Großartig!'}</span></span></div>`).join('')}
   ${items.length?`<div class="sec"><h3>Deine Geschäfte</h3><div class="list">${items.map(it=>`<div class="li" style="cursor:default"><span class="ico">${it.icon}</span><span class="t"><b>${esc(it.name)}</b><span>${esc(it.kpi)}${it.delta!=null&&it.delta!==0?` <b class="${it.delta>0?'pos':'neg'}">${it.delta>0?'▲':'▼'} ${fn(Math.abs(it.delta))}</b>`:''}${it.stars?' · '+starsH(it.stars):''}${it.broke?' · ⚠️ Ausfall':''}</span></span><span class="v ${it.profit>=0?'pos':'neg'}">${it.kind==='dev'?'':sgn(it.profit)}</span></div>`).join('')}</div></div>`:'<div class="hint">Noch keine Geschäfte. Öffne „Bauen“ und leg los!</div>'}
   ${r.events.length?`<div class="sec"><h3>Was passiert ist</h3>${r.events.map(e=>`<div class="evt"><span class="e">${e.icon}</span><span class="${e.bad?'neg':''}">${esc(e.t)}</span></div>`).join('')}</div>`:''}
   ${quotes()}
+  ${paperHtml(r)}
+  ${(r.incidents||[]).length?`<div class="warnbox">${r.incidents.length>1?r.incidents.length+' Vorfälle':'Ein Vorfall'} zum Durchsehen.</div>`:''}
   ${G.pending.length?`<div class="warnbox">${G.pending.length>1?G.pending.length+' Entscheidungen warten':'Eine Entscheidung wartet'} auf dich.</div>`:''}
-  <button class="btn ink wide" data-a="closeReport" style="padding:14px">${G.over?'Ergebnis ansehen':G.pending.length?'Zur Entscheidung':'Weiter planen'}</button></div>`;
+  <button class="btn ink wide" data-a="closeReport" style="padding:14px">${G.over?'Ergebnis ansehen':G.pending.length||(r.incidents||[]).length?'Weiter':'Weiter planen'}</button></div>`;
   countUp($('bigNet'),r.net)}
+function dl(v,p){if(p==null)return'';const d=v-p,q=p?d/Math.abs(p):0;return`<div class="sub"><b class="${d>=0?'pos':'neg'}">${d>=0?'▲':'▼'} ${sgn(d)} (${d>=0?'+':''}${Math.round(q*100)} %)</b> zum Vormonat</div>`}
+function cfTable(){const m=G.months[G.months.length-1];if(!m||!m.cf)return'';const c=m.cf,net=c.op+c.inv+c.fin;
+  return`<table class="cf"><tr><td>Bargeld aus Geschäftstätigkeit</td><td>${sgn(c.op)}</td></tr><tr><td>Investition</td><td>${sgn(c.inv)}</td></tr><tr><td>Finanzierung</td><td>${sgn(c.fin)}</td></tr><tr class="sum"><td>Netto-Cashflow</td><td class="${net>=0?'pos':'neg'}">${sgn(net)}</td></tr></table>`}
 function quotes(){const q=[];for(const f of G.firms){if(f.shops)for(const s of f.shops)for(const r of s.reviews||[])q.push(r);for(const a of G.apps.filter(a=>a.owner===f.id&&a.reviews))for(const r of a.reviews)q.push(r)}
   if(!q.length)return'';const pickQ=q.sort(()=>Math.random()-0.5).slice(0,2);return`<div class="sec"><h3>Neue Bewertungen</h3>${pickQ.map(r=>`<div>${starsH(r.s)}<div class="quote">${esc(r.t)}</div></div>`).join('')}</div>`}
 function countUp(el,v){if(!el)return;const t0=performance.now(),d=900;const tick=t=>{const k=Math.min(1,(t-t0)/d),e=1-Math.pow(1-k,3);el.textContent=sgn(v*e);if(k<1)requestAnimationFrame(tick)};requestAnimationFrame(tick)}
@@ -704,7 +834,25 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
   case'cityCamp':run(K.act.cityCamp(G,cur().id,id,k),1);break;
   case'exec':run(K.act.exec(G,k));break;
   case'endTurn':endTurn();break;
-  case'closeReport':$('modal').hidden=true;if(G.over)gameOver();else if(G.pending.length)open('decide');break;
+  case'closeReport':$('modal').hidden=true;if(G.over)gameOver();else startCases(lastRep);break;
+  case'paperTab':{paperTab=k;const el=$('paper');if(el&&lastRep)el.outerHTML=paperHtml(lastRep);break}
+  case'caseNext':caseI++;showCase();break;
+  case'caseClose':$('modal').hidden=true;cases=[];refresh();break;
+  case'caseBoard':$('modal').hidden=true;cases=[];open('board');break;
+  case'caseOpt':{const r=K.act.decide(G,+id,+v);save();if(r&&r.msg)toast(r.msg);caseI++;showCase();break}
+  case'confirmEnd':{const cb=$('noask');if(cb&&cb.checked){try{localStorage.setItem('gz.noask','1')}catch(e){}}doEnd();break}
+  case'deptN':run(K.act.dept(G,k,K.deptN(G,k)+d),1);break;
+  case'deptWage':run(K.act.deptWage(G,G.deptWage+d*5000),1);break;
+  case'deleg':run(K.act.deleg(G,k,v),1);break;
+  case'execSal':{const e=G.execs[k];run(K.act.execSalary(G,k,e.salary+d*10000),1);break}
+  case'fireExec':if(confirm('Wirklich entlassen?')){run(K.act.fireExec(G,k));back()}break;
+  case'offerStep':{const i=+v,c=K.cands(G,view.p.id)[i];view.p.offer=view.p.offer||{};view.p.offer[i]=Math.max(10000,(view.p.offer[i]||c.demand)+d*10000);renderSheet();break}
+  case'offerExec':{const i=+v,c=K.cands(G,k)[i];const o=(view.p.offer||{})[i]||c.demand;const r=run(K.act.offerExec(G,k,i,o));view.p.offer={};save();if(r&&r.ok){view={v:'exec',p:{id:k},tab:null};renderSheet(true)}break}
+  case'gType':view.p.type=v;renderSheet();break;
+  case'gN':view.p.n=Math.max(1000,(view.p.n||1000)+d*1000);renderSheet();break;
+  case'gStrike':view.p.strike=Math.max(0.5,Math.round(((view.p.strike||1)+d*0.5)*2)/2);renderSheet();break;
+  case'grantAdd':{const p=view.p;const r=run(K.act.grant(G,k,p.type,p.n,p.strike));if(r&&r.ok){save();back()}break}
+  case'divStep':run(K.act.board(G,{divPS:G.divPS+d*0.01}),1);break;
   case'save':save();toast('Gespeichert.');break;case'help':open('help',null,true);break;
   case'newGame':if(confirm('Neues Spiel beginnen? Der aktuelle Spielstand wird überschrieben.')){store.del();G=null;close();['hud','topBtns','dock','goalCard'].forEach(x=>$(x).hidden=true);showMenu()}break;
   case'restart':store.del();G=null;$('modal').hidden=true;showMenu();break;
