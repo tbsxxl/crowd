@@ -170,6 +170,8 @@ table.cf td{padding:5px 0;font-size:13.5px}table.cf td:last-child{text-align:rig
 .cands{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.cand{min-width:min(280px,82%);scroll-snap-align:center;display:flex;flex-direction:column;gap:6px}.cand .ava,.execCard .ava,.execHead .ava{flex:none;align-self:center}
 @media (max-width:440px){.execHead{flex-direction:column;align-items:center}.mast{font-size:26px}}
 /* Start, Wizard, Produktkarten */
+.step button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
+.ptrend{display:flex;flex-direction:column;gap:2px}
 .icn{display:block;color:var(--ink)}.ib .icn,.db .icn{opacity:.88}.db[aria-pressed="true"] .icn{opacity:1}.goalCard .gi .icn{color:#b07a1c}
 .topBtns .ib{background:var(--card)}
 @media (max-width:760px){.topBtns .ib{box-shadow:0 1px 3px rgba(36,39,43,.12)}}
@@ -281,8 +283,8 @@ window.addEventListener('error',function(e){var m=document.getElementById('bootM
   if(m&&!document.getElementById('menu').hidden)m.textContent=t;else{var d=document.getElementById('toast');if(d){d.textContent=t;d.hidden=false}}},true);
 </script>
 <script src="../vendor/three-r128-bloom.js"></script>
-<script src="sim.js?v=20261022c"></script>
-<script src="world.js?v=20261022c"></script>
+<script src="sim.js?v=20261022d"></script>
+<script src="world.js?v=20261022d"></script>
 <script>
 (function(){
 'use strict';
@@ -326,10 +328,10 @@ function back(){view=stack.pop()||null;if(!view)return close();renderSheet(true)
 function close(){view=null;stack.length=0;$('sheet').hidden=true;document.querySelectorAll('.db').forEach(b=>b.setAttribute('aria-pressed',false));World.select(null);World.highlight(null)}
 const curFix=h=>G&&G.currency&&G.currency!=='EUR'?String(h).replace(/€/g,K.CURS[G.currency]):h;
 function renderSheet(top){const el=$('sheet');if(!view){el.hidden=true;return}if(G&&['shop','office','plant','app'].includes(view.v))G.tutSeen=true;if(G&&view.v==='fin')G.tutFin=true;const R=VIEWS[view.v];if(!R){close();return}const r0=R(view.p);if(!r0){close();return}const r=Object.assign({},r0,{body:curFix(r0.body),sub:r0.sub&&curFix(r0.sub),title:curFix(r0.title)});
-  const body=el.querySelector('.sh-body'),y=!top&&body?body.scrollTop:0;
+  const body=el.querySelector('.sh-body'),y=!top&&body?body.scrollTop:0,HX='.hcards,.revs,.cands,.figs',hx=top?[]:[...el.querySelectorAll(HX)].map(e=>e.scrollLeft);
   el.innerHTML=`<div class="sh-head">${stack.length?`<button class="x" data-a="back" aria-label="Zurück">←</button>`:''}<div class="t">${r.eyebrow?`<div class="eyebrow">${r.eyebrow}</div>`:''}<h2>${r.title}</h2>${r.sub?`<div class="sub" style="margin-top:3px">${r.sub}</div>`:''}</div><button class="x" data-a="close" aria-label="Schließen">×</button></div>
   ${r.tabs?`<div class="tabs" role="tablist">${r.tabs.map(([k,n])=>`<button class="tab" data-a="tab" data-v="${k}" aria-selected="${(view.tab||r.tabs[0][0])===k}">${n}</button>`).join('')}</div>`:''}<div class="sh-body">${r.body}</div>`;
-  el.querySelector('.sh-body').scrollTop=y;const st=el.querySelector('.tab[aria-selected="true"]'),tb=el.querySelector('.tabs');if(st&&tb)tb.scrollLeft=Math.max(0,st.offsetLeft-tb.clientWidth+st.offsetWidth+16);if(r.after)r.after()}
+  el.querySelector('.sh-body').scrollTop=y;[...el.querySelectorAll(HX)].forEach((e,i)=>{if(hx[i])e.scrollLeft=hx[i]});const st=el.querySelector('.tab[aria-selected="true"]'),tb=el.querySelector('.tabs');if(st&&tb)tb.scrollLeft=Math.max(0,st.offsetLeft-tb.clientWidth+st.offsetWidth+16);if(r.after)r.after()}
 const T=()=>view.tab;
 // kleine Bausteine
 const step=(a,val,attrs)=>`<span class="step"><button data-a="${a}" data-d="-1" ${attrs||''} aria-label="weniger">−</button><output>${val}</output><button data-a="${a}" data-d="1" ${attrs||''} aria-label="mehr">+</button></span>`;
@@ -494,7 +496,7 @@ VIEWS.firm=()=>{const f=cur(),t=T()||'gen';const last=G.months[G.months.length-1
     b+=`<div class="card"><div class="row"><span class="lbl">Werbung</span><b class="serif" style="font-size:19px" id="mktV">${fe(f.mkt)} / Monat</b></div><input type="range" min="0" max="${Math.max(30000,Math.ceil(f.mkt/10000)*10000)}" step="250" value="${f.mkt}" data-in="mkt"><div class="sub">Mehr Werbung steigert die Bekanntheit. Die wirkt bei allen Geschäften dieser Firma.</div></div>
     <div class="card"><div class="row"><span class="lbl">Gehaltsniveau</span><b class="serif" style="font-size:19px" id="wageV">${pct(f.wage)}</b></div><input type="range" min="0.85" max="1.4" step="0.05" value="${f.wage}" data-in="wage"><div class="sub">Über Tarif hebt die Stimmung und damit die Leistung. Unter 45 % Stimmung kündigen Leute.</div></div>
     ${K.adminOf(G,f)?`<div class="sub">Dazu ${K.adminOf(G,f)} Stelle(n) in der Verwaltung (je 15 Mitarbeitende eine). Controlling in der Zentrale spart das.</div>`:''}`}
-  if(t==='menu'&&f.branch==='cafe'){b+=say('Das ist die Produktabteilung. Hier legst du die Speisekarte, Qualität und Preise für alle Restaurants fest.',{g:'m',look:4711,hair:'#c0c3c7',suit:'#2f3439',skin:'#b9784f'})+prodCards(f,null)+recipeCard(f)+'<div class="sub">Mehr Gerichte: unter „Entwicklung“.</div>'}
+  if(t==='menu'&&f.branch==='cafe'){b+=say('Das ist die Produktabteilung. Hier legst du die Speisekarte, Qualität und Preise für alle Restaurants fest.',{g:'m',look:4711,hair:'#c0c3c7',suit:'#2f3439',skin:'#b9784f'})+'<div class="sec"><h3>Verkäufe aller Restaurants</h3>'+catChart(firmHist(f))+'</div>'+prodCards(f,null)+recipeCard(f)+'<div class="sub">Mehr Gerichte: unter „Entwicklung“.</div>'}
   if(t==='agency'){b+='<div class="sub">Kampagnen machen deine Marke in einer ganzen Stadt bekannt. Die Bekanntheit holt Laufkundschaft in jede Filiale dort.</div>';
     for(const c of K.CITIES){if(!G.cities[c.id])continue;const aw=Math.max(f.aware,(f.cityAw||{})[c.id]||0);const camps=(f.camps||{})[c.id]||{};
       b+=`<div class="card"><div class="row"><span class="lbl">Markenbekanntheit in ${c.n}</span><b class="serif" style="font-size:22px">${Math.round(aw*100)}</b></div>${bar(aw,'good')}
@@ -798,17 +800,24 @@ function catChart(s){const h=(s.hist||[]).filter(x=>x.cm!==undefined).slice(-6);
   const last=h[h.length-1],prev=h[h.length-2],k=(n,v,p,c)=>`<div><div class="eyebrow">${n}</div><b class="serif" style="font-size:30px;color:${c}">${fn(v)}</b> <span class="sub">Portionen</span><div class="sub">${sgnN(v-p)} (${p?Math.round((v/p-1)*100):0} %)</div></div>`;
   return`<div class="card"><div class="resTop" style="grid-template-columns:1fr 1fr 1fr">${k('Hauptgerichte',last.cm,prev.cm,'#e07a2a')}${k('Getränke',last.cd,prev.cd,'#1fa9c4')}${k('Desserts',last.cs,prev.cs,'#9b6fb5')}</div>
     ${lineChart([{v:h.map(x=>x.cm),c:'#e07a2a'},{v:h.map(x=>x.cd),c:'#1fa9c4'},{v:h.map(x=>x.cs),c:'#9b6fb5'}],h.map(x=>x.d||''))}</div>`}
+function trendSvg(v,col){const W=240,H=64,mx=Math.max(1,...v),mn=Math.min(...v)*0.7,X=i=>4+i*(W-8)/(v.length-1),Y=x=>H-6-(x-mn)/((mx-mn)||1)*(H-14);
+  const pts=v.map((x,i)=>X(i).toFixed(1)+','+Y(x).toFixed(1)).join(' ');
+  return`<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" aria-hidden="true"><polygon points="${X(0)},${H} ${pts} ${X(v.length-1)},${H}" fill="${col}" opacity=".12"/><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2.4" stroke-linejoin="round"/><circle cx="${X(v.length-1)}" cy="${Y(v[v.length-1])}" r="4" fill="${col}"/></svg>`}
+function firmHist(f){const L=Math.max(0,...f.shops.map(x=>(x.hist||[]).filter(h=>h.cm!==undefined).length)),out=[];
+  for(let i=0;i<L;i++){const o={cm:0,cd:0,cs:0,d:''};for(const x of f.shops){const h=(x.hist||[]).filter(h=>h.cm!==undefined),j=h.length-L+i;if(j>=0){o.cm+=h[j].cm;o.cd+=h[j].cd;o.cs+=h[j].cs;o.d=h[j].d}}out.push(o)}return{hist:out}}
 const sgnN=v=>(v>=0?'+':'')+fn(v);
 function prodCards(f,s){const ms=K.menuStats(G,f,s||null),byQ={};for(const it of ms.items)byQ[it.k]=it;const cat=view.p.cat||'main';
   const keys=Object.keys(K.PRODUCTS).filter(k=>{const P=K.PRODUCTS[k];return!(P.res&&!f.res[P.res])&&(cat==='main'?P.main:cat==='drink'?P.drink:!P.main&&!P.drink)});
   let b=`<div class="seg">${[['main','🍝 Hauptgerichte'],['drink','🥤 Getränke'],['dessert','🍰 Desserts']].map(([v,l])=>`<button data-a="pCat" data-v="${v}" aria-pressed="${cat===v}">${l}</button>`).join('')}</div><div class="hcards">`;
   for(const k of keys){const P=K.PRODUCTS[k],m=f.menu[k],it=byQ[k],price=s&&!f.uniform&&s.px&&s.px[k]!=null?s.px[k]:m.price,uc=K.unitCost(G,f,k),mg=Math.max(0,1-uc/price);
     let rev=0,prv=null;if(s){rev=s.stat&&s.stat.items&&s.stat.items[k]?s.stat.items[k].rev:0;prv=s.prevItems&&s.prevItems[k]?s.prevItems[k].rev:null}else{for(const x of f.shops){const i2=x.stat&&x.stat.items&&x.stat.items[k];if(i2)rev+=i2.rev;const p2=x.prevItems&&x.prevItems[k];if(p2)prv=(prv||0)+p2.rev}}
+    const hs=s?[s]:f.shops,L=Math.max(0,...hs.map(x=>((x.ih||{})[k]||[]).length)),ser=[...Array(L)].map((_,i)=>hs.reduce((a,x)=>{const h=(x.ih||{})[k]||[];const j=h.length-L+i;return a+(j>=0?h[j]:0)},0));
+    const trend=ser.length>1?`<div class="ptrend"><span class="eyebrow">Umsatz der letzten ${ser.length} Wochen</span>${trendSvg(ser,ser[ser.length-1]>ser[0]*1.03?'#2f8a55':ser[ser.length-1]<ser[0]*0.97?'#cc3b33':'#5a6270')}</div>`:'<div class="sub" style="text-align:center">Der Verlauf erscheint nach zwei Wochen.</div>';
     const own=s&&!f.uniform;b+=`<div class="card hc pcard" style="${m.on?'':'opacity:.6'}"><div class="picon">${P.icon}</div><b style="font-size:18px;text-align:center">${P.n}</b><div style="text-align:center">${starsH(K.stars(it?it.qual:0.5))}</div>
       <div class="row"><span>${tog('menuOn',m.on,`data-k="${k}"`)} <span class="sub">Im Menü</span></span><span style="text-align:right"><span class="eyebrow">Umsatz letzte Woche</span><br><b class="serif" style="font-size:22px">${fe(rev)}</b>${prv!=null?`<br><span class="sub">${sgn(rev-prv)}</span>`:''}</span></div>
       <div class="row" style="align-items:center"><span style="position:relative;display:inline-flex">${donut([{v:mg,c:'#f0c27a'},{v:1-mg,c:'#cc4a1e'}],96)}<span class="mlab"><small>Marge</small><b>${pct(mg)}</b></span></span>
         <span style="text-align:right"><span class="sub neg">Stückkosten ${uc.toFixed(2).replace('.',',')} ${K.CURS[G.currency]}</span><br><span class="eyebrow">Preis${own?' hier':''}</span><br>${step(own?'shopPx':'menuPrice',price.toFixed(2).replace('.',',')+' '+K.CURS[G.currency],`data-k="${k}"${own?` data-id="${s.id}"`:''}`)}</span></div>
-      ${!s?seg('menuQ',[[1,'Einfach'],[2,'Gut'],[3,'Premium']],m.q,`data-k="${k}"`):''}</div>`}
+      ${trend}${!s?seg('menuQ',[[1,'Einfach'],[2,'Gut'],[3,'Premium']],m.q,`data-k="${k}"`):''}</div>`}
   b+='</div>';
   b+=`<div class="row"><span><b>Die Preise für alle Restaurants durchsetzen</b><br><span class="sub">${f.uniform?'Überall gelten die Preise der Speisekarte.':'Jedes Restaurant hat eigene Preise, einstellbar im Restaurant unter Produkt.'}</span></span>${tog('uniform',f.uniform,'')}</div>`;
   return b}
@@ -1071,8 +1080,14 @@ function gameOver(){const v=K.valuation(G);const m=$('modal');m.hidden=false;m.i
 
 // ---------- Aktionen ----------
 function run(res,quiet){if(!res)return res;if(res.msg&&(!quiet||!res.ok))toast(res.msg,res.ok?'':'bad');refresh();return res}
+let hold=null,suppressClick=false;
+function stopHold(){if(hold){clearTimeout(hold.t);hold=null}}
+document.addEventListener('pointerdown',e=>{const b=e.target.closest('.step [data-a]');if(!b)return;stopHold();const data=Object.assign({},b.dataset);let n=0;
+  const fire=()=>{if(!hold)return;const el=document.createElement('button');for(const k in data)el.dataset[k]=data[k];el.hidden=true;$('sheet').appendChild(el);el.click();el.remove();n++;hold.fired=true;hold.t=setTimeout(fire,Math.max(45,170-n*12))};
+  hold={t:setTimeout(fire,420),fired:false}});
+['pointerup','pointercancel','blur'].forEach(ev=>addEventListener(ev,()=>{const h=hold;stopHold();if(h&&h.fired){suppressClick=true;setTimeout(()=>suppressClick=false,80)}}));
 document.addEventListener('change',e=>{if(e.target&&e.target.id==='importFile'&&e.target.files[0])importSave(e.target.files[0])});
-document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||b.getAttribute('aria-disabled')==='true'||b.disabled)return;
+document.addEventListener('click',e=>{if(suppressClick&&e.isTrusted){suppressClick=false;return}const b=e.target.closest('[data-a]');if(!b||b.getAttribute('aria-disabled')==='true'||b.disabled)return;
   const a=b.dataset.a,d=+b.dataset.d||0,id=b.dataset.id,k=b.dataset.k,v=b.dataset.v;const f=G&&cur();
   switch(a){
   case'nColor':keepInputs();newOpt.color=v;showMenu();break;case'nLogo':keepInputs();newOpt.logo=+v;showMenu();break;case'nPort':keepInputs();newOpt.portrait=+v;showMenu();break;

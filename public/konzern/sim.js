@@ -256,7 +256,7 @@ function cafeMonth(G,f,rep){
     let hot=0,cold=0,food=0;for(const it of fc.ms.items){const P=PRODUCTS[it.k],v=guests*per*it.share*it.price*(s.act.happy?0.94:1)*(s.ups.delivery?1.15:1);if(P.main)hot+=v;else if(P.drink)cold+=v;else food+=v}
     const prev=s.stat;s.stat={guests,dem:Math.round(fc.dem),cap:Math.round(fc.cap),rev,cost:rev-profit,profit,sat,served,hot,cold,food,cogs:cogs+cogsInt,wages,rent:rentOf(p)*ctrl*W,other,mk};
     let cm=0,cd=0,cs=0;for(const k in byItem){const P=PRODUCTS[k];if(P.main)cm+=byItem[k].n;else if(P.drink)cd+=byItem[k].n;else cs+=byItem[k].n}
-    s.prevItems=prev&&prev.items||null;s.stat.items=byItem;s.hist=(s.hist||[]).concat([{m:G.month,w:G.week||0,d:dayOf(G)+'.'+(G.month%12+1)+'.',rev,profit,guests,cm,cd,cs}]).slice(-12);s.rcount=(s.rcount||0)+Math.round(guests*0.012);
+    s.prevItems=prev&&prev.items||null;s.stat.items=byItem;s.ih=s.ih||{};for(const k in PRODUCTS){const v=byItem[k]?byItem[k].rev:0;s.ih[k]=(s.ih[k]||[]).concat([v]).slice(-12)}s.hist=(s.hist||[]).concat([{m:G.month,w:G.week||0,d:dayOf(G)+'.'+(G.month%12+1)+'.',rev,profit,guests,cm,cd,cs}]).slice(-12);s.rcount=(s.rcount||0)+Math.round(guests*0.012);
     s.reviews=reviewsFor(G,s,fc,served);
     rep.items.push({kind:'shop',id:s.id,fid:f.id,plot:p.id,icon:'🍽️',name:ZONES[p.zone].n+' '+cityName(p.city),firm:f.name,rev,profit,kpi:fn(guests)+' Gäste',delta:prev?guests-prev.guests:null,stars:stars(s.rep)})}
   if(f.shops.length)f.rep+=(f.shops.reduce((a,s)=>a+s.rep,0)/f.shops.length-f.rep)*kW(0.5)}
