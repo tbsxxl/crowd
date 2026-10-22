@@ -170,6 +170,10 @@ table.cf td{padding:5px 0;font-size:13.5px}table.cf td:last-child{text-align:rig
 .cands{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.cand{min-width:min(280px,82%);scroll-snap-align:center;display:flex;flex-direction:column;gap:6px}.cand .ava,.execCard .ava,.execHead .ava{flex:none;align-self:center}
 @media (max-width:440px){.execHead{flex-direction:column;align-items:center}.mast{font-size:26px}}
 /* Start, Wizard, Produktkarten */
+.tips>div{display:flex;flex-direction:column;gap:8px;padding-bottom:12px;flex:1}.tips p{margin:0;align-self:stretch}.tip{display:flex;flex-direction:column;align-items:flex-start;gap:6px}.tip .btn.sm{background:#fff;color:var(--ink);padding:6px 12px;font-size:12.5px}
+.flag{font-style:normal;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;margin-left:4px;white-space:nowrap;vertical-align:1px}.flag.good{background:#e3f1e8;color:#2f8a55}.flag.bad{background:#f8e1df;color:#cc3b33}.flag.warn{background:#f6edd2;color:#9a7414}.flag.mute{background:var(--soft);color:var(--muted)}
+.load{display:block;height:4px;border-radius:2px;background:var(--soft);margin-top:5px;overflow:hidden}.load i{display:block;height:100%}
+.mbar{display:flex;height:14px;border-radius:7px;overflow:hidden;margin:8px 0}.mbar i{display:block;height:100%}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:0}
 .report>*{flex-shrink:0}
 .li .t span .stars,.li .t span span{display:inline-block}.li .t span b{display:inline;font-size:inherit}.li .t i.rs{display:block;font-style:normal;margin-top:3px}
 .kpi b.sm{font-size:16px}
@@ -216,7 +220,7 @@ table.league td{padding:3px 4px;font-size:12.5px}table.league td:nth-child(2){wi
 .money.p{color:var(--good)}.money.n{color:var(--bad)}
 @keyframes rise{0%{opacity:0;margin-top:14px}12%{opacity:1;margin-top:0}75%{opacity:1}100%{opacity:0;margin-top:-34px}}
 .tags{position:fixed;inset:0;pointer-events:none;z-index:1;overflow:hidden}
-.tag{position:absolute;transform:translate(-50%,-100%);font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--card);border:1px solid var(--line);white-space:nowrap;color:var(--ink)}
+.tag{pointer-events:auto;cursor:pointer;position:absolute;transform:translate(-50%,-100%);font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--card);border:1px solid var(--line);white-space:nowrap;color:var(--ink)}
 .tag i{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px;vertical-align:1px}
 .toast{position:fixed;left:50%;top:calc(132px + env(safe-area-inset-top,0px));transform:translateX(-50%);padding:10px 16px;z-index:9;font-size:13.5px;font-weight:600;max-width:min(460px,calc(100vw - 32px));animation:pop .25s}
 .toast.bad{border-left:3px solid var(--bad)}
@@ -289,8 +293,8 @@ window.addEventListener('error',function(e){var m=document.getElementById('bootM
   if(m&&!document.getElementById('menu').hidden)m.textContent=t;else{var d=document.getElementById('toast');if(d){d.textContent=t;d.hidden=false}}},true);
 </script>
 <script src="../vendor/three-r128-bloom.js"></script>
-<script src="sim.js?v=20261023b"></script>
-<script src="world.js?v=20261023b"></script>
+<script src="sim.js?v=20261023c"></script>
+<script src="world.js?v=20261023c"></script>
 <script>
 (function(){
 'use strict';
@@ -415,9 +419,19 @@ function propCard(p){const v=K.propValue(G,p);
   if(p.owner==='H')return'';
   const self=p.owner&&!p.owner.startsWith('c:');return`<div class="card soft"><div class="ch"><span class="ico">🏢</span><span class="t"><b>${K.unitName(p)} kaufen</b><span>${self?'Du sparst danach '+fe(p.rent)+' Miete im Monat.':p.owner?'Die Konkurrenz zahlt dir dann '+fe(p.rent)+' Miete im Monat.':'Vermiete es an Dritte oder nutze es später selbst.'} Rendite ${(K.YIELD[p.zone]*100).toFixed(1).replace('.',',')} %.</span></span></div><button class="btn" data-a="buyProp" data-id="${p.id}">Kaufen · ${fe(v*1.05)} inkl. Nebenkosten</button></div>`}
 // Liste der Geschäfte
-VIEWS.list=()=>{let b='';const last=G.report;
-  for(const f of G.firms){b+=`<div class="sec"><h3>${esc(f.name)}</h3><div class="list">`;
-    if(f.branch==='cafe'){for(const s of f.shops){const p=K.plot(G,s.plot),st=s.stat;b+=li(`data-a="open" data-v="shop" data-id="${s.id}" data-keep="1"`,'🍽️',K.ZONES[p.zone].n+', '+K.cityName(p.city),(st?fn(st.guests)+' Gäste · ':'neu · ')+starsH(K.stars(s.rep)),st?sgn(st.profit):'–','Gewinn',st?(st.profit>=0?'pos':'neg'):'')}
+// Status eines Restaurants als kurzes Etikett
+function shopFlag(s){const st=s.stat;if(s.build)return['Im Bau','mute'];if(!st)return['Neu','mute'];if(st.dem>st.cap*1.15)return['Überlastet','bad'];if(st.cap>st.dem*1.8&&s.staff>2)return['Leerlauf','warn'];if(s.rep<0.5)return['Schwache Bewertungen','warn'];if(st.profit<0)return['Verlust','bad'];return['Läuft','good']}
+VIEWS.list=()=>{const t=T()||'own';let b='';const last=G.report;
+  if(t==='market')return{eyebrow:K.monthName(G.month),title:'Meine Geschäfte',tabs:[['own','Übersicht'],['market','Marktanteile']],body:marketHtml()};
+  const sort=view.p.sort||'profit';
+  for(const f of G.firms){b+=`<div class="sec"><h3>${esc(f.name)}</h3>`;
+    if(f.branch==='cafe'&&f.shops.length){const op=f.shops.filter(s=>s.stat&&!s.build),g=op.reduce((a,s)=>a+s.stat.guests,0),pr=op.reduce((a,s)=>a+s.stat.profit,0),cap=op.reduce((a,s)=>a+s.stat.cap,0),dem=op.reduce((a,s)=>a+s.stat.dem,0);
+      b+=kpis([[fn(f.shops.length),'Restaurants'],[fn(g),'Gäste/Woche'],[sgn(pr),'Gewinn/Woche',pr>=0?'pos':'neg']])+`<div class="sub">Auslastung ${cap?pct(Math.min(1,dem/cap)):'–'} · Ø ${(op.reduce((a,s)=>a+K.stars(s.rep),0)/Math.max(1,op.length)).toFixed(1).replace('.',',')} Sterne · ${op.filter(s=>shopFlag(s)[1]==='bad').length} mit Handlungsbedarf</div>`+
+        seg('listSort',[['profit','Gewinn'],['guests','Gäste'],['stars','Bewertung'],['need','Handlungsbedarf']],sort)}
+    b+='<div class="list">';
+    if(f.branch==='cafe'){const rank={bad:0,warn:1,mute:2,good:3},key=s=>sort==='guests'?-(s.stat?s.stat.guests:0):sort==='stars'?-s.rep:sort==='need'?rank[shopFlag(s)[1]]:-(s.stat?s.stat.profit:-1e9);
+      for(const s of f.shops.slice().sort((a,c)=>key(a)-key(c))){const p=K.plot(G,s.plot),st=s.stat,[fl,fc]=shopFlag(s),load=st&&st.cap?Math.min(1.3,st.dem/st.cap):0;
+        b+=li(`data-a="open" data-v="shop" data-id="${s.id}" data-keep="1"`,'🍽️',esc(K.address(p))+` <em class="flag ${fc}">${fl}</em>`,(st?fn(st.guests)+' Gäste · ':'')+starsH(K.stars(s.rep))+(st?`<i class="load"><i style="width:${Math.min(100,load/1.3*100)}%;background:${load>1.15?'#cc3b33':load<0.55?'#d4a72c':'#2f8a55'}"></i></i>`:''),st?sgn(st.profit):'–','Gewinn',st?(st.profit>=0?'pos':'neg'):'')}
       if(!f.shops.length)b+=`<button class="li" data-a="place" data-k="cafe" data-id="${f.id}"><span class="ico">➕</span><span class="t"><b>Erstes Restaurant eröffnen</b><span>Ladenlokal in der Stadt wählen</span></span></button>`}
     if(f.branch==='soft'){b+=li(`data-a="open" data-v="office" data-id="${f.id}" data-keep="1"`,'🏢',f.office?'Studio '+K.cityName(K.plot(G,f.office).city):'Homeoffice',fn(f.jr+f.sr+f.des+f.qa)+' im Team · '+fn(K.desks(G,f))+' Plätze','→','');
       for(const a of G.apps.filter(a=>a.owner===f.id&&a.state!=='off'))b+=a.state==='dev'?li(`data-a="open" data-v="app" data-id="${a.id}" data-keep="1"`,'🛠️',esc(a.name),K.GENRES[a.genre].n+' · in Entwicklung',pct(a.progress/a.work),'fertig'):
@@ -426,7 +440,19 @@ VIEWS.list=()=>{let b='';const last=G.report;
       for(const p of f.plants){const it=last&&last.items.find(x=>x.kind==='plant'&&x.id===p.id);b+=li(`data-a="open" data-v="plant" data-id="${p.id}" data-keep="1"`,'🏭','Werk '+K.cityName(K.plot(G,p.plot).city),p.lines.length?p.lines.map(l=>K.LINES[l.type].n).join(', '):'noch keine Linie',it?sgn(it.profit):'–','Gewinn',it?(it.profit>=0?'pos':'neg'):'')}
       if(!f.plants.length)b+=`<button class="li" data-a="place" data-k="factory" data-id="${f.id}"><span class="ico">➕</span><span class="t"><b>Erste Halle mieten</b><span>Halle im Gewerbegebiet wählen</span></span></button>`}
     b+='</div></div>'}
-  return{eyebrow:K.monthName(G.month),title:'Meine Geschäfte',body:b}};
+  return{eyebrow:K.monthName(G.month),title:'Meine Geschäfte',tabs:[['own','Übersicht'],['market','Marktanteile']],body:b}};
+// Marktanteile je Stadt: Standorte und Laufkundschaft der Restaurants, du gegen die Konkurrenz
+function marketHtml(){let b='<div class="sub">Wie viel der Laufkundschaft an Restaurant-Standorten auf dich entfällt. Zählt alle Ladenlokale, die als Restaurant betrieben werden.</div>';
+  const cols=['#d4a72c','#2f6fd0','#9b6fb5','#e07a2a','#5a6270','#1fa9c4','#cc3b33'];
+  for(const c of K.CITIES){if(!G.cities[c.id])continue;const ps=G.plots.filter(p=>p.city===c.id&&p.use==='cafe'&&p.owner);if(!ps.length){b+=`<div class="card"><b>${c.n}</b><div class="sub">Noch keine Restaurants.</div></div>`;continue}
+    const by={};for(const p of ps){const k=p.owner.startsWith('c:')?p.owner:'me';(by[k]=by[k]||{n:0,t:0});by[k].n++;by[k].t+=p.traffic}
+    const tot=Object.values(by).reduce((a,x)=>a+x.t,0),rows=Object.entries(by).map(([k,x])=>{const cp=k==='me'?null:G.comps.find(q=>'c:'+q.id===k);return{k,n:k==='me'?'Du':cp?cp.name:'Andere',c:k==='me'?G.firms[0].color:cp&&cp.color||'#8a8f96',x}}).sort((a,b)=>(b.k==='me')-(a.k==='me')||b.x.t-a.x.t);
+    rows.forEach((r,i)=>{if(r.k!=='me'&&r.c==='#8a8f96')r.c=cols[i%cols.length]});const me=by.me?by.me.t/tot:0,lead=rows.slice().sort((a,b)=>b.x.t-a.x.t)[0];
+    b+=`<div class="card"><div class="row"><b style="font-size:16px">${c.n}</b><b class="serif" style="font-size:22px">${pct(me)}</b></div>
+      <div class="mbar">${rows.map(r=>`<i style="width:${r.x.t/tot*100}%;background:${r.c}" title="${esc(r.n)}"></i>`).join('')}</div>
+      ${rows.map(r=>`<div class="row"><span><i class="dot" style="background:${r.c}"></i> ${esc(r.n)}</span><span class="sub">${r.x.n} Standort${r.x.n>1?'e':''} · ${pct(r.x.t/tot)}</span></div>`).join('')}
+      <div class="sub">${lead.k==='me'?'Du bist Marktführer in '+c.n+'.':esc(lead.n)+' führt hier. '+(by.me?'Dir fehlen '+pct(lead.x.t/tot-me)+' Anteil.':'Du bist hier noch nicht vertreten.')}</div></div>`}
+  return b}
 // Café-Filiale
 const MGRLOOK=m=>Object.assign({},m,{suit:'#9b6fb5',shirt:'#24272b'});
 function mgrCard(s){const m=s.manager;
@@ -1035,16 +1061,18 @@ function doEnd(n){n=n||1;$('modal').hidden=true;close();endPlace();const reps=[]
   for(let i=0;i<n;i++){const r=K.endTurn(G);if(!r)break;reps.push(r);if(G.over||G.pending.length||(r.incidents||[]).length||r.goals.length)break}
   if(!reps.length)return;const r=mergeReps(reps);lastRep=r;paperTab='top';save();World.sync(G);refresh();floatMoney(reps[reps.length-1]);setTimeout(()=>report(r),650);chime(r.net>=0)}
 // ---------- Lena rät ----------
+// Tipps mit passendem Knopf: Text t, Beschriftung b, Attribute a für den Knopf
 function tipsFor(){const t=[];
-  if(G.cash<0)t.push('Die Kasse ist im Minus. Nimm unter Finanzen einen Kredit auf oder spare Kosten, sonst droht nach drei Monaten die Insolvenz.');
-  for(const f of G.firms){if(f.branch==='cafe')for(const s of f.shops){if(!s.stat||s.build)continue;const where=K.address(K.plot(G,s.plot)).split(',')[0];
-      if(s.stat.dem>s.stat.cap*1.15){t.push(where+': Es kommen mehr Gäste, als ihr bedienen könnt. Stell Personal ein.');break}
-      if(s.stat.cap>s.stat.dem*1.8&&s.staff>2){t.push(where+': Viel Leerlauf. Weniger Personal oder mehr Werbung würde helfen.');break}
-      if(s.rep<0.5){t.push(where+': Die Bewertungen sind schwach. Schau unter Bewertungen, was die Gäste stört.');break}}
-    if(f.morale<0.5)t.push(f.name+': Die Stimmung im Team ist schlecht. Höhere Gehälter oder ein Teamtag helfen.');
-    if(f.branch==='soft'&&G.apps.some(a=>a.owner===f.id&&a.state==='live'&&a.bugs>a.users/2000+40))t.push(f.name+': Die Bugs nehmen überhand. Stell den Fokus einer App auf „Bugs beheben“.')}
-  const last=G.months[G.months.length-1];if(last&&last.net>0&&G.cash>120000&&G.firms[0].branch==='cafe'&&G.firms[0].shops.length<3)t.push('Es läuft gut und die Kasse ist voll. Zeit für ein weiteres Restaurant?');
-  return t.slice(0,2)}
+  if(G.cash<0)t.push({t:'Die Kasse ist im Minus. Nimm einen Kredit auf oder spare Kosten, sonst droht nach drei Monaten die Insolvenz.',b:'Kredite ansehen',a:'data-a="open" data-v="fin" data-tab="money"'});
+  for(const f of G.firms){if(f.branch==='cafe')for(const s of f.shops){if(!s.stat||s.build||!s.staff)continue;const where=K.address(K.plot(G,s.plot)).split(',')[0],per=s.stat.cap/s.staff;
+      if(s.stat.dem>s.stat.cap*1.15){const n=Math.ceil(s.stat.dem*1.08/per)-s.staff;t.push({t:where+': Es kommen mehr Gäste, als ihr bedienen könnt. Mit '+n+' Kräften mehr passt es.',b:'+'+n+' Personal',a:`data-a="tipStaff" data-id="${s.id}" data-v="${s.staff+n}"`});break}
+      if(s.stat.cap>s.stat.dem*1.8&&s.staff>2){const n=Math.max(2,Math.ceil(s.stat.dem*1.1/per));t.push({t:where+': Viel Leerlauf. '+n+' Kräfte reichen für die Nachfrage.',b:'Auf '+n+' reduzieren',a:`data-a="tipStaff" data-id="${s.id}" data-v="${n}"`});break}
+      if(s.rep<0.5){t.push({t:where+': Die Bewertungen sind schwach. Schau nach, was die Gäste stört.',b:'Bewertungen lesen',a:`data-a="open" data-v="shop" data-id="${s.id}" data-tab="rev"`});break}}
+    if(f.morale<0.5)t.push({t:f.name+': Die Stimmung im Team ist schlecht. Höhere Gehälter oder ein Teamtag helfen.',b:'Gehälter ansehen',a:`data-a="selFirm" data-id="${f.id}" data-open="1"`});
+    if(f.branch==='soft'&&G.apps.some(a=>a.owner===f.id&&a.state==='live'&&a.bugs>a.users/2000+40))t.push({t:f.name+': Die Bugs nehmen überhand. Stell den Fokus einer App auf „Bugs beheben“.',b:'Apps ansehen',a:'data-a="open" data-v="list"'})}
+  const last=G.months[G.months.length-1];if(last&&last.net>0&&G.cash>120000&&G.firms[0].branch==='cafe'&&G.firms[0].shops.length<3)t.push({t:'Es läuft gut und die Kasse ist voll. Zeit für ein weiteres Restaurant?',b:'Restaurant bauen',a:`data-a="place" data-k="cafe" data-id="${G.firms[0].id}"`});
+  return t.slice(0,3)}
+const tipsHtml=t=>`<div class="say tips"><div><p><b>Lena rät:</b></p>${t.map(x=>`<div class="tip"><p>${esc(x.t)}</p>${x.b?`<button class="btn sm" ${x.a}${x.a.includes('tipStaff')?'':' data-rc="1"'}>${esc(x.b)}</button>`:''}</div>`).join('')}</div><span class="sayAva">${avatar(ASSIST,58)}</span></div>`;
 // ---------- Einführung ----------
 const TUT=[{t:B=>B==='soft'?'Tippe auf „Bauen“ und miete ein Büro':B==='prod'?'Tippe auf „Bauen“ und miete eine Halle':'Tippe auf „Bauen“ und baue dein erstes Restaurant',d:'Grün markierte Flächen in der Stadt passen.',v:'build',done:G=>G.firms[0].shops&&G.firms[0].shops.length||G.firms[0].office||(G.firms[0].plants||[]).length},
   {t:B=>B==='soft'?'Stell Entwickler ein und starte eine App':B==='prod'?'Kauf eine Produktionslinie':'Schau dir dein Restaurant an',d:'Unter „Geschäfte“ findest du alles, was dir gehört.',v:'list',done:G=>G.tutSeen},
@@ -1071,7 +1099,7 @@ function report(r){const m=$('modal');m.hidden=false;if(G.currency&&G.currency!=
   ${r.goals.map(g=>`<div class="goalWin"><span class="e">🏆</span><span><b>Ziel erreicht: ${esc(g.n)}</b><br><span class="sub">${g.reward?'+'+fe(g.reward)+' Förderprämie':'Großartig!'}</span></span></div>`).join('')}
   ${items.length?`<div class="sec"><h3>Deine Geschäfte</h3><div class="list">${items.map(it=>`<div class="li" style="cursor:default"><span class="ico">${it.icon}</span><span class="t"><b>${esc(it.name)}</b><span>${esc(it.kpi)}${it.delta!=null&&it.delta!==0?` <b class="${it.delta>0?'pos':'neg'}">${it.delta>0?'▲':'▼'} ${fn(Math.abs(it.delta))}</b>`:''}${it.stars?'<i class="rs">'+starsH(it.stars)+'</i>':''}${it.broke?' · ⚠️ Ausfall':''}</span></span><span class="v ${it.profit>=0?'pos':'neg'}">${it.kind==='dev'?'':sgn(it.profit)}</span></div>`).join('')}</div></div>`:'<div class="hint">Noch keine Geschäfte. Öffne „Bauen“ und leg los!</div>'}
   ${r.events.length?`<div class="sec"><h3>Was passiert ist</h3>${r.events.map(e=>`<div class="evt"><span class="e">${e.icon}</span><span class="${e.bad?'neg':''}">${esc(e.t)}</span></div>`).join('')}</div>`:''}
-  ${(()=>{const t=tipsFor();return t.length?`<div class="say"><p><b>Lena rät:</b><br>${t.map(esc).join('<br>')}</p><span class="sayAva">${avatar(ASSIST,58)}</span></div>`:''})()}
+  ${(()=>{const t=tipsFor();return t.length?tipsHtml(t):''})()}
   ${quotes()}
   ${paperHtml(r)}
   ${(r.incidents||[]).length?`<div class="warnbox">${r.incidents.length>1?r.incidents.length+' Vorfälle':'Ein Vorfall'} zum Durchsehen.</div>`:''}
@@ -1099,7 +1127,7 @@ document.addEventListener('pointerdown',e=>{const b=e.target.closest('.step [dat
   hold={t:setTimeout(fire,420),fired:false}});
 ['pointerup','pointercancel','blur'].forEach(ev=>addEventListener(ev,()=>{const h=hold;stopHold();if(h&&h.fired){suppressClick=true;setTimeout(()=>suppressClick=false,80)}}));
 document.addEventListener('change',e=>{if(e.target&&e.target.id==='importFile'&&e.target.files[0])importSave(e.target.files[0])});
-document.addEventListener('click',e=>{if(suppressClick&&e.isTrusted){suppressClick=false;return}const b=e.target.closest('[data-a]');if(!b||b.getAttribute('aria-disabled')==='true'||b.disabled)return;
+document.addEventListener('click',e=>{if(suppressClick&&e.isTrusted){suppressClick=false;return}const b=e.target.closest('[data-a]');if(!b||b.getAttribute('aria-disabled')==='true'||b.disabled)return;if(b.dataset.rc&&!$('modal').hidden){$('modal').hidden=true;if(!G.over)startCases(lastRep)}
   const a=b.dataset.a,d=+b.dataset.d||0,id=b.dataset.id,k=b.dataset.k,v=b.dataset.v;const f=G&&cur();
   switch(a){
   case'nColor':keepInputs();newOpt.color=v;showMenu();break;case'nLogo':keepInputs();newOpt.logo=+v;showMenu();break;case'nPort':keepInputs();newOpt.portrait=+v;showMenu();break;
@@ -1180,6 +1208,8 @@ document.addEventListener('click',e=>{if(suppressClick&&e.isTrusted){suppressCli
   case'decide':{const r=K.act.decide(G,+id,+v);if(r.msg)toast(r.msg,'');refresh();if(!G.pending.length){renderSheet(true)}else renderSheet(true);break}
   case'sector':view.p.sec=k;renderSheet();break;
   case'trade':run(K.act.trade(G,k,+v));break;
+  case'listSort':view.p.sort=v;renderSheet();break;
+  case'tipStaff':{const r=K.act.shop(G,+id,{staff:+v});b.textContent=r.ok?'Erledigt':'Geht nicht';b.disabled=true;save();refresh();if(!r.ok&&r.msg)toast(r.msg,'bad');break}
   case'tradeSl':{const sl=document.querySelector(`input[data-in="stk"][data-k="${k}"]`);if(sl)run(K.act.trade(G,k,+sl.value));break}
   case'stake':{const sl=document.querySelector(`input[data-in="stake"][data-id="${id}"]`);if(sl)run(K.act.stake(G,+id,+sl.value/100));break}
   case'secPct':view.p.pc=Math.max(0.01,Math.min(0.3,Math.round(((view.p.pc||0.05)+d*0.01)*100)/100));renderSheet();break;
@@ -1269,9 +1299,12 @@ function tags(){const el=$('tags');if(!G){el.innerHTML='';return}const out=[];
       if(p.use==='cafe'){const s=f.shops.find(x=>x.plot===p.id);t=s&&s.stat?fn(s.stat.guests)+' Gäste':'neu'}
       if(p.use==='office')t=fn(G.apps.filter(a=>a.owner===f.id&&a.state==='live').reduce((s,a)=>s+a.users,0))+' Nutzer';
       if(p.use==='factory'){const pl=f.plants.find(x=>x.plot===p.id);t=pl&&pl.lines.length?pl.lines.length+(pl.lines.length>1?' Linien':' Linie'):'leer'}}
-    out.push({x:pr.x,y:pr.y,h:`<i style="background:${col}"></i>${esc(t)}`,w:t.length*6.4+28})}
-  out.sort((a,b)=>b.y-a.y);const placed=[];for(const o of out){for(let k=0;k<8;k++){const hit=placed.find(q=>Math.abs(q.x-o.x)<(q.w+o.w)/2+4&&Math.abs(q.y-o.y)<22);if(!hit)break;o.y=hit.y-24}placed.push(o)}
-  el.innerHTML=placed.map(o=>`<div class="tag" style="left:${o.x}px;top:${o.y}px">${o.h}</div>`).join('')}
+    const pri=p.owner==='H'?1e9:p.use==='cafe'?(K.firm(G,p.owner).shops.find(x=>x.plot===p.id)||{stat:{guests:0}}).stat?.guests||0:5e8;
+    out.push({x:pr.x,y:pr.y,id:p.id,pri,h:`<i style="background:${col}"></i>${esc(t)}`,w:t.length*6.4+28})}
+  // Überlappende Schilder werden nicht gestapelt: das wichtigere bleibt, das andere zeigt nur seinen Pin
+  out.sort((a,b)=>b.pri-a.pri);const placed=[];for(const o of out){if(!placed.some(q=>Math.abs(q.x-o.x)<(q.w+o.w)/2+2&&Math.abs(q.y-o.y)<22))placed.push(o)}
+  el.innerHTML=placed.map(o=>`<div class="tag" data-pid="${o.id}" style="left:${o.x}px;top:${o.y}px">${o.h}</div>`).join('')}
+$('tags').addEventListener('pointerdown',e=>{const t=e.target.closest('.tag');if(t&&G){e.preventDefault();tapPlot(t.dataset.pid)}});
 let lastTag=0;function loop(t){if(G&&t-lastTag>120){tags();lastTag=t}World.frame(t);requestAnimationFrame(loop)}
 addEventListener('visibilitychange',()=>{if(document.hidden)save()});addEventListener('pagehide',save);
 
