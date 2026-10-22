@@ -13,7 +13,7 @@ const WARPS={
   hamburg:(x,z)=>{const cx=WW/2-P*1.6,cz=-DD/2+P*1.9,dx=x-cx,dz=z-cz,d=Math.hypot(dx,dz)||1,u=(x+WW/2)/WW,v=(z+DD/2)/DD,edge=Math.sin(Math.PI*u)*Math.sin(Math.PI*v),f=7.5*Math.exp(-d*d/520)*Math.min(1,edge*1.6);
     return[x+dx/d*f+2.5*Math.sin(Math.PI*v*2)*Math.sin(Math.PI*u),z+dz/d*f-2*Math.sin(Math.PI*u*2)*Math.sin(Math.PI*v)]},
   berlin:(x,z)=>{const u=(x+WW/2)/WW,v=(z+DD/2)/DD,e=Math.sin(Math.PI*u)*Math.sin(Math.PI*v);return[x+7*(v-0.5)*e*1.4+3*Math.sin(2*Math.PI*v)*Math.sin(Math.PI*u),z-4*(u-0.5)*e*1.4]}};
-const Wp=(x,z)=>{if(!WARP)return[x,z];const [a,b]=WARP(x,z);return[x+(a-x)*WA,z+(b-z)*WA]};
+const Wp=(x,z)=>{[x,z]=rPush(x,z);if(!WARP)return[x,z];const [a,b]=WARP(x,z);return[x+(a-x)*WA,z+(b-z)*WA]};
 const Wang=(x,z)=>{const a=Wp(x-0.5,z),b=Wp(x+0.5,z);return-Math.atan2(b[1]-a[1],b[0]-a[0])};
 function placeCell(g,r,c){const h=((r*73+c*151+(cityId||'').length*37)%97)/97,h2=((r*41+c*29+7)%89)/89,[x,z]=Wp(px(c)+(h-0.5)*1.6,pz(r)+(h2-0.5)*1.2);g.position.set(x,0,z);g.rotation.y=Wang(px(c),pz(r))+(h2-0.5)*0.22}
 function shade3(hex,k){const n=parseInt(hex.slice(1),16),f=v=>Math.max(0,Math.min(255,Math.round(v*k)));return'#'+[f(n>>16),f(n>>8&255),f(n&255)].map(v=>v.toString(16).padStart(2,'0')).join('')}
@@ -64,16 +64,17 @@ function crane(g,x,z,col){B(0.5,9,0.5,col,x-1,0,z-1,g);B(0.5,9,0.5,col,x+1,0,z-1
 function container(g,x,z,len){B(len,1.4,4,'#3d4651',x,-0.2,z,g);B(len*0.18,3,3.4,'#f4f1ea',x-len*0.4,1.2,z,g);const cols=['#cc3b33','#2f6fd0','#d4a72c','#3f9b62','#e07a2a','#9b6fb5'];
   for(let i=0;i<Math.floor(len*0.7/1.6);i++)for(let k=0;k<2;k++)B(1.5,0.9,1.6,cols[(i*3+k)%6],x-len*0.25+i*1.6,1.2+k*0.9,z-0.9+((i+k)%2)*1.8,g)}
 const LANDMARKS={
-  kiel:{n:'Emden',ground:'#c9d7b4',build(g){ // Hafen am Ratsdelft, Backsteinrathaus mit Turm, Mühlen auf dem Wall, Giebelhäuser
-    water(g,LZ-3,LZ+5,'#5c9cbf');
-    boat(g,-18,LZ+1.5,'#c8363b',9,true);B(0.5,2.4,0.5,'#c8363b',-16,0.6,LZ+1.5,g);B(0.9,0.6,0.9,'#f2c14e',-16,3,LZ+1.5,g); // Feuerschiff
-    const sail=boat(g,12,LZ+0.5,'#6b4a2f',8,true);B(0.15,6,0.15,'#3b2a20',-1,0.6,0,sail);B(2.6,3.2,0.05,'#f4efe2',-1,2.4,0.1,sail);
+  kiel:{n:'Emden',ground:'#bfd2a2',build(g){ // Vor dem Wall: Felder, Weide mit Kühen, Mühlen, Giebelhäuser und Speicher
+    const FC=['#dcc57c','#a9c47a','#c9a86a','#9cc47e','#e3d28c'];
+    for(let i=0;i<9;i++){const x=-42+i*10.5,c=FC[i%5];B(9.8,0.1,7.5,c,x,0,LZ+1,g);for(let k=0;k<5;k++)B(9.6,0.13,0.2,shade3(c,0.86),x,0,LZ-2.2+k*1.6,g)}
+    B(24,0.1,7,'#8fbf73',32,0,LZ+9.5,g);for(const z of [LZ+6,LZ+13])B(24,0.5,0.12,'#e9e4d8',32,0,z,g);
+    for(let i=0;i<6;i++){const x=23+i*3.4+(i%2)*0.8,z=LZ+8+(i%3)*1.4;B(1.3,0.7,0.6,'#f4f1ea',x,0.45,z,g);B(0.5,0.72,0.62,'#24272b',x-0.2,0.45,z,g);B(0.4,0.4,0.4,'#f4f1ea',x+0.8,0.8,z,g);for(const dx of [-0.45,0.45])for(const dz of [-0.2,0.2])B(0.14,0.45,0.14,'#4a4f55',x+dx,0,z+dz,g)}
     // Speicher und Kontorhäuser am Delft
     for(let i=0;i<3;i++){const x=-8+i*6;B(5.2,5+i%2,5,i%2?'#8e3b2a':'#a6472f',x,0,LZ+9,g);add(prism(5.4,2,5.2),'#3d4651',x,5+i%2,LZ+9,g);for(let k=0;k<2;k++)B(0.9,1.1,0.05,'#f4f1ea',x-1.2+k*2.4,1.5,LZ+11.52,g)}
     // Giebelhäuser am anderen Ufer
     ['#a6472f','#b8553a','#8e3b2a','#c46a4a','#f2ece0','#a6472f','#b8553a'].forEach((c,i)=>gableHouse(g,-40+i*4.2,LZ-7,3.8,4+(i%3)*1.2,c,i%2===0));
-    // Wall mit Mühlen und Bäumen
-    B(26,1.2,8,'#7fae6a',30,0,LZ-7,g);windmill(g,24,LZ-7);windmill(g,36,LZ-8);trees(g,9,18,44,LZ-11,LZ-4);
+    // Mühlen und Bäume auf dem Land
+    windmill(g,24,LZ-7);windmill(g,38,LZ-8);trees(g,9,18,44,LZ-12,LZ-4);
     // Backsteinkirche
     B(9,6,5,'#9a4430',8,0,LZ-8,g);add(prism(9.2,3.5,5.2),'#5a3b30',8,6,LZ-8,g);B(2.6,11,2.6,'#9a4430',3.5,0,LZ-8,g);add(new THREE.ConeGeometry(1.9,4,4),'#5f9e8a',3.5,13,LZ-8,g).rotation.y=Math.PI/4;
     trees(g,6,-46,46,LZ+7,LZ+12)}},
@@ -89,7 +90,7 @@ const LANDMARKS={
     B(4,14,4,'#9a4a35',8,0,LZ+9,g);B(4.4,0.8,4.4,'#e8e3d6',8,14,LZ+9,g);cyl(1.4,1.9,3,'#5f9e8a',8,14.8,LZ+9,g,8);cyl(0.5,1.2,2.4,'#5f9e8a',8,17.8,LZ+9,g,8);add(new THREE.ConeGeometry(0.5,3.2,8),'#5f9e8a',8,21.8,LZ+9,g);
     trees(g,7,30,46,LZ+7,LZ+12)}},
   berlin:{n:'Berlin',ground:'#d2d6c4',build(g){ // Spree mit Ausflugsschiff, Fernsehturm, Stadttor mit Säulen, Parlament mit Glaskuppel
-    water(g,LZ-1,LZ+4,'#6d9bb8');boat(g,-10,LZ+1.5,'#f4f1ea',7,true);
+    B(BW,0.08,5,'#93c27a',0,0,LZ+1.5,g);trees(g,16,-46,46,LZ-0.5,LZ+4);
     // Dom mit Kuppeln an der Spree
     B(12,7,8,'#9a958a',10,0,LZ-7,g);add(new THREE.SphereGeometry(3.4,16,10,0,Math.PI*2,0,Math.PI/2),'#4f8a78',10,7,LZ-7,g);cyl(0.5,0.8,1.6,'#4f8a78',10,10.2,LZ-7,g,8);
     for(const dx of [-5,5])for(const dz of [-3,3]){B(2,9,2,'#9a958a',10+dx,0,LZ-7+dz,g);add(new THREE.SphereGeometry(1,10,8,0,Math.PI*2,0,Math.PI/2),'#4f8a78',10+dx,9,LZ-7+dz,g)}
@@ -109,8 +110,8 @@ function ribbon(pts,w,y,col){const pos=[],idx=[];for(let i=0;i<pts.length;i++){c
   const m=new THREE.Mesh(geo,typeof col==='string'?M(col):col);m.receiveShadow=true;return m}
 function buildRoads(){if(!roadGroup)return;while(roadGroup.children.length){const c=roadGroup.children.pop();if(c.geometry)c.geometry.dispose()}
   const asphalt=new THREE.MeshStandardMaterial({color:(MAP_CITY[cityId]||MAP_CITY.kiel).top,roughness:0.95,side:THREE.DoubleSide}),dashM=new THREE.MeshBasicMaterial({color:'#f3f1ea',side:THREE.DoubleSide});
-  const line=(fn,a0,a1)=>{const pts=[];for(let t=a0;t<=a1+0.01;t+=1.5)pts.push(Wp(...fn(t)));return pts};
-  const lines=[];for(let i=0;i<=COLS;i++)lines.push(line(t=>[streetX(i),t],-BD/2,BD/2));for(let i=0;i<=ROWS;i++)lines.push(line(t=>[t,streetZ(i)],-BW/2,BW/2));
+  const lines=[],line=(fn,a0,a1)=>{let pts=[];for(let t=a0;t<=a1+0.01;t+=1.5){const q=fn(t);if(inRiver(...q)===1){if(pts.length>1)lines.push(pts);pts=[];continue}pts.push(Wp(...q))}if(pts.length>1)lines.push(pts)};
+  for(let i=0;i<=COLS;i++)line(t=>[streetX(i),t],-BD/2,BD/2);for(let i=0;i<=ROWS;i++)line(t=>[t,streetZ(i)],-BW/2,BW/2);
   for(const L of lines){roadGroup.add(ribbon(L,S,0.015,asphalt));for(let k=0;k<L.length-1;k+=2)roadGroup.add(ribbon([L[k],L[k+1]],0.18,0.03,dashM))}}
 function special(code,id,r,c,g){seed=(r*17+c*5+id.length*11)|0||3;
   if(code==='P'){B(P,0.3,P,(MAP_CITY[id]||MAP_CITY.kiel).park,0,0,0,g);B(P,0.04,1.1,'#e2d6b8',0,0.3,0,g);B(1.1,0.04,P,'#e2d6b8',0,0.3,0,g);
@@ -136,6 +137,49 @@ function special(code,id,r,c,g){seed=(r*17+c*5+id.length*11)|0||3;
       B(7,1.4,7,'#e8e5de',0,0.3,0,g);for(let i=0;i<4;i++){const t=add(prism(3.4,1.2,1.4),'#f4f1ea',-2.2+(i%2)*4.4,1.7,-2.2+Math.floor(i/2)*4.4,g)}
       cyl(0.55,0.95,15,'#d9dcdf',0,0.3,0,g,12);add(new THREE.SphereGeometry(2.1,16,12),new THREE.MeshStandardMaterial({color:'#c9ced4',metalness:0.5,roughness:0.3}),0,16.6,0,g);
       cyl(1,1,0.5,'#8a8f96',0,18.4,0,g,12);cyl(0.25,0.36,3,'#e05a3a',0,18.9,0,g,8);cyl(0.14,0.25,2.2,'#f4f1ea',0,21.9,0,g,6)}}}
+// ---------- Flüsse, Kanäle und der Emder Wall ----------
+// Wasser läuft entlang eines Straßenzugs: h=1 waagerecht auf streetZ(i), sonst senkrecht auf streetX(i), von a bis b (Rasterkoordinaten).
+// Querstraßen führen über Brücken, Straßen am Ende eines Kanals enden am Ufer.
+const RIVERS={
+  kiel:[{h:1,i:2,a:-BW/2,b:streetX(3)+S/2},{h:0,i:3,a:streetZ(2)-S/2,b:BD/2}], // Delft vom Graben bis zum Hafen
+  hamburg:[{h:0,i:4,a:LZ+4,b:streetZ(3)-S/2}], // Fleet von der Elbe zur Alster
+  berlin:[{h:1,i:2,a:-BW/2,b:BW/2}]}; // Spree quer durch die Mitte
+// Am Fluss rücken die Häuserreihen auseinander; zum Rand hin läuft die Verschiebung aus, damit der Block seine Form behält.
+const RK=2.6;
+function rFade(r,al){const e=al<r.a?r.a-al:al>r.b?al-r.b:0;return Math.max(0,1-e/7)}
+function rPush(x,z){const rs=RIVERS[cityId];if(!rs)return[x,z];let dx=0,dz=0;
+  for(const r of rs){if(r.h){const z0=streetZ(r.i),f=rFade(r,x);if(!f)continue;dz+=z<z0?-RK*f*(z+DD/2)/(z0+DD/2):z>z0?RK*f*(DD/2-z)/(DD/2-z0):0}
+    else{const x0=streetX(r.i),f=rFade(r,z);if(!f)continue;dx+=x<x0?-RK*f*(x+WW/2)/(x0+WW/2):x>x0?RK*f*(WW/2-x)/(WW/2-x0):0}}
+  return[x+dx,z+dz]}
+function inRiver(x,z){for(const r of RIVERS[cityId]||[]){const d=r.h?Math.abs(z-streetZ(r.i)):Math.abs(x-streetX(r.i)),al=r.h?x:z;if(d>S/2+0.2||al<r.a||al>r.b)continue;
+    const n=r.h?COLS:ROWS,sf=r.h?streetX:streetZ;for(let j=0;j<=n;j++){const q=sf(j);if(q>r.a+S&&q<r.b-S&&Math.abs(al-q)<S/2+0.2)return 2}return 1}return 0}
+// Außerhalb des Rasters wird nicht weiter gebogen
+function Wq(x,z){const cx=Math.max(-WW/2,Math.min(WW/2,x)),cz=Math.max(-DD/2,Math.min(DD/2,z)),[a,b]=Wp(cx,cz);return[a+x-cx,b+z-cz]}
+let waterGroup=null;const edgeTrees=[];
+function buildWater(){if(!waterGroup)return;while(waterGroup.children.length){const c=waterGroup.children.pop();c.traverse(o=>{if(o.geometry)o.geometry.dispose()})}
+  const g=waterGroup,wm=new THREE.MeshStandardMaterial({color:cityId==='hamburg'?'#6f9fbf':'#5c9cbf',roughness:0.2,metalness:0.1,side:THREE.DoubleSide});
+  const along=(fn,a,b)=>{const pts=[];for(let t=a;;t+=1.2){const u=Math.min(t,b);pts.push(Wq(...fn(u)));if(u>=b)break}return pts};
+  const deck=M((MAP_CITY[cityId]||MAP_CITY.kiel).top);
+  for(const r of RIVERS[cityId]||[]){const at=(u,o)=>r.h?[u,streetZ(r.i)+(o||0)]:[streetX(r.i)+(o||0),u];
+    g.add(ribbon(along(u=>at(u),r.a,r.b),S+2*RK+0.6,0.14,wm));
+    for(let k=0;k<r.b-r.a;k+=2.2){const o=((k*7)%5-2)*0.4,[x,z]=Wq(...at(r.a+k+1,o));if(inRiver(...at(r.a+k+1,o))===1)B(0.9,0.03,0.08,'#cfe6f2',x,0.15,z,g).rotation.y=Wang(...at(r.a+k,0))+(r.h?0:Math.PI/2)}
+    // Brücken
+    const n=r.h?COLS:ROWS,sf=r.h?streetX:streetZ;
+    for(let j=0;j<=n;j++){const q=sf(j);if(!(q>r.a+S&&q<r.b-S))continue;const [gx,gz]=at(q),[x,z]=Wq(gx,gz),bg=new THREE.Group();bg.position.set(x,0,z);bg.rotation.y=Wang(gx,gz)+(r.h?Math.PI/2:0);g.add(bg);
+      const L=S+2*RK+1.6;B(L,0.22,S+0.2,deck,0,0.14,0,bg);B(L,0.2,S+0.6,'#b9b2a4',0,0,0,bg);for(const e of [-1,1])B(L,0.45,0.18,'#e9e4d8',0,0.36,e*(S/2+0.1),bg);for(const e of [-1,1])B(0.8,0.6,S+0.4,'#b9b2a4',e*(L/2-1.4),-0.45,0,bg)}
+    // Boote zwischen den Brücken
+    const stops=[];for(let j=0;j<n;j++){const m=(sf(j)+sf(j+1))/2;if(m>r.a+3&&m<r.b-3)stops.push(m)}
+    stops.filter((_,k)=>k%2===0).slice(0,3).forEach((m,k)=>{const [gx,gz]=at(m,(k%2?-0.6:0.6)),[x,z]=Wq(gx,gz),bt=boat(g,x,z,cityId==='kiel'&&k===0?'#c8363b':['#f4f1ea','#2f6fd0','#6b4a2f'][k%3],3.4,true);bt.scale.setScalar(0.8);bt.rotation.y=Wang(gx,gz)+(r.h?0:Math.PI/2)})}
+  if(cityId==='kiel'){ // Wall mit Bäumen und Mühlen, davor der Stadtgraben
+    const ow=WW/2+1.6,od=DD/2+1.6,mw=WW/2+3.9,md=DD/2+3.9;
+    const sides=[[t=>[t,-md],t=>[t,-od],-BW/2,BW/2],[t=>[t,md],t=>[t,od],-BW/2,BW/2],[t=>[-mw,t],t=>[-ow,t],-BD/2,BD/2],[t=>[mw,t],t=>[ow,t],-BD/2,BD/2]];
+    const open=(x,z)=>inRiver(x,z)||(z<0&&Math.abs(x-px(0))<P/2+1);
+    let n=0;for(const [m,w,a,b] of sides){g.add(ribbon(along(m,a,b),2.1,0.14,wm));
+      for(let t=a+1.3;t<b-1;t+=2.4){const [gx,gz]=w(t);if(open(gx,gz))continue;const [x,z]=Wq(gx,gz),k=B(2.6,0.55,2.8,'#7fae6a',x,0,z,g);k.rotation.y=Wang(gx,gz)+(m===sides[2][0]||m===sides[3][0]?Math.PI/2:0);
+        if((n++)%2===0){cyl(0.1,0.14,0.9,'#6b4a2f',x,0.55,z,g,5);add(new THREE.IcosahedronGeometry(0.75,0),['#6fae5a','#5e9e4e','#86be62'][n%3],x,1.9,z,g)}}}
+    for(const [gx,gz] of [[ow,-od],[-ow,od],[ow,DD/4]]){const [x,z]=Wq(gx,gz),mg=new THREE.Group();mg.position.set(x,0.55,z);mg.scale.setScalar(0.5);g.add(mg);windmill(mg,0,0)}}
+  g.traverse(o=>{if(o.isMesh){o.receiveShadow=true;o.castShadow=o.position.y>0.2}});
+  for(const t of edgeTrees){const v=cityId!=='kiel'&&!inRiver(t.x,t.z);t.o.forEach(o=>o.visible=v)}}
 // Lücken zwischen Feldern desselben Blocks füllen: Platz, Park oder Wasser. Autos meiden diese Flächen.
 const gaps=[];
 const PLAZA={kiel:'#cdb8a4',hamburg:'#c9cdd0',berlin:'#d3cdbf'};
@@ -180,10 +224,10 @@ function init(cv){
   // Gehweg-Rand ringsum und Fahrbahnmarkierungen
   const walkM=M('#d9d4c9'),dash=M('#f3f1ea');
   for(const [w,d,x,z] of [[BW,MARGIN+1.2,0,-BD/2+(MARGIN+1.2)/2],[BW,MARGIN+1.2,0,BD/2-(MARGIN+1.2)/2],[MARGIN+1.2,BD,-BW/2+(MARGIN+1.2)/2,0],[MARGIN+1.2,BD,BW/2-(MARGIN+1.2)/2,0]])B(w,0.12,d,walkM,x,0,z);
-  roadGroup=new THREE.Group();root.add(roadGroup);
+  roadGroup=new THREE.Group();root.add(roadGroup);waterGroup=new THREE.Group();root.add(waterGroup);
   // Bäume und Laternen am Rand
   for(let i=0;i<34;i++){const side=i%4,t=rnd();let x,z;if(side<2){x=-BW/2+2+t*(BW-4);z=side?BD/2-2.2:-BD/2+2.2}else{z=-BD/2+2+t*(BD-4);x=side===2?-BW/2+2.2:BW/2-2.2}
-    add(new THREE.CylinderGeometry(0.12,0.16,1,5),'#6b4a2f',x,0.6,z);add(new THREE.IcosahedronGeometry(0.9+rnd()*0.3,0),['#6fae5a','#5e9e4e','#86be62'][i%3],x,1.7,z)}
+    edgeTrees.push({x,z,o:[add(new THREE.CylinderGeometry(0.12,0.16,1,5),'#6b4a2f',x,0.6,z),add(new THREE.IcosahedronGeometry(0.9+rnd()*0.3,0),['#6fae5a','#5e9e4e','#86be62'][i%3],x,1.7,z)]})}
   plotGroup=new THREE.Group();root.add(plotGroup);
   const ringGeo=new THREE.RingGeometry(P*0.62,P*0.7,4,1);ringGeo.rotateZ(Math.PI/4);ringGeo.rotateX(-Math.PI/2);
   selRing=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color:'#24272b',transparent:true,opacity:0.85,depthWrite:false}));selRing.visible=false;selRing.renderOrder=5;root.add(selRing);
@@ -215,7 +259,7 @@ function plotSig(G,p){let s=p.owner+'|'+p.use+'|'+(p.prop||'')+'|b'+(window.K&&K
   if(p.owner&&p.owner.startsWith('c:')){const cp=G.comps.find(c=>'c:'+c.id===p.owner);s+='|'+(cp?cp.name:'')}
   return s}
 const dispKind=p=>p.kind||(p.zone==='gewerbe'?'halle':(p.use==='office'||p.use==='hq'||(!p.use&&p.zone==='buero'))?'etage':'laden');
-function setCity(G,id){if(cityId===id)return;cityId=id;WARP=WARPS[id]||null;buildLand(id);buildRoads();sig={};for(const k in cells)delete cells[k];for(const k in anchors)delete anchors[k];
+function setCity(G,id){if(cityId===id)return;cityId=id;WARP=WARPS[id]||null;buildLand(id);buildRoads();buildWater();sig={};for(const k in cells)delete cells[k];for(const k in anchors)delete anchors[k];
   while(plotGroup.children.length){const c=plotGroup.children.pop();c.traverse(o=>{if(o.geometry)o.geometry.dispose()})}bases=[];buildSpecials(G);sync(G,true)}
 function sync(G,force){G0=G;if(!plotGroup)return;
   const byCell={};for(const p of G.plots){if(p.city!==cityId)continue;(byCell[p.r+'-'+p.c]=byCell[p.r+'-'+p.c]||[]).push(p)}
@@ -362,9 +406,11 @@ function moveOnGrid(o,dt,lane){ // läuft entlang einer Straße und biegt an Kre
   const a=o.t*(o.horiz?WW:DD)-(o.horiz?WW:DD)/2;return o.horiz?[a,streetZ(o.line)+lane]:[streetX(o.line)+lane,a]}
 function animate(dt){
   for(let i=0;i<WMAX;i++){if(i>=wCount){O.position.set(0,-50,0);O.scale.setScalar(0.001);O.updateMatrix();wInst.setMatrixAt(i,O.matrix);continue}
-    const w=wData[i];const [gx,gz]=moveOnGrid(w,dt*0.05,w.side),[x,z]=Wp(gx,gz);if(inGap(gx,gz,true)){O.position.set(0,-50,0);O.scale.setScalar(0.001);O.updateMatrix();wInst.setMatrixAt(i,O.matrix);continue}O.position.set(x,0.12+Math.abs(Math.sin(performance.now()/180+i))*0.05,z);O.scale.setScalar(1);O.rotation.set(0,0,0);O.updateMatrix();wInst.setMatrixAt(i,O.matrix)}
+    const w=wData[i];const [gx,gz]=moveOnGrid(w,dt*0.05,w.side),[x,z]=Wp(gx,gz),rv=inRiver(gx,gz);if(inGap(gx,gz,true)||rv===1){O.position.set(0,-50,0);O.scale.setScalar(0.001);O.updateMatrix();wInst.setMatrixAt(i,O.matrix);continue}O.position.set(x,(rv?0.36:0.12)+Math.abs(Math.sin(performance.now()/180+i))*0.05,z);O.scale.setScalar(1);O.rotation.set(0,0,0);O.updateMatrix();wInst.setMatrixAt(i,O.matrix)}
   wInst.instanceMatrix.needsUpdate=true;
-  for(let i=0;i<cData.length;i++){const c=cData[i];const [gx,gz]=moveOnGrid(c,dt*0.07,(c.dir>0?0.55:-0.55)),[x,z]=Wp(gx,gz),q=c.horiz?Wp(gx+0.5,gz):Wp(gx,gz+0.5);O.position.set(x,0,z);O.rotation.set(0,-Math.atan2(q[1]-z,q[0]-x),0);O.scale.setScalar(inGap(gx,gz,false)?0.001:1);O.updateMatrix();cInst.setMatrixAt(i,O.matrix)}
+  for(let i=0;i<cData.length;i++){const c=cData[i];const [gx,gz]=moveOnGrid(c,dt*0.07,(c.dir>0?0.55:-0.55)),[x,z]=Wp(gx,gz),q=c.horiz?Wp(gx+0.5,gz):Wp(gx,gz+0.5),rv=inRiver(gx,gz);
+    if(rv===1){c.dir=-c.dir;c.wet=(c.wet||0)+1;if(c.wet>3){c.horiz=!c.horiz;c.line=Math.floor(rnd()*((c.horiz?ROWS:COLS)+1));c.t=rnd();c.wet=0}}else c.wet=0;
+    O.position.set(x,rv===2?0.36:0,z);O.rotation.set(0,-Math.atan2(q[1]-z,q[0]-x),0);O.scale.setScalar(inGap(gx,gz,false)||rv===1?0.001:1);O.updateMatrix();cInst.setMatrixAt(i,O.matrix)}
   cInst.instanceMatrix.needsUpdate=true}
 
 // ---------- Auswahl und Interaktion ----------
