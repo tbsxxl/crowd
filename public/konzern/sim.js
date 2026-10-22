@@ -85,7 +85,14 @@ const ZONES={
   wohn:{n:'Wohnviertel',traffic:[1500,3000],rent:[1700,2600],size:[100,170],uses:['cafe']},
   buero:{n:'Büroviertel',traffic:[2200,3600],rent:[2600,4200],size:[300,650],uses:['cafe','office','hq']},
   gewerbe:{n:'Gewerbegebiet',traffic:[300,800],rent:[1500,2600],size:[1500,3000],uses:['factory']}};
-const ZONE_MAP=[['wohn','buero','buero','buero','buero','wohn'],['wohn','city','city','city','city','wohn'],['wohn','city','city','city','city','wohn'],['wohn','wohn','buero','buero','wohn','wohn'],['gewerbe','gewerbe','gewerbe','gewerbe','gewerbe','gewerbe']];
+// Stadtpläne: w Wohnviertel, c Innenstadt, b Büroviertel, g Gewerbe, P Park, A Wasser, L Wahrzeichen
+const CITY_MAP={kiel:['ALccwP','Acccww','wcbcww','wwbwPw','gggwww'],hamburg:['ggbccw','gbcLAw','gbccAw','wcbPww','wwwwwg'],berlin:['PPbbcw','PPcLcw','wbccbw','wwbbww','ggwwgg']};
+const CODE={w:'wohn',c:'city',b:'buero',g:'gewerbe'};
+const ZONE_MAP=CITY_MAP.kiel.map(r=>[...r].map(ch=>CODE[ch]||'wohn'));
+// Eigenheiten der Städte: Saison, Preisbewusstsein, Nachtleben, Terrassen
+const CITY_TRAITS={kiel:{d:'Hafenstadt mit Altstadt: günstige Mieten, weniger Laufkundschaft, im Sommer kommen viele Touristen.',summer:1.25,price:1,night:0.9,terr:1.2},
+  hamburg:{d:'Wohlhabend und oft verregnet: Gäste zahlen mehr, Terrassen bringen weniger, das Geschäft läuft das ganze Jahr.',summer:1.05,price:0.7,night:1,terr:1.08},
+  berlin:{d:'Preisbewusst und nachtaktiv: Gäste achten genau auf Preise, lange Öffnungszeiten lohnen sich besonders.',summer:1.12,price:1.35,night:1.14,terr:1.2}};
 const COLS=6,ROWS=5;
 const STAGES=[[0,'Gründung'],[6,'Kleinunternehmen'],[50,'Mittelstand'],[250,'Großunternehmen'],[1000,'Konzern']];
 const DEPTS={hr:{n:'Personal',icon:'🤝',d:'Bessere Stimmung, halb so viele Kündigungen'},mkt:{n:'Marketing',icon:'📣',d:'Werbung wirkt 35 % stärker'},
@@ -160,7 +167,7 @@ function dropAssets(G,ref){for(const a of G.assets.filter(a=>a.ref===ref)){L(G,a
 const UNITS={wohn:['laden','laden'],city:['laden','laden','etage'],buero:['laden','etage','etage'],gewerbe:['halle']};
 const KINDS={laden:{n:'Ladenlokal',uses:['cafe']},etage:{n:'Büroetage',uses:['office','hq']},halle:{n:'Halle',uses:['factory']}};
 const UNIT_RANGE={'city-etage':{rent:[3800,6400],size:[250,520]},'buero-laden':{rent:[2200,3400],size:[90,160]}};
-function genCity(G,c){for(let r=0;r<ROWS;r++)for(let col=0;col<COLS;col++){const zk=ZONE_MAP[r][col],z=ZONES[zk],tr=Math.round(rr(G,z.traffic[0],z.traffic[1])*c.traffic/50)*50;
+function genCity(G,c){const map=CITY_MAP[c.id]||CITY_MAP.kiel;for(let r=0;r<ROWS;r++)for(let col=0;col<COLS;col++){const zk=CODE[map[r][col]];if(!zk)continue;const z=ZONES[zk],tr=Math.round(rr(G,z.traffic[0],z.traffic[1])*c.traffic/50)*50;
   UNITS[zk].forEach((kind,u)=>{const R=UNIT_RANGE[zk+'-'+kind]||z;
     G.plots.push({id:c.id+'-'+r+'-'+col+'-'+u,city:c.id,r,c:col,u,kind,zone:zk,traffic:kind==='laden'?Math.round(tr*rr(G,0.9,1.1)/50)*50:tr,rent:Math.round(rr(G,R.rent[0],R.rent[1])*c.rent/50)*50,size:Math.round(rr(G,R.size[0],R.size[1])/10)*10,owner:null,use:null})})}}
 const usesOf=p=>p.kind?KINDS[p.kind].uses.filter(x=>ZONES[p.zone].uses.includes(x)):ZONES[p.zone].uses;
@@ -202,7 +209,7 @@ function menuStats(G,f,s){let sumA=0,sumW=0,sumQW=0,pf=0;const items=[];const up
   for(const k in f.menu){const m=f.menu[k],P=PRODUCTS[k];if(!m.on||(P.res&&!has(f,P.res)))continue;
     const price=(s&&!f.uniform&&s.px&&s.px[k]!=null)?s.px[k]:m.price;
     let q=QUAL[m.q]+(s?0.05*mq(s,'prod'):0)+(P.main?recipeFit(G,f,s):0);if(P.main&&ups.espresso)q+=0.1;if(P.main&&ups.roaster)q+=0.06;q=Math.min(1,q);
-    const pfac=clamp(Math.exp(-1.8*(price/P.ref-1)),0.15,1.6);let w=P.w;if(P.cake&&ups.vitrine)w*=1.4;if(P.summer&&summer(G))w*=1.8;if(s&&s.special===k)w*=1.3;
+    const ct=CITY_TRAITS[s?plot(G,s.plot).city:'kiel']||CITY_TRAITS.kiel,pfac=clamp(Math.exp(-1.8*ct.price*(price/P.ref-1)),0.15,1.6);let w=P.w;if(P.cake&&ups.vitrine)w*=1.4;if(P.summer&&summer(G))w*=1.8;if(s&&s.special===k)w*=1.3;
     const a=w*q*pfac;items.push({k,a,price,q:m.q,pf:pfac,qual:q});sumA+=a;sumW+=w;sumQW+=w*q;pf+=pfac*w}
   for(const it of items)it.share=sumA?it.a/sumA:0;
   const cq=1+0.05*ex(G,'cpo');return{items,score:Math.min(1.6,sumA/2.2*cq),quality:sumW?Math.min(1,sumQW/sumW*cq):0,price:sumW?pf/sumW:1}}
@@ -216,8 +223,8 @@ function shopForecast(G,f,s){ // Nachfrage und Kapazität im Monat (auch für di
   const p=plot(G,s.plot),ms=menuStats(G,f,s),comfort=comfortOf(s);
   const A=Math.pow(ms.score,0.8)*comfort*(0.4+0.6*s.rep);
   let comp=0;for(const q of G.plots)if(q!==p&&q.use==='cafe'&&near(p,q)){if(q.owner&&q.owner.startsWith('c:')){const cp=G.comps.find(c=>'c:'+c.id===q.owner);if(cp)comp+=compAttr(cp)}else if(q.owner===f.id)comp+=A*0.5}
-  const H=HOURS[s.hours];let m=H.dem;const u=s.ups,a=s.act;
-  if(u.wlan&&(p.zone==='city'||p.zone==='buero'))m*=1.12;if(u.togo)m*=1.15;if(u.kids&&p.zone==='wohn')m*=1.15;if(u.roaster)m*=1.08;if(u.terrasse&&summer(G))m*=1.2;
+  const H=HOURS[s.hours];let m=H.dem;const u=s.ups,a=s.act,CT=CITY_TRAITS[p.city]||CITY_TRAITS.kiel;if(summer(G))m*=CT.summer;if(s.hours==='long')m*=CT.night;
+  if(u.wlan&&(p.zone==='city'||p.zone==='buero'))m*=1.12;if(u.togo)m*=1.15;if(u.kids&&p.zone==='wohn')m*=1.15;if(u.roaster)m*=1.08;if(u.terrasse&&summer(G))m*=CT.terr;
   m*=1+0.07*mq(s,'mkt');if(a.happy)m*=1.18;if(a.music)m*=1.06;if(a.stamp)m*=1.08;if(has(f,'treue'))m*=1.12;if(G.ev&&G.ev.heat)m*=1.1;if(G.ev&&G.ev.fest===s.id)m*=1.35;
   const la=Math.max(f.aware,s.la||0,(f.cityAw&&f.cityAw[p.city])||0);
   const dem=p.traffic*DAYS*ZCONV[p.zone]*(0.5+0.5*la)*m*econ(G)*(G.dm||1)*(FACADES[s.facade||'klassik'].walk||1)*A/(A+comp*0.9+0.35);
@@ -979,6 +986,6 @@ function curLedger(G){return{m:G.month,f:G.led.f,H:G.led.H,cf:G.led.cf}}
 
 const K={MONTHS,BRANCHES,WAGE,PRODUCTS,QMULT,QUAL,QN,LEVELS,CAFE_UPS,CAFE_ACTIONS,HOURS,GENRES,SCOPES,FOCUS,MODELS,CAMPAIGNS,OFFICE_UPS,RAW,GOODS,LINES,SHIFTS,GMULT,GQUAL,SUPPLIERS,PLANT_UPS,RESEARCH,CITIES,ZONES,COLS,ROWS,STAGES,DEPTS,GOALS,
   newGame,endTurn,act:A,plot,firm,staffOf,adminOf,totalStaff,hqStaff,stage,menuStats,shopForecast,forecastShop,shopCost,officeCost,softTeam,desks,rating,goodsTotal,lineOut,lineNeed,rawPrice,wholesalePrice,storageCap,reserved,effGrade,
-  balance,valuation,firmValue,compValue,takeoverPrice,loanOffer,ipoCheck,pl,curLedger,dateStr,dayOf,W,WEEKS,BUILD,underBuild,monthName,yearOf,cityName,dispo,fmtE,fmtN:fn,freePlots,stars,eventOpts,productivity,summer,shopOf,lineOf,sumF,wageOf,propValue,propIncome,leaseOcc,rentOf,CITY_CAMPS,EXECS,SECTORS,LUX,CLUBS,wealth,genMarket,DIFF,CURS,TASTE,FACADES,unitCost,recipeFit,setCur:c=>{CUR=CURS[c]||'€'},MGR_DELEG,mgrCands,mgrPay,flights,dist,AIRPORTS,address,compShop,squadStr,TEAMS,CLUB_STAD,pSal,ex,dcov,dneed,deptN,marketPay,cands,grantValue,migrate,econ,BOARD_Q,UNITS,KINDS,usesOf,unitName,YIELD};
+  balance,valuation,firmValue,compValue,takeoverPrice,loanOffer,ipoCheck,pl,curLedger,dateStr,dayOf,W,WEEKS,BUILD,underBuild,monthName,yearOf,cityName,dispo,fmtE,fmtN:fn,freePlots,stars,eventOpts,productivity,summer,shopOf,lineOf,sumF,wageOf,propValue,propIncome,leaseOcc,rentOf,CITY_CAMPS,EXECS,SECTORS,LUX,CLUBS,wealth,genMarket,CITY_MAP,CITY_TRAITS,DIFF,CURS,TASTE,FACADES,unitCost,recipeFit,setCur:c=>{CUR=CURS[c]||'€'},MGR_DELEG,mgrCands,mgrPay,flights,dist,AIRPORTS,address,compShop,squadStr,TEAMS,CLUB_STAD,pSal,ex,dcov,dneed,deptN,marketPay,cands,grantValue,migrate,econ,BOARD_Q,UNITS,KINDS,usesOf,unitName,YIELD};
 if(typeof module!=='undefined'&&module.exports)module.exports=K;else root.K=K;
 })(typeof window!=='undefined'?window:globalThis);
