@@ -170,6 +170,12 @@ table.cf td{padding:5px 0;font-size:13.5px}table.cf td:last-child{text-align:rig
 .cands{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.cand{min-width:min(280px,82%);scroll-snap-align:center;display:flex;flex-direction:column;gap:6px}.cand .ava,.execCard .ava,.execHead .ava{flex:none;align-self:center}
 @media (max-width:440px){.execHead{flex-direction:column;align-items:center}.mast{font-size:26px}}
 /* Start, Wizard, Produktkarten */
+.report>*{flex-shrink:0}
+.li .t span .stars,.li .t span span{display:inline-block}.li .t span b{display:inline;font-size:inherit}.li .t i.rs{display:block;font-style:normal;margin-top:3px}
+.kpi b.sm{font-size:16px}
+.nowrap{white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.pstep .step{display:flex;width:100%}.pstep .step output{flex:1}
+.slide{display:flex;flex-direction:column;gap:6px;margin:6px 0}.slide input[type=range]{width:100%}
 .step button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
 .ptrend{display:flex;flex-direction:column;gap:2px}
 .icn{display:block;color:var(--ink)}.ib .icn,.db .icn{opacity:.88}.db[aria-pressed="true"] .icn{opacity:1}.goalCard .gi .icn{color:#b07a1c}
@@ -283,8 +289,8 @@ window.addEventListener('error',function(e){var m=document.getElementById('bootM
   if(m&&!document.getElementById('menu').hidden)m.textContent=t;else{var d=document.getElementById('toast');if(d){d.textContent=t;d.hidden=false}}},true);
 </script>
 <script src="../vendor/three-r128-bloom.js"></script>
-<script src="sim.js?v=20261023a"></script>
-<script src="world.js?v=20261023a"></script>
+<script src="sim.js?v=20261023b"></script>
+<script src="world.js?v=20261023b"></script>
 <script>
 (function(){
 'use strict';
@@ -339,7 +345,7 @@ const seg=(a,opts,cv,attrs)=>`<div class="seg">${opts.map(([v,l,sub,dis])=>`<but
 const tog=(a,on,attrs)=>`<button class="tog" data-a="${a}" ${attrs||''} aria-pressed="${!!on}" aria-label="umschalten"></button>`;
 const bar=(v,cls)=>`<div class="bar ${cls||''}"><i style="width:${Math.max(0,Math.min(100,v*100)).toFixed(1)}%"></i></div>`;
 const starsH=s=>`<span class="stars" aria-label="${String(s).replace('.',',')} von 5 Sternen">★★★★★<i style="width:${Math.max(0,Math.min(5,s))/5*100}%">★★★★★</i></span>`;
-const kpis=list=>`<div class="kpis">${list.map(([v,l,c])=>`<div class="kpi"><b class="${c||''}">${v}</b><span>${l}</span></div>`).join('')}</div>`;
+const kpis=list=>`<div class="kpis">${list.map(([v,l,c])=>`<div class="kpi"><b class="${c||''}${String(v).length>9?' sm':''}">${v}</b><span>${l}</span></div>`).join('')}</div>`;
 const upCard=(a,attrs,e,n,d,price,on,lock)=>`<button class="up" data-a="${a}" ${attrs} data-on="${!!on}" data-lock="${!!lock}" ${lock?'aria-disabled="true"':''}><span class="e">${e}</span><b>${n}</b><span>${d}</span><span class="p">${on?'✓ vorhanden':lock?lock:price}</span></button>`;
 const li=(attrs,ico,t,s,v,vs,cls)=>`<button class="li" ${attrs}><span class="ico">${ico}</span><span class="t"><b>${t}</b><span>${s}</span></span><span class="v ${cls||''}">${v}${vs?`<small>${vs}</small>`:''}</span></button>`;
 
@@ -614,9 +620,11 @@ VIEWS.group=(pp,forceTab)=>{const t=forceTab||T()||'firms',st=K.stage(G);let b='
   if(t==='hq'){if(!G.hq)b+=`<div class="hint">Ab 25 Mitarbeitenden kannst du eine Konzernzentrale beziehen (250.000 €). Danach baust du Abteilungen auf und stellst einen Vorstand ein.</div><button class="btn ink" data-a="place" data-k="hq" ${K.totalStaff(G)<25?'aria-disabled="true"':''}>Büroetage wählen</button>`;
     else b+=hqBody();
     b+=`<div class="sec"><h3>Börse</h3>${G.public?kpis([[G.sharePrice.toFixed(2).replace('.',',')+' €','Aktienkurs'],[pct(G.owner),'Dein Anteil'],[fe(K.valuation(G).mine),'Dein Vermögen']]):K.ipoCheck(G).map(x=>`<div class="row"><span>${x.ok?'✅':'⬜'} ${x.t}</span></div>`).join('')+`<button class="btn ink" data-a="ipo" ${K.ipoCheck(G).every(x=>x.ok)?'':'aria-disabled="true"'}>Börsengang</button>`}</div>`}
-  if(t==='market'){b+='<div class="sub">Übernimm Konkurrenten mit allen Filialen, Apps oder Werken. Der Preis liegt 35 % über ihrem Wert.</div>';
+  if(t==='market'){b+='<div class="sub">Übernimm Konkurrenten mit allen Filialen, Apps oder Werken. Der Preis liegt 35 % über ihrem Wert. Wer vorher Anteile aufbaut (bis 49 %), zahlt bei der Übernahme nur noch den Rest und spart so den größten Teil des Aufschlags. Bezahlt wird aus der Konzernkasse ('+fe(G.cash)+').</div>';
     for(const cp of G.comps.filter(c=>c.branch!=='soft'||G.apps.some(a=>a.owner==='c:'+c.id))){const n=cp.branch==='soft'?G.apps.filter(a=>a.owner==='c:'+cp.id):G.plots.filter(p=>p.owner==='c:'+cp.id);if(!n.length)continue;
-      b+=`<div class="card"><div class="ch"><span class="ico">${K.BRANCHES[cp.branch].icon}</span><span class="t"><b>${esc(cp.name)}</b><span>${cp.branch==='soft'?n.map(a=>esc(a.name)+' ('+fn(a.users)+' Nutzer)').join(', '):n.length+' Standort(e) in '+K.cityName(cp.city)+(cp.branch==='cafe'?' · Qualität '+pct(cp.q):'')}</span></span></div><button class="btn" data-a="takeover" data-id="${cp.id}">Übernehmen · ${fe(K.takeoverPrice(G,cp))}</button></div>`}}
+      b+=`<div class="card"><div class="ch"><span class="ico">${K.BRANCHES[cp.branch].icon}</span><span class="t"><b>${esc(cp.name)}</b><span>${cp.branch==='soft'?n.map(a=>esc(a.name)+' ('+fn(a.users)+' Nutzer)').join(', '):n.length+' Standort(e) in '+K.cityName(cp.city)+(cp.branch==='cafe'?' · Qualität '+pct(cp.q):'')}</span></span></div>${(()=>{const st=cp.stake||0;if(st>=K.STAKE_MAX-1e-9)return`<div class="sub">Du hältst ${pct(st)}, mehr geht nur mit der Übernahme.</div>`;const lo=Math.round(st*100)+1,v0=Math.min(49,Math.max(lo,25));
+          return`<div class="slide"><div class="row"><span class="lbl">Anteile aufbauen</span><span class="sub">jetzt ${pct(st)}</span></div><input type="range" min="${lo}" max="49" step="1" value="${v0}" data-in="stake" data-id="${cp.id}" aria-label="Anteil in Prozent"><div class="sub" id="stkC-${cp.id}">${stakeLabel(cp,v0/100)}</div><button class="btn" data-a="stake" data-id="${cp.id}">Anteile kaufen</button></div>`})()}
+        <button class="btn ink" data-a="takeover" data-id="${cp.id}">Übernehmen · ${fe(K.takeoverPrice(G,cp))}${cp.stake?' (Rest '+pct(1-cp.stake)+')':''}</button></div>`}}
     if(t==='re'){const props=G.plots.filter(p=>p.prop==='H');const tv=props.reduce((s,p)=>s+K.propValue(G,p),0),ti=props.reduce((s,p)=>s+(p.owner&&!p.owner.startsWith('c:')?p.rent:K.propIncome(G,p)),0);
     b+=kpis([[fn(props.length),'Gebäude'],[fe(tv),'Marktwert'],[tv?(ti*12/tv*100).toFixed(1).replace('.',',')+' %':'–','Rendite']]);
     b+='<div class="sub">Kaufe Gebäude über die Ansicht eines Ladens oder einer Etage in der Stadt: eigene Standorte (keine Miete mehr), Konkurrenz-Standorte (sie zahlen dir Miete) oder freie Gebäude zum Vermieten.</div><div class="list">';
@@ -626,15 +634,17 @@ VIEWS.group=(pp,forceTab)=>{const t=forceTab||T()||'firms',st=K.stage(G);let b='
   return{eyebrow:'Holding',title:'Konzern',tabs:[['firms','Firmen'],['cities','Städte'],['hq','Zentrale & Vorstand'],['re','Immobilien'],['market','Übernahmen']],body:b}};
 // Investmentbank
 VIEWS.bank=()=>{const t=T()||'market';let b='';const me=G.me;
-  if(t==='market'){const sec=view.p.sec||'all';b+=`<div class="sub">Kaufe und verkaufe Aktien mit deinem privaten Geld (${fe(me.cash)}). Gebühr 0,2 %.</div><div class="btns">${[['all','Alle']].concat(Object.entries(K.SECTORS)).map(([k,n])=>`<button class="btn" data-a="sector" data-k="${k}" style="${sec===k?'background:var(--ink);color:#fff':''}">${n}</button>`).join('')}</div>`;
+  if(t==='market'){const sec=view.p.sec||'all';b+=`<div class="sub">Kaufe und verkaufe Aktien mit deinem privaten Geld (${fe(me.cash)}). Gebühr 0,2 %. Anteile an Konkurrenten für eine spätere Übernahme kauft dein Konzern unter „M&A“.</div><button class="btn" data-a="tab" data-v="ma">Zu M&amp;A und Beteiligungen</button><div class="btns">${[['all','Alle']].concat(Object.entries(K.SECTORS)).map(([k,n])=>`<button class="btn" data-a="sector" data-k="${k}" style="${sec===k?'background:var(--ink);color:#fff':''}">${n}</button>`).join('')}</div>`;
     const list=[];if(G.public)list.push({tk:'OWN',n:cur().name+' (deine Firma)',sec:G.firms[0].branch==='soft'?'tech':G.firms[0].branch==='cafe'?'kaffee':'handel',price:G.sharePrice,shares:G.shares,div:0,hist:G.priceHist,own:true});
     for(const s of G.stocks)list.push(s);
     for(const s of list){if(sec!=='all'&&s.sec!==sec)continue;const pos=s.own?{n:Math.round(G.owner*G.shares),cost:0}:me.stocks[s.tk],h=s.hist||[],hi=Math.max(...h),lo=Math.min(...h),ch=h.length>1?h[h.length-1]/h[h.length-2]-1:0;
       b+=`<div class="card"><div class="row"><span><b style="font-size:15px">${esc(s.n)}</b><br><span class="sub">${s.own?'DEINE':s.tk} · ${K.SECTORS[s.sec]}</span></span>${spark(h,110,36,ch>=0?'#2f8a55':'#cc3b33')}</div>
-        <div class="row"><b class="serif" style="font-size:26px">${s.price.toFixed(2).replace('.',',')} €</b><span class="${ch>=0?'pos':'neg'}">${ch>=0?'▲':'▼'} ${(Math.abs(ch)*100).toFixed(1).replace('.',',')} %</span></div>
-        <div class="sub">Börsenwert ${fe(s.price*s.shares)} · Dividende ${(s.div*100).toFixed(1).replace('.',',')} % · 2-Jahres-Hoch ${hi.toFixed(2).replace('.',',')} € · Tief ${lo.toFixed(2).replace('.',',')} €</div>
+        <div class="row"><b class="serif" style="font-size:26px">${s.price.toFixed(2).replace('.',',')} €</b>${h.length>1?`<span class="${ch>=0?'pos':'neg'}">${ch>=0?'▲':'▼'} ${(Math.abs(ch)*100).toFixed(1).replace('.',',')} %</span>`:'<span class="sub">neu an der Börse</span>'}</div>
+        <div class="sub">Börsenwert ${fe(s.price*s.shares)} · Dividende ${(s.div*100).toFixed(1).replace('.',',')} %${h.length>1?` · 2-Jahres-Hoch ${hi.toFixed(2).replace('.',',')} € · Tief ${lo.toFixed(2).replace('.',',')} €`:''}</div>
         ${pos&&pos.n?`<div class="row"><span>Im Depot: <b>${fn(pos.n)}</b> Aktien</span><b>${fe(pos.n*s.price)}${pos.cost?` <span class="${pos.n*s.price>=pos.cost?'pos':'neg'}">(${sgn(pos.n*s.price-pos.cost)})</span>`:''}</b></div>`:''}
-        <div class="btns">${[10,100,1000,10000].filter(n=>n*s.price<=Math.max(me.cash,s.price*10)*1.01).map(n=>`<button class="btn" data-a="trade" data-k="${s.tk}" data-v="${n}">+${fn(n)}</button>`).join('')}${pos&&pos.n?`<button class="btn bad" data-a="trade" data-k="${s.tk}" data-v="${-Math.min(pos.n,s.own?Math.round(pos.n/4):pos.n)}">${s.own?'25 % verkaufen':'Alle verkaufen'}</button>`:''}</div></div>`}}
+        ${(()=>{const mx=Math.max(0,Math.min(Math.floor(me.cash/s.price/1.002),Math.floor(s.shares*(s.own?0.95-G.owner:0.25))));if(mx<1)return'<div class="sub">Für eine Aktie fehlt dir privat das Geld.</div>';const n0=Math.min(mx,Math.max(1,Math.round(mx/4)));
+          return`<div class="slide"><input type="range" min="1" max="${mx}" step="1" value="${n0}" data-in="stk" data-k="${s.tk}" aria-label="Anzahl Aktien"><div class="row"><span class="sub" id="stkL-${s.tk}">${stkLabel(s,n0)}</span><button class="btn ink" data-a="tradeSl" data-k="${s.tk}">Kaufen</button></div></div>`})()}
+        <div class="btns">${pos&&pos.n?`<button class="btn bad" data-a="trade" data-k="${s.tk}" data-v="${-Math.min(pos.n,s.own?Math.round(pos.n/4):pos.n)}">${s.own?'25 % verkaufen':'Alle verkaufen'}</button>`:''}</div></div>`}}
   if(t==='equity'){if(G.public){const pc=view.p.pc||0.05,n=Math.round(G.shares*pc),gross=n*G.sharePrice;
       b+=`<div class="card"><div class="lbl">Sekundärangebot</div><div class="row"><span><span class="sub">Neue Aktien</span><br>${step('secPct',pct(pc),'')}</span><span><span class="sub">Preis je Aktie</span><br><b class="serif" style="font-size:26px">${G.sharePrice.toFixed(2).replace('.',',')} €</b></span></div>
         <table><tr><td>Bruttoerlös</td><td>${fe(gross)}</td></tr><tr><td>Zeichnungsgebühren (6,8 %)</td><td>${fe(-gross*0.068)}</td></tr><tr class="sum"><td>Aufgenommenes Kapital</td><td>${fe(gross*0.932)}</td></tr></table>
@@ -814,9 +824,9 @@ function prodCards(f,s){const ms=K.menuStats(G,f,s||null),byQ={};for(const it of
     const hs=s?[s]:f.shops,L=Math.max(0,...hs.map(x=>((x.ih||{})[k]||[]).length)),ser=[...Array(L)].map((_,i)=>hs.reduce((a,x)=>{const h=(x.ih||{})[k]||[];const j=h.length-L+i;return a+(j>=0?h[j]:0)},0));
     const trend=ser.length>1?`<div class="ptrend"><span class="eyebrow">Umsatz der letzten ${ser.length} Wochen</span>${trendSvg(ser,ser[ser.length-1]>ser[0]*1.03?'#2f8a55':ser[ser.length-1]<ser[0]*0.97?'#cc3b33':'#5a6270')}</div>`:'<div class="sub" style="text-align:center">Der Verlauf erscheint nach zwei Wochen.</div>';
     const own=s&&!f.uniform;b+=`<div class="card hc pcard" style="${m.on?'':'opacity:.6'}"><div class="picon">${P.icon}</div><b style="font-size:18px;text-align:center">${P.n}</b><div style="text-align:center">${starsH(K.stars(it?it.qual:0.5))}</div>
-      <div class="row"><span>${tog('menuOn',m.on,`data-k="${k}"`)} <span class="sub">Im Menü</span></span><span style="text-align:right"><span class="eyebrow">Umsatz letzte Woche</span><br><b class="serif" style="font-size:22px">${fe(rev)}</b>${prv!=null?`<br><span class="sub">${sgn(rev-prv)}</span>`:''}</span></div>
-      <div class="row" style="align-items:center"><span style="position:relative;display:inline-flex">${donut([{v:mg,c:'#f0c27a'},{v:1-mg,c:'#cc4a1e'}],96)}<span class="mlab"><small>Marge</small><b>${pct(mg)}</b></span></span>
-        <span style="text-align:right"><span class="sub neg">Stückkosten ${uc.toFixed(2).replace('.',',')} ${K.CURS[G.currency]}</span><br><span class="eyebrow">Preis${own?' hier':''}</span><br>${step(own?'shopPx':'menuPrice',price.toFixed(2).replace('.',',')+' '+K.CURS[G.currency],`data-k="${k}"${own?` data-id="${s.id}"`:''}`)}</span></div>
+      <div class="row"><span class="nowrap">${tog('menuOn',m.on,`data-k="${k}"`)} <span class="sub">Im Menü</span></span><span class="sub neg nowrap">Stückkosten ${uc.toFixed(2).replace('.',',')} ${K.CURS[G.currency]}</span></div>
+      <div class="row" style="align-items:center"><span><span class="eyebrow">Umsatz Vorwoche</span><br><b class="serif" style="font-size:24px">${fe(rev)}</b>${prv!=null?` <span class="sub">${sgn(rev-prv)}</span>`:''}</span><span style="position:relative;display:inline-flex;flex:none">${donut([{v:mg,c:'#f0c27a'},{v:1-mg,c:'#cc4a1e'}],78)}<span class="mlab"><small>Marge</small><b>${pct(mg)}</b></span></span></div>
+      <div><span class="eyebrow">Preis${own?' in diesem Restaurant':''}</span><div class="pstep">${step(own?'shopPx':'menuPrice',price.toFixed(2).replace('.',',')+' '+K.CURS[G.currency],`data-k="${k}"${own?` data-id="${s.id}"`:''}`)}</div></div>
       ${trend}${!s?seg('menuQ',[[1,'Einfach'],[2,'Gut'],[3,'Premium']],m.q,`data-k="${k}"`):''}</div>`}
   b+='</div>';
   b+=`<div class="row"><span><b>Die Preise für alle Restaurants durchsetzen</b><br><span class="sub">${f.uniform?'Überall gelten die Preise der Speisekarte.':'Jedes Restaurant hat eigene Preise, einstellbar im Restaurant unter Produkt.'}</span></span>${tog('uniform',f.uniform,'')}</div>`;
@@ -1059,7 +1069,7 @@ function report(r){const m=$('modal');m.hidden=false;if(G.currency&&G.currency!=
   ${cfTable(r.cf)}${mon?`<div class="hint">📘 Monatsabschluss ${K.monthName(mon.m)}: Umsatz ${fe(K.pl(mon).rev)}, Ergebnis <b class="${mon.net>=0?'pos':'neg'}">${sgn(mon.net)}</b>. Details unter Finanzen.</div>`:''}
   ${kpis([[fe(r.cash),'Kasse',r.cash<0?'neg':''],[fe(K.wealth(G).total),'Dein Vermögen'],[fn(r.staff),'Mitarbeitende']])}
   ${r.goals.map(g=>`<div class="goalWin"><span class="e">🏆</span><span><b>Ziel erreicht: ${esc(g.n)}</b><br><span class="sub">${g.reward?'+'+fe(g.reward)+' Förderprämie':'Großartig!'}</span></span></div>`).join('')}
-  ${items.length?`<div class="sec"><h3>Deine Geschäfte</h3><div class="list">${items.map(it=>`<div class="li" style="cursor:default"><span class="ico">${it.icon}</span><span class="t"><b>${esc(it.name)}</b><span>${esc(it.kpi)}${it.delta!=null&&it.delta!==0?` <b class="${it.delta>0?'pos':'neg'}">${it.delta>0?'▲':'▼'} ${fn(Math.abs(it.delta))}</b>`:''}${it.stars?' · '+starsH(it.stars):''}${it.broke?' · ⚠️ Ausfall':''}</span></span><span class="v ${it.profit>=0?'pos':'neg'}">${it.kind==='dev'?'':sgn(it.profit)}</span></div>`).join('')}</div></div>`:'<div class="hint">Noch keine Geschäfte. Öffne „Bauen“ und leg los!</div>'}
+  ${items.length?`<div class="sec"><h3>Deine Geschäfte</h3><div class="list">${items.map(it=>`<div class="li" style="cursor:default"><span class="ico">${it.icon}</span><span class="t"><b>${esc(it.name)}</b><span>${esc(it.kpi)}${it.delta!=null&&it.delta!==0?` <b class="${it.delta>0?'pos':'neg'}">${it.delta>0?'▲':'▼'} ${fn(Math.abs(it.delta))}</b>`:''}${it.stars?'<i class="rs">'+starsH(it.stars)+'</i>':''}${it.broke?' · ⚠️ Ausfall':''}</span></span><span class="v ${it.profit>=0?'pos':'neg'}">${it.kind==='dev'?'':sgn(it.profit)}</span></div>`).join('')}</div></div>`:'<div class="hint">Noch keine Geschäfte. Öffne „Bauen“ und leg los!</div>'}
   ${r.events.length?`<div class="sec"><h3>Was passiert ist</h3>${r.events.map(e=>`<div class="evt"><span class="e">${e.icon}</span><span class="${e.bad?'neg':''}">${esc(e.t)}</span></div>`).join('')}</div>`:''}
   ${(()=>{const t=tipsFor();return t.length?`<div class="say"><p><b>Lena rät:</b><br>${t.map(esc).join('<br>')}</p><span class="sayAva">${avatar(ASSIST,58)}</span></div>`:''})()}
   ${quotes()}
@@ -1068,6 +1078,8 @@ function report(r){const m=$('modal');m.hidden=false;if(G.currency&&G.currency!=
   ${G.pending.length?`<div class="warnbox">${G.pending.length>1?G.pending.length+' Entscheidungen warten':'Eine Entscheidung wartet'} auf dich.</div>`:''}
   <button class="btn ink wide" data-a="closeReport" style="padding:14px">${G.over?'Ergebnis ansehen':G.pending.length||(r.incidents||[]).length?'Weiter':'Weiter planen'}</button></div>`;
   countUp($('bigNet'),r.net)}
+function stkLabel(s,n){return fn(n)+' Aktien · '+(n/s.shares*100).toLocaleString('de-DE',{maximumFractionDigits:n/s.shares<0.001?4:2})+' % der Firma · '+fe(n*s.price*1.002)}
+function stakeLabel(cp,to){return Math.round(to*100)+' % · kostet '+fe(K.stakeCost(G,cp,to))+' · Übernahme danach '+fe(Math.round(K.compValue(G,cp)*1.35*(1-to)/1000)*1000)}
 function dl(v,p,lbl){if(p==null)return'';const d=v-p,q=p?d/Math.abs(p):0;return`<div class="sub"><b class="${d>=0?'pos':'neg'}">${d>=0?'▲':'▼'} ${sgn(d)}${p?` (${d>=0?'+':''}${Math.round(q*100)} %)`:''}</b> ${lbl||'zur Vorwoche'}</div>`}
 function cfTable(cf){if(!cf)return'';const c=cf,net=c.op+c.inv+c.fin;
   return`<table class="cf"><tr><td>Bargeld aus Geschäftstätigkeit</td><td>${sgn(c.op)}</td></tr><tr><td>Investition</td><td>${sgn(c.inv)}</td></tr><tr><td>Finanzierung</td><td>${sgn(c.fin)}</td></tr><tr class="sum"><td>Netto-Cashflow</td><td class="${net>=0?'pos':'neg'}">${sgn(net)}</td></tr></table>`}
@@ -1168,6 +1180,8 @@ document.addEventListener('click',e=>{if(suppressClick&&e.isTrusted){suppressCli
   case'decide':{const r=K.act.decide(G,+id,+v);if(r.msg)toast(r.msg,'');refresh();if(!G.pending.length){renderSheet(true)}else renderSheet(true);break}
   case'sector':view.p.sec=k;renderSheet();break;
   case'trade':run(K.act.trade(G,k,+v));break;
+  case'tradeSl':{const sl=document.querySelector(`input[data-in="stk"][data-k="${k}"]`);if(sl)run(K.act.trade(G,k,+sl.value));break}
+  case'stake':{const sl=document.querySelector(`input[data-in="stake"][data-id="${id}"]`);if(sl)run(K.act.stake(G,+id,+sl.value/100));break}
   case'secPct':view.p.pc=Math.max(0.01,Math.min(0.3,Math.round(((view.p.pc||0.05)+d*0.01)*100)/100));renderSheet();break;
   case'secondary':if(confirm('Neue Aktien ausgeben?'))run(K.act.secondary(G,view.p.pc||0.05));break;
   case'dividend':run(K.act.dividend(G,+v));break;
@@ -1217,7 +1231,9 @@ document.addEventListener('click',e=>{if(suppressClick&&e.isTrusted){suppressCli
   case'newGame':if(confirm('Neues Spiel beginnen? Der aktuelle Spielstand wird überschrieben.')){store.del();G=null;close();['hud','topBtns','dock','goalCard'].forEach(x=>$(x).hidden=true);showMenu()}break;
   case'restart':store.del();G=null;$('modal').hidden=true;showMenu();break;
   }});
-document.addEventListener('input',e=>{const t=e.target;if(!G||!t.dataset.in)return;const f=cur();
+document.addEventListener('input',e=>{const t=e.target;if(!G||!t.dataset||!t.dataset.in)return;const f=cur();
+  if(t.dataset.in==='stk'){const s=t.dataset.k==='OWN'?{shares:G.shares,price:G.sharePrice}:G.stocks.find(x=>x.tk===t.dataset.k);$('stkL-'+t.dataset.k).textContent=stkLabel(s,+t.value);return}
+  if(t.dataset.in==='stake'){const cp=G.comps.find(c=>c.id===+t.dataset.id);$('stkC-'+cp.id).textContent=stakeLabel(cp,+t.value/100);return}
   if(t.dataset.in==='mkt'){K.act.firm(G,f.id,{mkt:+t.value});$('mktV').textContent=fe(f.mkt)+' / Monat'}
   if(t.dataset.in==='wage'){K.act.firm(G,f.id,{wage:+t.value});$('wageV').textContent=pct(f.wage)}
   if(t.dataset.in==='ads'){K.act.app(G,+t.dataset.id,{ads:+t.value});$('adsV').textContent=fe(G.apps.find(a=>a.id===+t.dataset.id).ads)+' / Monat'}
