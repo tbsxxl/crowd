@@ -170,6 +170,10 @@ table.cf td{padding:5px 0;font-size:13.5px}table.cf td:last-child{text-align:rig
 .cands{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.cand{min-width:min(280px,82%);scroll-snap-align:center;display:flex;flex-direction:column;gap:6px}.cand .ava,.execCard .ava,.execHead .ava{flex:none;align-self:center}
 @media (max-width:440px){.execHead{flex-direction:column;align-items:center}.mast{font-size:26px}}
 /* Start, Wizard, Produktkarten */
+.mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}.modc{display:flex;flex-direction:column;gap:3px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px}.modc .e{font-size:22px}.modc span{font-size:12px;color:var(--muted)}.modc small{font-family:var(--f-mono);font-size:11px;color:#7a5c10}
+.cards3{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}.pcard2{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:6px;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:14px;text-align:left;transition:transform .15s}.pcard2:hover{transform:translateY(-3px);border-color:var(--ink)}.pcard2 .e{font-size:34px}.pcard2 b{font-size:15px}.pcard2 span{font-size:12.5px;color:var(--muted);line-height:1.35}.pcard2 small{margin-top:auto;font-family:var(--f-mono);font-size:11px;color:#2f6fd0}.pcard2.pact{border-color:#d9a441;background:linear-gradient(#fffaf0,#fff)}.pcard2.pact small{color:#b07a1c}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.chip{font-size:12px;background:var(--soft);border-radius:999px;padding:4px 10px}.chip.pact{background:rgba(212,167,44,.18)}
+.hall .unl{display:flex;flex-direction:column;gap:6px;margin-top:8px}.hall .li[aria-disabled="true"]:not([style*="47,138,85"]){opacity:.55;cursor:default}.pcard2 b{overflow-wrap:anywhere;hyphens:auto}
 .questRes{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}.questRes.ok{background:rgba(47,138,85,.08);border-color:rgba(47,138,85,.3)}.questRes.next{background:rgba(212,167,44,.1);border-color:rgba(212,167,44,.35)}.questRes .e{font-size:22px}
 .rw2{font-family:var(--f-mono);font-size:12px;background:rgba(212,167,44,.16);color:#7a5c10;padding:4px 8px;border-radius:6px;white-space:nowrap}
 .heatLeg{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}.heatLeg i{width:54px;height:8px;border-radius:4px;background:linear-gradient(90deg,#f2c14e,#7cc56b,#14632f)}
@@ -296,8 +300,8 @@ window.addEventListener('error',function(e){var m=document.getElementById('bootM
   if(m&&!document.getElementById('menu').hidden)m.textContent=t;else{var d=document.getElementById('toast');if(d){d.textContent=t;d.hidden=false}}},true);
 </script>
 <script src="../vendor/three-r128-bloom.js"></script>
-<script src="sim.js?v=20261023f"></script>
-<script src="world.js?v=20261023f"></script>
+<script src="sim.js?v=20261024a"></script>
+<script src="world.js?v=20261024a"></script>
 <script>
 (function(){
 'use strict';
@@ -314,8 +318,9 @@ function showMenu(){const saved=store.get();const m=$('menu');m.hidden=false;
   m.innerHTML=`<div class="menuCard panel"><div><div class="eyebrow">Rundenbasierte Wirtschaftssimulation</div><h1>Gründerzeit.</h1></div>
   <p class="lead">Gründe ein kleines Unternehmen und mach daraus Woche für Woche einen Konzern mit tausenden Mitarbeitenden in mehreren Städten.</p>
   ${saved?`<button class="btn ink" data-a="continue" style="padding:14px">Weiterspielen: ${esc(saved.firms[0].name)}, ${K.monthName(saved.month)}</button><div class="eyebrow">Oder neues Unternehmen gründen</div>`:''}
-  ${setupHtml()}</div>`}
-function start(){keepInputs();setTimeout(()=>{if(G){G.tut=0;refresh()}},0);const name=(newOpt.fname||'Mein Start-up').trim().slice(0,26);G=K.newGame({branch:newBranch,name,finance:newFin,seed:(Date.now()%1e9)|0,diff:newOpt.diff,comps:newOpt.comps,cur:newOpt.cur,capital:newOpt.cap,color:newOpt.color||K.BRANCHES[newBranch].color,logo:newOpt.logo,portrait:newOpt.portrait,ceo:(newOpt.ceo||'').trim().slice(0,26)||'Du'});afterLoad();
+  ${setupHtml()}${hallHtml()}</div>`}
+function start(){keepInputs();const M=meta(),U=M.un,daily=newOpt.daily?todaySeed():null,mods=daily?rollMods(2,daily):(newOpt.mods||[]);
+  const run={mods,runYears:newOpt.years,bonusCap:(U.cap1?10000:0)+(U.cap2?20000:0)+(U.cap3?40000:0),draftN:U.draft4?4:3,rerolls:U.reroll2?2:U.reroll1?1:0,startCard:!!U.startcard,daily};setTimeout(()=>{if(G){G.tut=0;refresh()}},0);const name=(newOpt.fname||'Mein Start-up').trim().slice(0,26);G=K.newGame({...run,branch:newBranch,name,finance:newFin,seed:daily||(Date.now()%1e9)|0,diff:newOpt.diff,comps:newOpt.comps,cur:newOpt.cur,capital:newOpt.cap,color:newOpt.color||K.BRANCHES[newBranch].color,logo:newOpt.logo,portrait:newOpt.portrait,ceo:(newOpt.ceo||'').trim().slice(0,26)||'Du'});afterLoad();
   setTimeout(()=>open('build'),300)}
 const logoXml=(i,c)=>logoSvg(i,c,128).replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" ');
 function afterLoad(){document.querySelectorAll('i[data-ic]').forEach(e=>{e.outerHTML=ic(e.dataset.ic,22)});if(G.tut===undefined)G.tut=(G.weeks||[]).length>3?99:0;try{World.setLogo(logoXml(G.firms[0].logo||0,G.firms[0].color))}catch(e){}$('menu').hidden=true;['hud','topBtns','dock'].forEach(id=>$(id).hidden=false);World.setCity(G,G.cityCur);World.sync(G,true);refresh();save()}
@@ -785,7 +790,26 @@ const PORTRAITS=[{g:'m',look:11,hair:'#7a4a2a',suit:'#eef3f7',shirt:'#ffffff',sk
 const CO_COLORS=['#e8643c','#5ec6f2','#3f9b62','#f2b33c','#e8558f','#7a4a2a','#8a8f96','#9b5de5'];
 const meLook=()=>Object.assign({},PORTRAITS[(G&&G.me.portrait)||0]);
 // ---------- Neues Spiel: Schritt für Schritt ----------
-const newOpt={diff:'normal',comps:2,cur:'EUR',cap:50000,color:null,logo:0,portrait:0,ceo:''};
+const newOpt={diff:'normal',comps:2,cur:'EUR',cap:50000,color:null,logo:0,portrait:0,ceo:'',years:10,nmods:2,mods:null,daily:false};
+// ---------- Ruhmeshalle: bleibt über alle Durchgänge erhalten ----------
+const META_KEY='gz.meta';
+function meta(){try{return Object.assign({fame:0,un:{},runs:[],daily:{}},JSON.parse(localStorage.getItem(META_KEY)||'{}'))}catch(e){return{fame:0,un:{},runs:[],daily:{}}}}
+function saveMeta(m){try{localStorage.setItem(META_KEY,JSON.stringify(m))}catch(e){}}
+const UNLOCKS=[['cap1','Erspartes','10.000 € mehr Startkapital',10],['startcard','Glücksgriff','Eine Karte gleich zum Start',15],['reroll1','Zweite Chance','Einmal neu ziehen pro Kartenwahl',20],
+  ['cap2','Familienkredit','Weitere 20.000 € Startkapital',25],['draft4','Weitblick','Vier statt drei Karten zur Wahl',40],['reroll2','Glückspilz','Zweimal neu ziehen pro Kartenwahl',45],['cap3','Erbschaft','Weitere 40.000 € Startkapital',60]];
+const todaySeed=()=>{const d=new Date();return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate()};
+function rollMods(n,seed){return n?K.pickMods({rs:seed||((Math.random()*1e9)|0)},n):[]}
+const multTxt=mods=>{const v=mods.reduce((a,m)=>a*K.MODS[m].score,1);return'×'+v.toFixed(2).replace('.',',')};
+function runSetupHtml(){const M=meta(),mods=newOpt.daily?rollMods(2,todaySeed()):(newOpt.mods||(newOpt.mods=rollMods(newOpt.nmods)));
+  return`<div class="eyebrow">Durchgang</div><div class="seg">${[[5,'5 Jahre'],[10,'10 Jahre'],[0,'Endlos']].map(([v,l])=>`<button data-a="nYears" data-v="${v}" aria-pressed="${newOpt.years===v}">${l}</button>`).join('')}</div>
+  <div class="sub">Am Ende zählt dein Vermögen mal dem Faktor der Weltregeln. Dafür gibt es Ruhm, mit dem du dauerhafte Vorteile freischaltest. Jedes Quartal wählst du eine von ${M.un.draft4?'vier':'drei'} Karten.</div>
+  <div class="row"><span class="eyebrow">Weltregeln ${newOpt.daily?'(Tägliche Herausforderung)':''}</span><b class="serif" style="font-size:20px">${multTxt(mods)}</b></div>
+  <div class="mods">${mods.map(m=>{const x=K.MODS[m];return`<div class="modc"><span class="e">${x.icon}</span><b>${x.n}</b><span>${x.d}</span><small>${multTxt([m])}</small></div>`}).join('')||'<div class="sub">Keine Weltregeln: Standardspiel, Faktor ×1,00.</div>'}</div>
+  ${newOpt.daily?`<div class="sub">Alle spielen heute mit denselben Weltregeln und derselben Stadt. Dein Bestwert heute: ${M.daily[todaySeed()]?fe(M.daily[todaySeed()]):'noch keiner'}.</div><button class="btn" data-a="nDaily">Eigene Weltregeln</button>`:
+    `<div class="btns">${[0,1,2,3].map(n=>`<button class="btn" data-a="nMods" data-v="${n}" style="${newOpt.nmods===n?'background:var(--ink);color:#fff':''}">${n} Regel${n===1?'':'n'}</button>`).join('')}<button class="btn" data-a="nReroll">🎲 Neu würfeln</button><button class="btn" data-a="nDaily">📅 Tägliche Herausforderung</button></div>`}`}
+function hallHtml(){const M=meta();return`<div class="card hall"><div class="row"><span><div class="eyebrow">Ruhmeshalle</div><b class="serif" style="font-size:26px">${fn(M.fame)} Ruhm</b></span><span class="sub">${M.runs.length} Durchg${M.runs.length===1?'ang':'änge'}</span></div>
+  <div class="unl">${UNLOCKS.map(([k,n,d,c])=>`<button class="li" data-a="unlock" data-k="${k}" ${M.un[k]||M.fame<c?'aria-disabled="true"':''} style="${M.un[k]?'background:rgba(47,138,85,.08)':''}"><span class="ico">${M.un[k]?'✅':'🔒'}</span><span class="t"><b>${n}</b><span>${d}</span></span><span class="v">${M.un[k]?'':c+' Ruhm'}</span></button>`).join('')}</div>
+  ${M.runs.length?`<div class="eyebrow" style="margin-top:8px">Beste Durchgänge</div>${M.runs.slice().sort((a,b)=>b.score-a.score).slice(0,5).map((r,i)=>`<div class="row"><span>${i+1}. ${esc(r.name)} <span class="sub">${r.years?r.years+' J.':'endlos'}${r.daily?' · Tagesaufgabe':''}${r.over==='insolvent'?' · insolvent':''}</span></span><b>${fe(r.score)}</b></div>`).join('')}`:''}</div>`}
 function setupHtml(){const B=K.BRANCHES[newBranch],col=newOpt.color||B.color;const segs=(a,list,cur)=>`<div class="seg">${list.map(([v,l])=>`<button data-a="${a}" data-v="${v}" aria-pressed="${String(v)===String(cur)}">${l}</button>`).join('')}</div>`;
   return`<div class="say"><p>Hallo! Lass uns dein Unternehmen gründen. Ich führe dich durch die einzelnen Schritte.</p><span class="sayAva">${avatar(ASSIST,58)}</span></div>
   <div class="eyebrow">Branche</div><div class="pick">${Object.entries(K.BRANCHES).map(([k,b])=>`<button data-a="pickBranch" data-k="${k}" aria-pressed="${k===newBranch}"><span class="e">${b.icon}</span><b>${b.long}</b><span>${b.desc}</span></button>`).join('')}</div>
@@ -803,6 +827,7 @@ function setupHtml(){const B=K.BRANCHES[newBranch],col=newOpt.color||B.color;con
     <button data-a="pickFin" data-k="own" aria-pressed="${newFin==='own'}"><b>Keine</b><span>Dir gehört alles.</span></button>
     <button data-a="pickFin" data-k="loan" aria-pressed="${newFin==='loan'}"><b>Bankkredit</b><span>Dazu ${newBranch==='prod'?'120.000':'60.000'} zu 6,5 % über fünf Jahre.</span></button>
     <button data-a="pickFin" data-k="angel" aria-pressed="${newFin==='angel'}"><b>Business Angel</b><span>Dazu 150.000 gegen 20 % deiner Anteile.</span></button></div>
+  ${runSetupHtml()}
   <button class="btn ink" data-a="start" style="padding:15px 22px">Geschäft starten</button>
   <div class="sub">${newBranch==='prod'?'Tipp: Produktion braucht viel Kapital. Mit Kredit reicht es für Halle und erste Linie.':newBranch==='soft'?'Tipp: Apps verdienen erst nach dem Release. Ein Investor gibt dir Luft.':'Tipp: Ein Restaurant trägt sich schnell, wenn Lage und Personal stimmen.'}</div>`}
 function keepInputs(){const a=$('fname'),b=$('ceoName');if(a)newOpt.fname=a.value;if(b)newOpt.ceo=b.value}
@@ -932,7 +957,10 @@ const CATICO={produkt:'☕',preis:'💶',atmo:'🛋️',service:'🙂'};
 function reviewCards(list){return`<div class="revs">${list.map((r,i)=>`<div class="card rev"><div class="row">${starsH(r.s)}<span class="revAva"><i>${CATICO[r.k]||'💬'}</i>${avatar({g:r.g||(i%2?'f':'m'),look:r.look||((r.t||'').length*97+i)},52)}</span></div><div class="quote" style="font-size:14px">${esc(r.t)}</div></div>`).join('')}</div>`}
 function catStars(cat){return`<span style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">${cat.map(([n,v])=>`<span class="row" style="gap:8px"><span class="sub">${n}</span>${starsH(K.stars(v))}<b>${String(K.stars(v)).replace('.',',')}</b></span>`).join('')}</span>`}
 // Ziele
-VIEWS.goals=()=>{let b=`<div class="card"><div class="eyebrow">Wochenauftrag</div>${G.quest?`<div class="row"><b style="font-size:16px">${esc(G.quest.t)}</b><span class="rw2">+${fe(G.quest.r)}</span></div><div class="sub">Gilt bis zum Ende dieser Woche. Jede Woche gibt es einen neuen Auftrag. Erfüllt: ${fn(G.questsDone||0)}.</div>`:'<div class="sub">Ab der dritten Woche gibt es jede Woche einen Auftrag mit Prämie.</div>'}</div><div class="sub">Für jedes erreichte Ziel gibt es eine Förderprämie.</div><div class="list">`;const next=K.GOALS.find(x=>!G.goals[x.k]);
+VIEWS.goals=()=>{let b=`<div class="card"><div class="row"><span class="eyebrow">Durchgang ${G.daily?'· Tägliche Herausforderung':''}</span><b class="serif" style="font-size:20px">${fe(K.runScore(G))}</b></div>
+    <div class="sub">${G.runYears?'Noch '+fn(Math.max(0,G.runYears*12-G.month))+' Monate':'Endlos'} · Punkte = Vermögen ${multTxt(G.mods||[])} · nächste Kartenwahl in ${3-G.month%3} Monat${3-G.month%3>1?'en':''}</div>
+    ${(G.mods||[]).length?`<div class="chips">${G.mods.map(m=>`<span class="chip">${K.MODS[m].icon} ${K.MODS[m].n}</span>`).join('')}</div>`:''}
+    ${(G.perks||[]).length?`<div class="chips">${G.perks.map(c=>{const P=K.PERKS[c.k],left=c.until!=null?c.until-G.month:null;return`<span class="chip ${P.pact?'pact':''}" title="${esc(P.d)}">${P.icon} ${P.n}${left!=null?(left>0?' · '+left+' M.':' · abgelaufen'):''}</span>`}).join('')}</div>`:'<div class="sub">Noch keine Karten.</div>'}</div><div class="card"><div class="eyebrow">Wochenauftrag</div>${G.quest?`<div class="row"><b style="font-size:16px">${esc(G.quest.t)}</b><span class="rw2">+${fe(G.quest.r)}</span></div><div class="sub">Gilt bis zum Ende dieser Woche. Jede Woche gibt es einen neuen Auftrag. Erfüllt: ${fn(G.questsDone||0)}.</div>`:'<div class="sub">Ab der dritten Woche gibt es jede Woche einen Auftrag mit Prämie.</div>'}</div><div class="sub">Für jedes erreichte Ziel gibt es eine Förderprämie.</div><div class="list">`;const next=K.GOALS.find(x=>!G.goals[x.k]);
   for(const g of K.GOALS){const done=G.goals[g.k]!==undefined;b+=`<div class="li" style="${done?'background:rgba(47,138,85,.07)':g===next?'border-color:var(--ink)':'opacity:.7'}"><span class="ico">${done?'✅':g===next?'🎯':'⬜'}</span><span class="t"><b>${g.n}</b><span>${done?'erreicht im '+K.monthName(G.goals[g.k]-1):g.d||''}</span></span><span class="v">${g.reward?fe(g.reward):''}</span></div>`}
   return{eyebrow:K.stage(G).n,title:'Ziele',body:b+'</div>'}};
 // Entscheidungen
@@ -986,9 +1014,13 @@ function paperHtml(r){const all=r.paper||[];if(!all.length)return'';let list=all
     <div class="pcols">${list.length?list.map(a=>`<article>${artImg(a)}<h4>${esc(a.title)}</h4><p>${esc(a.text)}</p></article>`).join(''):'<p class="sub">Heute keine Meldungen in dieser Rubrik.</p>'}</div></div>`}
 // ---------- Fälle: Vorfälle und Entscheidungen nacheinander, mit Assistentin ----------
 let cases=[],caseI=0;
+function showDraft(){if(!G||!G.draft)return false;const m=$('modal');m.hidden=false;const d=G.draft;
+  m.innerHTML=`<div class="report panel"><div><div class="eyebrow">Quartal ${Math.floor(G.month/3)} · Kartenwahl</div><h2>Wähle eine Karte</h2></div><div class="sub">Karten mit Laufzeit enden von selbst. Pakte bringen viel, haben aber einen Haken.</div>
+    <div class="cards3">${d.opts.map(k=>{const P=K.PERKS[k];return`<button class="pcard2 ${P.pact?'pact':''}" data-a="pickCard" data-k="${k}"><span class="e">${P.icon}</span><b>${P.n}</b><span>${P.d}</span><small>${P.pact?'Pakt':P.dur?P.dur+' Monate':P.cash?'Sofort':'Dauerhaft'}</small></button>`}).join('')}</div>
+    ${d.rerolls>0?`<button class="btn" data-a="rerollCards">🎲 Neu ziehen (${d.rerolls} übrig)</button>`:''}</div>`;return true}
 function startCases(r){cases=[...(r?r.incidents||[]:[]).map(x=>({inc:x})),...G.pending.map(e=>({ev:e.id}))];caseI=0;showCase()}
 function showCase(){const m=$('modal');while(caseI<cases.length&&cases[caseI].ev&&!G.pending.some(e=>e.id===cases[caseI].ev))caseI++;
-  if(caseI>=cases.length){m.hidden=true;refresh();return}m.hidden=false;const c=cases[caseI],decs=cases.filter(x=>x.ev).length,di=cases.slice(0,caseI+1).filter(x=>x.ev).length;
+  if(caseI>=cases.length){m.hidden=true;refresh();showDraft();return}m.hidden=false;const c=cases[caseI],decs=cases.filter(x=>x.ev).length,di=cases.slice(0,caseI+1).filter(x=>x.ev).length;
   let head,sub,text,btns;
   if(c.inc){const x=c.inc;head=x.title;sub=x.kind==='shop'?'':esc(G.firms[0].name);text=esc(x.t);
     btns=x.kind==='board'?`<button class="btn ink" data-a="caseBoard">Zur Sitzung</button><button class="btn" data-a="caseNext">Später</button>`:`<button class="btn ink" data-a="caseNext">Weiter</button>`}
@@ -1064,8 +1096,8 @@ function mergeReps(list){const a=list[0],z=list[list.length-1];if(list.length===
   const paper=[];for(const r of list)paper.push(...(r.paper||[]));
   return Object.assign({},z,{weeks:list.length,from:a.date,rev:list.reduce((s,r)=>s+(r.rev||0),0),net:list.reduce((s,r)=>s+(r.net||0),0),cf,
     events:list.flatMap(r=>r.events),goals:list.flatMap(r=>r.goals),incidents:list.flatMap(r=>r.incidents||[]),paper:paper.slice(-10),monthEnd:list.some(r=>r.monthEnd),items:z.items})}
-function doEnd(n){n=n||1;$('modal').hidden=true;close();endPlace();const reps=[];
-  for(let i=0;i<n;i++){const r=K.endTurn(G);if(!r)break;reps.push(r);if(G.over||G.pending.length||(r.incidents||[]).length||r.goals.length)break}
+function doEnd(n){if(showDraft())return;n=n||1;$('modal').hidden=true;close();endPlace();const reps=[];
+  for(let i=0;i<n;i++){const r=K.endTurn(G);if(!r)break;reps.push(r);if(G.over||G.draft||G.pending.length||(r.incidents||[]).length||r.goals.length)break}
   if(!reps.length)return;const r=mergeReps(reps);lastRep=r;paperTab='top';save();World.sync(G);refresh();floatMoney(reps[reps.length-1]);setTimeout(()=>report(r),650);chime(r.net>=0)}
 // ---------- Lena rät ----------
 // Tipps mit passendem Knopf: Text t, Beschriftung b, Attribute a für den Knopf
@@ -1125,7 +1157,15 @@ function quotes(){const q=[];for(const f of G.firms){if(f.shops)for(const s of f
 function countUp(el,v){if(!el)return;const t0=performance.now(),d=900;const tick=t=>{const k=Math.min(1,(t-t0)/d),e=1-Math.pow(1-k,3);el.textContent=sgn(v*e);if(k<1)requestAnimationFrame(tick)};requestAnimationFrame(tick)}
 let actx=null;function chime(good){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const now=actx.currentTime;
   (good?[660,880,1320]:[440,330]).forEach((f,i)=>{const o=actx.createOscillator(),g=actx.createGain();o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(0,now+i*0.09);g.gain.linearRampToValueAtTime(0.06,now+i*0.09+0.02);g.gain.exponentialRampToValueAtTime(0.0001,now+i*0.09+0.4);o.connect(g).connect(actx.destination);o.start(now+i*0.09);o.stop(now+i*0.09+0.45)})}catch(e){}}
-function gameOver(){const v=K.valuation(G);const m=$('modal');m.hidden=false;m.innerHTML=`<div class="report panel"><div class="eyebrow">Insolvenz</div><h2>Das war's.</h2><p class="lead">${esc(G.firms[0].name)} ist im ${K.monthName(G.month)} zahlungsunfähig. Erreicht: ${Object.keys(G.goals).length} von ${K.GOALS.length} Zielen.</p><button class="btn ink wide" data-a="restart">Neues Spiel</button></div>`}
+function gameOver(){const m=$('modal');m.hidden=false;const score=K.runScore(G),ng=Object.keys(G.goals).length,done=G.over==='done';
+  const fame=Math.round(Math.sqrt(score)/40)+ng*2+(done?10:0);
+  if(!G.metaDone){const M=meta();M.fame+=fame;M.runs.push({name:G.firms[0].name,score,years:G.runYears,over:G.over,daily:G.daily,at:Date.now()});if(G.daily)M.daily[G.daily]=Math.max(M.daily[G.daily]||0,score);saveMeta(M);G.metaDone=fame;save()}
+  const M=meta(),best=M.runs.reduce((a,r)=>Math.max(a,r.score),0);
+  m.innerHTML=`<div class="report panel"><div class="eyebrow">${done?'Durchgang beendet':'Insolvenz'}</div><h2>${done?'Geschafft.':'Das war\'s.'}</h2>
+    <p class="lead">${esc(G.firms[0].name)} ${done?'nach '+G.runYears+' Jahren':'ist im '+K.monthName(G.month)+' zahlungsunfähig'}. Erreicht: ${ng} von ${K.GOALS.length} Zielen.</p>
+    <div class="resTop"><div><div class="eyebrow">Punktzahl</div><div class="big2">${fe(score)}</div><div class="sub">Vermögen ${fe(K.wealth(G).total)} ${multTxt(G.mods||[])}</div></div><div><div class="eyebrow">Ruhm</div><div class="big2 pos">+${fn(G.metaDone||fame)}</div><div class="sub">${score>=best?'Neuer Bestwert!':'Bestwert '+fe(best)}</div></div></div>
+    ${(G.perks||[]).length?`<div class="sub">Gespielte Karten: ${G.perks.map(c=>K.PERKS[c.k].icon+' '+K.PERKS[c.k].n).join(', ')}</div>`:''}
+    <button class="btn ink wide" data-a="restart">Neuer Durchgang</button></div>`}
 
 // ---------- Aktionen ----------
 function run(res,quiet){if(!res)return res;if(res.msg&&(!quiet||!res.ok))toast(res.msg,res.ok?'':'bad');refresh();return res}
@@ -1140,6 +1180,9 @@ document.addEventListener('click',e=>{if(suppressClick&&e.isTrusted){suppressCli
   const a=b.dataset.a,d=+b.dataset.d||0,id=b.dataset.id,k=b.dataset.k,v=b.dataset.v;const f=G&&cur();
   switch(a){
   case'nColor':keepInputs();newOpt.color=v;showMenu();break;case'nLogo':keepInputs();newOpt.logo=+v;showMenu();break;case'nPort':keepInputs();newOpt.portrait=+v;showMenu();break;
+  case'nYears':keepInputs();newOpt.years=+v;showMenu();break;case'nMods':keepInputs();newOpt.nmods=+v;newOpt.mods=null;showMenu();break;case'nReroll':keepInputs();newOpt.mods=null;showMenu();break;case'nDaily':keepInputs();newOpt.daily=!newOpt.daily;showMenu();break;
+  case'unlock':{const M=meta(),u=UNLOCKS.find(x=>x[0]===k);if(u&&!M.un[k]&&M.fame>=u[3]){M.fame-=u[3];M.un[k]=1;saveMeta(M);keepInputs();showMenu();toast(u[1]+' freigeschaltet.','good')}break}
+  case'pickCard':run(K.act.pickCard(G,k));$('modal').hidden=true;refresh();break;case'rerollCards':{const r=K.act.rerollCards(G);if(!r.ok)toast(r.msg,'bad');showDraft();break}
   case'nDiff':keepInputs();newOpt.diff=v;showMenu();break;case'nComps':keepInputs();newOpt.comps=+v;showMenu();break;case'nCur':keepInputs();newOpt.cur=v;showMenu();break;case'nCap':keepInputs();newOpt.cap=+v;showMenu();break;
   case'pickBranch':keepInputs();if(newBranch!==k)newOpt.fname=null;newBranch=k;if(k==='prod'&&newFin==='own')newFin='loan';showMenu();break;
   case'pickFin':keepInputs();newFin=k;showMenu();break;
