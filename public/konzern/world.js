@@ -141,7 +141,7 @@ const FZ=2.4,GF=1.85; // Vorderkante der Fassade, Höhe des Erdgeschosses
 const anchors={},cells={},pinTex={};
 function plotSig(G,p){let s=p.owner+'|'+p.use+'|'+(p.prop||'')+'|b'+(window.K&&K.underBuild?K.underBuild(G,p):0);
   if(p.owner&&!p.owner.startsWith('c:')&&p.owner!=='H'){const f=G.firms.find(x=>x.id===p.owner);if(f){s+='|'+f.color+'|'+f.name;
-    if(p.use==='cafe'){const sh=f.shops.find(x=>x.plot===p.id);s+='|'+(sh?sh.level+Object.keys(sh.ups).sort().join(','):0)}
+    if(p.use==='cafe'){const sh=f.shops.find(x=>x.plot===p.id);s+='|'+(sh?sh.level+(sh.facade||'')+Object.keys(sh.ups).sort().join(','):0)}
     if(p.use==='office')s+='|'+Object.keys(f.oups||{}).sort().join(',');
     if(p.use==='factory'){const pl=f.plants.find(x=>x.plot===p.id);s+='|'+(pl?pl.lines.map(l=>l.type+(l.auto?'a':'')+l.shifts).join(',')+Object.keys(pl.ups||{}).join(','):'')}}}
   if(p.owner&&p.owner.startsWith('c:')){const cp=G.comps.find(c=>'c:'+c.id===p.owner);s+='|'+(cp?cp.name:'')}
@@ -211,7 +211,10 @@ function shopfront(G,p,ug,d,I,sx,w){
     const sg=new THREE.Mesh(new THREE.PlaneGeometry(w*0.62,0.5),label(p&&p.prop==='H'?'ZU VERMIETEN':'ZU MIETEN','#f2c14e','#24272b'));sg.position.set(sx,1.0,FZ+0.05);ug.add(sg);return}
   if(I.build){B(w*0.82,1.15,0.05,'#4a525c',sx,0.4,FZ+0.01,ug);scaffold(d,sx,0.25,FZ,w,GF+0.4,0.15);buildSite(d,sx,FZ+1.3,w,I.build);return}
   const color=I.color,lvl=I.f?((I.f.shops.find(x=>x.plot===p.id)||{}).level||1):2,u=I.f?((I.f.shops.find(x=>x.plot===p.id)||{}).ups||{}):{};
-  B(w*0.86,1.2,0.05,lvl>=3?'#bcd8e8':'#3d4651',sx,0.4,FZ+0.01,ug);
+  const fac=I.f?((I.f.shops.find(x=>x.plot===p.id)||{}).facade||'klassik'):'klassik';
+  if(fac==='glas'){B(w*0.92,GF-0.3,0.05,'#9cc6d8',sx,0.3,FZ+0.02,ug);for(let i=0;i<=4;i++)B(0.08,GF-0.3,0.08,'#f4f1ea',sx-w*0.46+i*w*0.23,0.3,FZ+0.05,ug)}
+  else if(fac==='stuck'){B(w*0.86,1.2,0.05,'#2f3439',sx,0.4,FZ+0.01,ug);for(const dx of [-w/2+0.15,0,w/2-0.15])B(0.3,GF,0.18,'#e9e4d8',sx+dx,0.25,FZ+0.08,ug);B(w+0.1,0.25,0.3,'#e9e4d8',sx,0.25+GF-0.05,FZ+0.1,ug)}
+  else B(w*0.86,1.2,0.05,lvl>=3?'#bcd8e8':'#3d4651',sx,0.4,FZ+0.01,ug);
   const sg=new THREE.Mesh(new THREE.PlaneGeometry(w*0.9,0.5),label(I.name||'Restaurant',color,'#ffffff'));sg.position.set(sx,0.25+GF-0.11,FZ+0.12);d.add(sg);
   const aw=add(prism(w,0.7,1.3),color,sx,1.55,FZ+0.65,d);aw.rotation.x=-Math.PI/2;aw.scale.set(1,1,0.5);
   const nT=lvl>=2?2:1;for(let i=0;i<nT;i++){const x=sx+(nT===1?0:(i?1:-1)*1.1),z=FZ+1.7;add(new THREE.CylinderGeometry(0.38,0.38,0.06,10),'#f4f1ea',x,0.9,z,d);B(0.07,0.65,0.07,'#2d3436',x,0.25,z,d);

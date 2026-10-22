@@ -168,6 +168,18 @@ table.cf td{padding:5px 0;font-size:13.5px}table.cf td:last-child{text-align:rig
 .execCard{align-items:center;text-align:center}.execCard .bar{width:100%}
 .cands{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.cand{min-width:min(280px,82%);scroll-snap-align:center;display:flex;flex-direction:column;gap:6px}.cand .ava,.execCard .ava,.execHead .ava{flex:none;align-self:center}
 @media (max-width:440px){.execHead{flex-direction:column;align-items:center}.mast{font-size:26px}}
+/* Start, Wizard, Produktkarten */
+.sh-body>*{flex-shrink:0}
+.menuCard{margin:auto 0}.menuCard .seg{flex-wrap:wrap}
+.swatches.big button{width:42px;height:42px;border-radius:10px}
+.logos,.ports{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}.logos button,.ports button{all:unset;cursor:pointer;display:grid;place-items:center;padding:6px;border-radius:12px;border:1px solid transparent}
+.logos button[aria-pressed="true"],.ports button[aria-pressed="true"]{background:#fff;border-color:var(--ink)}
+@media (max-width:520px){.logos,.ports{grid-template-columns:repeat(4,1fr)}}
+.nameRow{gap:10px;align-items:center}.nameRow input{flex:1}
+#brandSub svg{vertical-align:-3px}
+.hcards{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 8px}.hc{min-width:min(270px,80%);scroll-snap-align:center;display:flex;flex-direction:column;gap:8px}
+.hc.sel{box-shadow:0 0 0 2px var(--ink)}.hc svg{align-self:center}
+.pcard .picon{font-size:64px;text-align:center;line-height:1.1}.mlab{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px}.mlab small{color:var(--muted)}
 /* Innenansichten und Figuren */
 .room,.figs,.figSay{flex:none}
 .room{background:linear-gradient(180deg,#e7ecef,#f5f4f0);border-radius:12px;padding:6px 4px 0;overflow:hidden}.room svg{display:block;max-height:300px}
@@ -195,7 +207,7 @@ table.league td{padding:3px 4px;font-size:12.5px}table.league td:nth-child(2){wi
 .toast{position:fixed;left:50%;top:calc(132px + env(safe-area-inset-top,0px));transform:translateX(-50%);padding:10px 16px;z-index:9;font-size:13.5px;font-weight:600;max-width:min(460px,calc(100vw - 32px));animation:pop .25s}
 .toast.bad{border-left:3px solid var(--bad)}
 /* Start */
-.menu{position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:16px;background:radial-gradient(110% 90% at 45% 30%,rgba(245,244,240,.92),rgba(235,233,228,.97) 60%,rgba(226,223,216,.98));overflow:auto}
+.menu{position:fixed;inset:0;z-index:10;display:grid;place-items:start center;padding:16px;background:radial-gradient(110% 90% at 45% 30%,rgba(245,244,240,.92),rgba(235,233,228,.97) 60%,rgba(226,223,216,.98));overflow:auto}
 .menuCard{width:min(760px,100%);display:flex;flex-direction:column;gap:16px;padding:24px}
 .menuCard h1{font-family:var(--f-display);font-style:italic;font-weight:400;font-size:clamp(46px,8vw,80px);line-height:.9;margin:4px 0 0;letter-spacing:-.02em}
 .lead{font-family:var(--f-display);font-size:18px;margin:0;color:#4a4c4a;max-width:54ch;line-height:1.4}
@@ -276,16 +288,10 @@ const cur=()=>K.firm(G,G.cur)||G.firms[0];
 // ---------- Start ----------
 function showMenu(){const saved=store.get();const m=$('menu');m.hidden=false;
   m.innerHTML=`<div class="menuCard panel"><div><div class="eyebrow">Rundenbasierte Wirtschaftssimulation</div><h1>Gründerzeit.</h1></div>
-  <p class="lead">Gründe ein kleines Start-up und mach daraus Woche für Woche einen Konzern mit tausenden Mitarbeitenden in mehreren Städten. Du planst in Ruhe, dann schließt du die Woche ab und siehst, was deine Entscheidungen gebracht haben.</p>
-  ${saved?`<button class="btn ink" data-a="continue" style="padding:14px">Weiterspielen: ${esc(saved.firms[0].name)}, ${K.monthName(saved.month)}</button><div class="eyebrow">Oder neu beginnen</div>`:''}
-  <div class="pick">${Object.entries(K.BRANCHES).map(([k,b])=>`<button data-a="pickBranch" data-k="${k}" aria-pressed="${k===newBranch}"><span class="e">${b.icon}</span><b>${b.long}</b><span>${b.desc}</span></button>`).join('')}</div>
-  <div class="pick">
-    <button data-a="pickFin" data-k="own" aria-pressed="${newFin==='own'}"><b>Eigenkapital</b><span>50.000 € aus eigener Tasche. Dir gehört alles.</span></button>
-    <button data-a="pickFin" data-k="loan" aria-pressed="${newFin==='loan'}"><b>Bankkredit</b><span>Dazu ${newBranch==='prod'?'120.000':'60.000'} € zu 6,5 % über fünf Jahre.</span></button>
-    <button data-a="pickFin" data-k="angel" aria-pressed="${newFin==='angel'}"><b>Business Angel</b><span>Dazu 150.000 € gegen 20 % deiner Anteile.</span></button></div>
-  <div class="row"><input type="text" id="fname" maxlength="26" value="${esc({cafe:'Bohnenglück',soft:'Codewerk',prod:'Werkbank Nord'}[newBranch])}" aria-label="Name der Firma"><button class="btn ink" data-a="start" style="padding:13px 22px;white-space:nowrap">Firma gründen</button></div>
-  <div class="sub">${newBranch==='prod'?'Tipp: Produktion braucht viel Kapital. Mit Kredit reicht es für Halle und erste Linie.':newBranch==='soft'?'Tipp: Apps verdienen erst nach dem Release. Ein Investor gibt dir Luft.':'Tipp: Ein Restaurant trägt sich schnell, wenn Lage und Personal stimmen.'}</div></div>`}
-function start(){const name=($('fname').value||'Mein Start-up').trim().slice(0,26);G=K.newGame({branch:newBranch,name,finance:newFin,seed:(Date.now()%1e9)|0});afterLoad();
+  <p class="lead">Gründe ein kleines Unternehmen und mach daraus Woche für Woche einen Konzern mit tausenden Mitarbeitenden in mehreren Städten.</p>
+  ${saved?`<button class="btn ink" data-a="continue" style="padding:14px">Weiterspielen: ${esc(saved.firms[0].name)}, ${K.monthName(saved.month)}</button><div class="eyebrow">Oder neues Unternehmen gründen</div>`:''}
+  ${setupHtml()}</div>`}
+function start(){keepInputs();const name=(newOpt.fname||'Mein Start-up').trim().slice(0,26);G=K.newGame({branch:newBranch,name,finance:newFin,seed:(Date.now()%1e9)|0,diff:newOpt.diff,comps:newOpt.comps,cur:newOpt.cur,capital:newOpt.cap,color:newOpt.color||K.BRANCHES[newBranch].color,logo:newOpt.logo,portrait:newOpt.portrait,ceo:(newOpt.ceo||'').trim().slice(0,26)||'Du'});afterLoad();
   setTimeout(()=>open('build'),300)}
 function afterLoad(){$('menu').hidden=true;['hud','topBtns','dock'].forEach(id=>$(id).hidden=false);World.setCity(G,G.cityCur);World.sync(G,true);refresh();save()}
 function save(){if(G)store.set(G)}
@@ -294,10 +300,10 @@ function save(){if(G)store.set(G)}
 function refresh(){if(!G)return;const last=(G.weeks||[])[(G.weeks||[]).length-1];
   $('hMonth').textContent=K.dateStr(G);const c=$('hCash');c.textContent=fe(G.cash);c.className=G.cash<0?'neg':'';
   const n=$('hNet');n.textContent=last?sgn(last.net):'–';n.className=last?(last.net>=0?'pos':'neg'):'';$('hStaff').textContent=fn(K.totalStaff(G));$('hWealth').textContent=fe(K.wealth(G).total);
-  $('brandSub').textContent=cur().name+' · '+K.stage(G).n;
+  $('brandSub').innerHTML=logoSvg(G.firms[0].logo||0,G.firms[0].color,18)+' '+esc(cur().name)+' · '+K.stage(G).n;
   $('endSub').textContent=G.pending.length?G.pending.length+(G.pending.length>1?' Entscheidungen offen':' Entscheidung offen'):'Woche ab '+K.dateStr(G).replace(/ \d{4}$/,'');$('endBtn').dataset.wait=G.pending.length>0;
   const g=K.GOALS.find(x=>!G.goals[x.k]);const gc=$('goalCard');
-  if(g){gc.hidden=false;gc.innerHTML=`<span class="gi">🎯</span><span><b>${esc(g.n)}</b><br><span>Nächstes Ziel</span></span>${g.reward?`<span class="rw">+${fe(g.reward)}</span>`:''}`}else gc.hidden=true;
+  if(g){gc.hidden=false;gc.innerHTML=curFix(`<span class="gi">🎯</span><span><b>${esc(g.n)}</b><br><span>Nächstes Ziel</span></span>${g.reward?`<span class="rw">+${fe(g.reward)}</span>`:''}`)}else gc.hidden=true;
   World.sync(G);tags();if(view&&!$('sheet').hidden&&!busyInput())renderSheet()}
 function busyInput(){const a=document.activeElement;return a&&a.tagName==='INPUT'&&$('sheet').contains(a)}
 
@@ -307,7 +313,8 @@ function open(v,p,keep){if(!keep)stack.length=0;else if(view)stack.push(view);vi
   document.querySelectorAll('.db').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v));renderSheet(true)}
 function back(){view=stack.pop()||null;if(!view)return close();renderSheet(true)}
 function close(){view=null;stack.length=0;$('sheet').hidden=true;document.querySelectorAll('.db').forEach(b=>b.setAttribute('aria-pressed',false));World.select(null);World.highlight(null)}
-function renderSheet(top){const el=$('sheet');if(!view){el.hidden=true;return}const R=VIEWS[view.v];if(!R){close();return}const r=R(view.p);if(!r){close();return}
+const curFix=h=>G&&G.currency&&G.currency!=='EUR'?String(h).replace(/€/g,K.CURS[G.currency]):h;
+function renderSheet(top){const el=$('sheet');if(!view){el.hidden=true;return}const R=VIEWS[view.v];if(!R){close();return}const r0=R(view.p);if(!r0){close();return}const r=Object.assign({},r0,{body:curFix(r0.body),sub:r0.sub&&curFix(r0.sub),title:curFix(r0.title)});
   const body=el.querySelector('.sh-body'),y=!top&&body?body.scrollTop:0;
   el.innerHTML=`<div class="sh-head">${stack.length?`<button class="x" data-a="back" aria-label="Zurück">←</button>`:''}<div class="t">${r.eyebrow?`<div class="eyebrow">${r.eyebrow}</div>`:''}<h2>${r.title}</h2>${r.sub?`<div class="sub" style="margin-top:3px">${r.sub}</div>`:''}</div><button class="x" data-a="close" aria-label="Schließen">×</button></div>
   ${r.tabs?`<div class="tabs" role="tablist">${r.tabs.map(([k,n])=>`<button class="tab" data-a="tab" data-v="${k}" aria-selected="${(view.tab||r.tabs[0][0])===k}">${n}</button>`).join('')}</div>`:''}<div class="sh-body">${r.body}</div>`;
@@ -348,7 +355,7 @@ function startPlace(kind,fid){if(!G.cities[World.city]){toast('Diese Stadt ist n
   if(!ids.length)toast('Hier ist gerade nichts frei. Andere Stadt im Bereich Konzern erschließen.','bad')}
 function endPlace(){place=null;$('placeBar').hidden=true;World.highlight(null)}
 // Grundstück (frei, Konkurrenz)
-VIEWS.plot=({id})=>{const p=K.plot(G,id);if(!p)return null;const z=K.ZONES[p.zone];let b=kpis([[fn(p.traffic),'Passanten am Tag'],[fe(p.rent),'Miete im Monat'],[fn(p.size)+' m²','Fläche']]);
+VIEWS.plot=({id})=>{const p=K.plot(G,id);if(!p)return null;const z=K.ZONES[p.zone];let b=kpis([[fe(p.rent/4),'Miete pro Woche'],[fn(p.traffic*7),'Passanten pro Woche'],[fn(p.size)+' m²','Fläche']]);
   if(p.owner&&p.owner.startsWith('c:')){const cp=G.comps.find(c=>'c:'+c.id===p.owner);
     if(cp&&cp.branch==='cafe'){const cs=K.compShop(G,cp,p);b=say('Das ist eine Filiale von '+esc(cp.name)+'. Hier siehst du, was die Gäste über sie sagen.')+b;
       b+=`<div class="sec"><h3>Kundenrezensionen</h3><div class="card"><div class="row" style="align-items:flex-start"><span><b class="serif" style="font-size:44px;line-height:1">${String(K.stars(cs.all)).replace('.',',')}</b><br>${starsH(K.stars(cs.all))}<br><span class="sub">${fn(cs.n)} Bewertungen</span></span>
@@ -359,16 +366,16 @@ VIEWS.plot=({id})=>{const p=K.plot(G,id);if(!p)return null;const z=K.ZONES[p.zon
   if(p.owner){const uses={cafe:'Deine Filiale',office:'Dein Büro',factory:'Deine Fabrik',hq:'Konzernzentrale'};const ff=p.owner!=='H'&&K.firm(G,p.owner);
     return{eyebrow:z.n+' · '+K.cityName(p.city)+' · '+K.unitName(p),title:uses[p.use]||'Dein Standort',sub:ff?esc(ff.name):'',body:b+(propCard(p)||'')+housemates(p)}}
   if(!G.cities[p.city])return{eyebrow:z.n,title:'Noch nicht erschlossen',body:b+'<div class="warnbox">Erschließe diese Stadt im Bereich Konzern.</div>'};
-  let acts='';const kind=place?place.kind:null,us=K.usesOf(p);
+  b=say(leaseSay(p))+b+`<div class="sub">Kaution ${fe(p.rent*2)} im Voraus.</div>`;let acts='';const kind=place?place.kind:null,us=K.usesOf(p);
   for(const f of G.firms){if(f.branch==='cafe'&&us.includes('cafe')&&(!kind||kind==='cafe')){const fc=K.forecastShop(G,f.id,p.id);
       acts+=`<div class="card"><div class="ch"><span class="ico">🍽️</span><span class="t"><b>Restaurant von ${esc(f.name)}</b><span>Prognose nach der Eröffnung bei ${fc.staff} Kräften</span></span></div>
       ${kpis([[fn(fc.guests),'Gäste im Monat'],[fe(fc.rev),'Umsatz'],[sgn(fc.profit),'Gewinn',fc.profit>=0?'pos':'neg']])}
-      <button class="btn ink" data-a="build" data-k="cafe" data-id="${f.id}" data-p="${p.id}">Bauen · ${fe(K.shopCost(p))}</button><div class="sub">Umbau und Einrichtung dauern ${K.BUILD.shop} Wochen. In der Zeit zahlst du schon Miete.</div></div>`}
+      <button class="btn ink" data-a="open" data-v="shopBuild" data-id="${f.id}|${p.id}" data-keep="1">Restaurant bauen · ab ${fe(K.shopCost(p)+6000)}</button><div class="sub">Fassade, Einrichtung und Ausstattung wählst du im nächsten Schritt. Bauzeit ab ${K.BUILD.shop} Wochen, in der Zeit läuft schon die Miete.</div></div>`}
     if(f.branch==='soft'&&us.includes('office')&&(!kind||kind==='office'))acts+=`<div class="card"><div class="ch"><span class="ico">🏢</span><span class="t"><b>Büro für ${esc(f.name)}</b><span>${Math.floor(p.size/10)} Arbeitsplätze${f.office?', ersetzt das alte Büro':''}</span></span></div><button class="btn ink" data-a="build" data-k="office" data-id="${f.id}" data-p="${p.id}">Beziehen · ${fe(K.officeCost(p))} · ${K.BUILD.office} Wochen Ausbau</button></div>`;
     if(f.branch==='prod'&&us.includes('factory')&&(!kind||kind==='factory'))acts+=`<div class="card"><div class="ch"><span class="ico">🏭</span><span class="t"><b>Halle für ${esc(f.name)}</b><span>Platz für ${Math.floor(p.size/500)} Linien</span></span></div><button class="btn ink" data-a="build" data-k="factory" data-id="${f.id}" data-p="${p.id}">Mieten · ${fe(p.rent*3)} Kaution · ${K.BUILD.plant} Wochen Aufbau</button></div>`}
   if(us.includes('hq')&&!G.hq&&(!kind||kind==='hq'))acts+=`<div class="card"><div class="ch"><span class="ico">🏛️</span><span class="t"><b>Konzernzentrale</b><span>${K.totalStaff(G)<25?'Erst ab 25 Mitarbeitenden':'Für Abteilungen und den Börsengang'}</span></span></div><button class="btn ${K.totalStaff(G)<25?'':'ink'}" data-a="build" data-k="hq" data-p="${p.id}" ${K.totalStaff(G)<25?'aria-disabled="true"':''}>Bauen · 250.000 €</button></div>`;
   if(!acts)acts=`<div class="sub">${p.kind==='laden'?'Ladenlokale eignen sich für Restaurants und Läden.':p.kind==='etage'?'Büroetagen eignen sich für Büros und die Konzernzentrale.':p.zone==='gewerbe'?'Hallen eignen sich nur für Fabriken.':'Für deine Firmen ist hier nichts möglich.'}</div>`;
-  const un=K.unitName(p);return{eyebrow:z.n+' · '+K.cityName(p.city),title:(p.kind==='etage'||p.kind==='halle'?'Freie ':'Freies ')+un,sub:esc(K.address(p))+' · '+fn(p.size)+' m²',body:b+acts+propCard(p)+housemates(p)}};
+  const un=K.unitName(p);return{eyebrow:z.n+' · '+K.cityName(p.city),title:(p.kind==='etage'||p.kind==='halle'?'Freie ':'Freies ')+un,sub:esc(K.address(p))+' · '+fn(p.size)+' m²',body:b+acts+propCard(p)+housemates(p)+miniMap(p)}};
 function housemates(p){const o=G.plots.filter(q=>q.city===p.city&&q.r===p.r&&q.c===p.c&&q!==p);if(!o.length)return'';
   return`<div class="sec"><h3>Im selben Gebäude</h3><div class="list">${o.map(q=>{let who='frei, zu mieten',ic='🔑';
     if(q.owner==='H'){who='Deine Konzernzentrale';ic='🏛️'}else if(q.owner&&q.owner.startsWith('c:')){const cp=G.comps.find(c=>'c:'+c.id===q.owner);who=cp?cp.name:'Konkurrenz';ic='🏪'}
@@ -450,12 +457,13 @@ VIEWS.shop=({id})=>{const [f,s]=K.shopOf(G,+id);if(!s)return null;const p=K.plot
       <tr class="sum"><td>Gewinn</td><td class="${st.profit>=0?'pos':'neg'}">${sgn(st.profit)}</td></tr></table></div>`;
     else b+='<div class="sub">Zahlen gibt es nach dem ersten Monat.</div>';
     if(p.prop!=='H')b+=`<div class="card soft"><div class="ch"><span class="ico">🏢</span><span class="t"><b>Ladenlokal kaufen statt mieten</b><span>Kaufpreis ${fe(K.propValue(G,p))}, dann keine Miete mehr (${fe(p.rent)} im Monat).</span></span></div><button class="btn" data-a="open" data-v="plot" data-id="${p.id}" data-keep="1">Zur Immobilie →</button></div>`}
+  if(t==='prod')b=say(shopHello(f,s,fc,st),s.manager?MGRLOOK(s.manager):BARISTA)+catChart(s)+prodCards(f,s);
   if(t==='rev'){const sat=st?st.sat:s.rep,cat=[['Preis',Math.min(1,fc.ms.price)],['Produkt',fc.ms.quality],['Service',Math.min(1,(st?st.served:1)*0.75+(s.manager?0.12:0)+(s.train||0)*0.05)],['Atmosphäre',fc.comfort]];
     b+=`<div class="card"><div class="row" style="align-items:flex-start"><span><b class="serif" style="font-size:44px;line-height:1">${String(K.stars(s.rep)).replace('.',',')}</b><br>${starsH(K.stars(s.rep))}<br><span class="sub">${fn(s.rcount||0)} Bewertungen</span></span>
       ${catStars(cat)}</div></div>`;
     b+=reviewCards((s.reviews||[]).map((r,i)=>Object.assign({look:s.id*31+i+(s.hist?s.hist.length:0)*7,k:/Essen|Pasta|Kaffee|schmeckt|Qualität/.test(r.t)?'produkt':/teuer|Preis/.test(r.t)?'preis':/gemütlich|eingerichtet|Terrasse/.test(r.t)?'atmo':'service'},r)));if(!(s.reviews||[]).length)b+='<div class="sub">Bewertungen gibt es nach dem ersten Monat.</div>'}
   b+=`<button class="btn bad" data-a="closeShop" data-id="${s.id}">Filiale schließen</button>`;
-  return{eyebrow:esc(f.name)+' · '+K.ZONES[p.zone].n,title:esc(K.address(p).split(',')[0]),sub:K.cityName(p.city)+' · '+starsH(K.stars(s.rep))+' '+K.LEVELS[s.level].n+' · seit '+K.monthName(s.opened)+(p.prop==='H'?' · im eigenen Gebäude':''),tabs:[['team','Team'],['up','Ausbau'],['act','Marketing'],['fin','Finanzen'],['rev','Bewertungen']],body:b,after:()=>World.select(p.id)}};
+  return{eyebrow:esc(f.name)+' · '+K.ZONES[p.zone].n,title:esc(K.address(p).split(',')[0]),sub:K.cityName(p.city)+' · '+starsH(K.stars(s.rep))+' '+K.LEVELS[s.level].n+' · seit '+K.monthName(s.opened)+(p.prop==='H'?' · im eigenen Gebäude':''),tabs:[['team','Service'],['prod','Produkt'],['up','Ausbau'],['act','Marketing'],['fin','Finanzen'],['rev','Bewertungen']],body:b,after:()=>World.select(p.id)}};
 function shareNear(f,s,p){const out=[];const cols=['#24272b','#c8643c','#2f6fd0','#9b6fb5','#d4a72c','#3f9b62','#8a8f96'];let i=0;
   for(const q of G.plots){if(q.use!=='cafe'||q.city!==p.city||Math.abs(q.r-p.r)>1||Math.abs(q.c-p.c)>1)continue;let a=0,n='';
     if(q.owner&&q.owner.startsWith('c:')){const cp=G.comps.find(c=>'c:'+c.id===q.owner);if(!cp)continue;a=Math.pow(cp.q,0.8)*0.8*Math.min(1.5,Math.max(0.3,Math.exp(-1.8*(cp.price-1))))*(0.35+0.65*cp.rep);n=cp.name}
@@ -473,11 +481,7 @@ VIEWS.firm=()=>{const f=cur(),t=T()||'gen';const last=G.months[G.months.length-1
     b+=`<div class="card"><div class="row"><span class="lbl">Werbung</span><b class="serif" style="font-size:19px" id="mktV">${fe(f.mkt)} / Monat</b></div><input type="range" min="0" max="${Math.max(30000,Math.ceil(f.mkt/10000)*10000)}" step="250" value="${f.mkt}" data-in="mkt"><div class="sub">Mehr Werbung steigert die Bekanntheit. Die wirkt bei allen Geschäften dieser Firma.</div></div>
     <div class="card"><div class="row"><span class="lbl">Gehaltsniveau</span><b class="serif" style="font-size:19px" id="wageV">${pct(f.wage)}</b></div><input type="range" min="0.85" max="1.4" step="0.05" value="${f.wage}" data-in="wage"><div class="sub">Über Tarif hebt die Stimmung und damit die Leistung. Unter 45 % Stimmung kündigen Leute.</div></div>
     ${K.adminOf(G,f)?`<div class="sub">Dazu ${K.adminOf(G,f)} Stelle(n) in der Verwaltung (je 15 Mitarbeitende eine). Controlling in der Zentrale spart das.</div>`:''}`}
-  if(t==='menu'&&f.branch==='cafe'){const ms=K.menuStats(G,f);b+=`<div class="sub">Gilt für alle Filialen. Qualität hebt Ruf und Nachfrage, teurere Zutaten kosten mehr. Über dem Richtpreis kaufen weniger Gäste.</div>`;
-    for(const [k,P] of Object.entries(K.PRODUCTS)){const m=f.menu[k],locked=P.res&&!f.res[P.res];if(locked)continue;const unit=(P.other+(P.beans?P.beans*K.GOODS.bohnen.ref*G.idx.rohkaffee:0)+(P.piece?P.mkt:0))*K.QMULT[m.q];
-      b+=`<div class="card" style="${m.on?'':'opacity:.6'}"><div class="row"><span class="ch"><span class="ico">${P.icon}</span><span class="t"><b>${P.n}</b><span>Richtpreis ${P.ref.toFixed(2).replace('.',',')} € · Einkauf ${unit.toFixed(2).replace('.',',')} € · Marge ${pct(Math.max(0,1-unit/m.price))}</span></span></span>${tog('menuOn',m.on,`data-k="${k}"`)}</div>
-      ${m.on?`<div class="row">${seg('menuQ',[[1,'Einfach'],[2,'Gut'],[3,'Premium']],m.q,`data-k="${k}"`)}${step('menuPrice',m.price.toFixed(2).replace('.',',')+' €',`data-k="${k}"`)}</div>`:''}</div>`}
-    b+=`<div class="sub">Mehr Produkte: unter „Entwicklung“.</div>`}
+  if(t==='menu'&&f.branch==='cafe'){b+=say('Das ist die Produktabteilung. Hier legst du die Speisekarte, Qualität und Preise für alle Restaurants fest.',{g:'m',look:4711,hair:'#c0c3c7',suit:'#2f3439',skin:'#b9784f'})+prodCards(f,null)+recipeCard(f)+'<div class="sub">Mehr Gerichte: unter „Entwicklung“.</div>'}
   if(t==='agency'){b+='<div class="sub">Kampagnen machen deine Marke in einer ganzen Stadt bekannt. Die Bekanntheit holt Laufkundschaft in jede Filiale dort.</div>';
     for(const c of K.CITIES){if(!G.cities[c.id])continue;const aw=Math.max(f.aware,(f.cityAw||{})[c.id]||0);const camps=(f.camps||{})[c.id]||{};
       b+=`<div class="card"><div class="row"><span class="lbl">Markenbekanntheit in ${c.n}</span><b class="serif" style="font-size:22px">${Math.round(aw*100)}</b></div>${bar(aw,'good')}
@@ -629,7 +633,7 @@ VIEWS.bank=()=>{const t=T()||'market';let b='';const me=G.me;
 VIEWS.wealth=()=>{const w=K.wealth(G),me=G.me,t=T()||'over';let b='';
   if(t==='over'){const parts=[{n:'Bargeld',v:Math.max(0,w.cash),c:'#2f6fd0'},{n:'Aktien',v:w.own+w.stocks,c:'#2f8a55'},{n:'Immobilien',v:w.re,c:'#d14f8a'},{n:'Andere',v:w.lux+w.club,c:'#d4a72c'}];
     const wh=me.wh||[],prevW=wh.length>1?wh[wh.length-2]:null;
-    b+=`<div class="card"><div class="row"><span><b class="serif" style="font-size:24px">Du</b><br><span class="sub">CEO von ${esc(G.firms[0].name)} · in ${K.cityName(me.loc||'kiel')}</span></span>${avatar({g:'m',look:me.look||1,suit:'#eef3f7',shirt:'#ffffff'},84)}</div>
+    b+=`<div class="card"><div class="row"><span><b class="serif" style="font-size:24px">${esc(me.name||'Du')}</b><br><span class="sub">CEO von ${esc(G.firms[0].name)} · in ${K.cityName(me.loc||'kiel')}</span></span>${avatar(meLook(),84)}</div>
       <div class="row"><span><span class="lbl">Jährliches Gehalt</span><br><span class="sub">Zahlt der Konzern, netto ${fe(me.salary*0.58)} im Jahr</span></span>${step('salary',fe(me.salary),'')}</div></div>
       <div class="card"><div class="eyebrow">Gesamtvermögen</div><b class="serif" style="font-size:40px;line-height:1.1">${fe(w.total)}</b>${prevW!=null?dl(w.total,prevW,'zum Vormonat'):''}${wh.length>2?spark(wh,300,40,'#2f8a55'):''}<div class="row" style="align-items:center;margin-top:6px">${donut(parts,130)}${legend(parts)}</div></div>`;
     b+=`<div class="sec"><h3>Aktien</h3>${li('data-a="open" data-v="group" data-tab="firms" data-keep="1"',K.BRANCHES[G.firms[0].branch].icon,esc(G.firms[0].name)+' (Holding)',pct(G.owner)+' der Anteile'+(G.public?' · börsennotiert':''),fe(w.own),'aktueller Wert')}`;
@@ -693,6 +697,109 @@ function moodLines(f,role,n,extra){const out=[],m=f?f.morale:0.7;
     else if(m>0.8&&r<0.5){t='Ich arbeite gern hier!';b='💚';mood='good'}
     else t=['Alles im grünen Bereich.','Viel zu tun heute.','Läuft.','Kaffee?','Bin gleich im Meeting.'][look%5];
     out.push({n:role+' '+(i+1),who,t,b,mood})}return out}
+// ---------- Firmenlogos (eigene Zeichnungen) und CEO-Porträts ----------
+const LOGOS=[
+  '<circle r="17"/><g fill="#fff"><circle r="9" fill="none" stroke="#fff" stroke-width="2.5"/><rect x="-14" y="-9" width="2" height="18"/><rect x="12" y="-9" width="2.6" height="18"/></g>',
+  '<path d="M-12 8 H12 V14 H-12Z M-13 6 Q-19 -4 -10 -8 Q-8 -16 0 -15 Q8 -16 10 -8 Q19 -4 13 6Z"/>',
+  '<path d="M-17 0 Q-6 -12 8 -6 L17 -12 L14 0 L17 12 L8 6 Q-6 12 -17 0Z"/><circle cx="-8" cy="-2" r="1.8" fill="#fff"/>',
+  '<path d="M0 -17 Q15 -12 13 3 Q10 15 0 17 Q-10 15 -13 3 Q-15 -12 0 -17Z"/><path d="M0 -12 V14" stroke="#fff" stroke-width="2"/><path d="M0 -4 L7 -8 M0 3 L-7 -1 M0 9 L6 5" stroke="#fff" stroke-width="1.6"/>',
+  '<path d="M-15 10 L-17 -8 L-8 0 L0 -14 L8 0 L17 -8 L15 10Z"/><rect x="-15" y="12" width="30" height="4"/>',
+  '<path d="M0 -16 V12 M-12 2 Q-12 14 0 14 Q12 14 12 2 M-6 -10 H6" fill="none" stroke="currentColor" stroke-width="3.4"/><circle cy="-16" r="3.4"/>',
+  '<path d="M0 16 V-12" stroke="currentColor" stroke-width="2.6"/><g>'+[-10,-4,2,8].map(y=>`<ellipse cx="-5" cy="${y}" rx="5" ry="2.6" transform="rotate(-35 -5 ${y})"/><ellipse cx="5" cy="${y}" rx="5" ry="2.6" transform="rotate(35 5 ${y})"/>`).join('')+'</g>',
+  '<path d="M0 -17 Q10 -6 6 2 Q12 0 11 -6 Q18 4 10 13 Q4 18 -4 16 Q-14 12 -12 1 Q-11 -6 -6 -9 Q-7 -2 -2 0 Q-6 -10 0 -17Z"/>',
+  '<path d="M0 -17 L5 -5 L17 -5 L7 3 L11 16 L0 8 L-11 16 L-7 3 L-17 -5 L-5 -5Z"/>',
+  '<path d="M-18 14 L-6 -8 L0 2 L6 -14 L18 14Z"/><path d="M6 -14 L2 -6 L6 -4 L9 -8Z" fill="#fff"/>',
+  '<path d="M-17 -2 Q-11 -10 -5 -2 Q1 6 7 -2 Q13 -10 17 -2 V4 Q13 -4 7 4 Q1 12 -5 4 Q-11 -4 -17 4Z M-17 8 Q-11 0 -5 8 Q1 16 7 8 Q13 0 17 8 V14 Q13 6 7 14 Q1 22 -5 14 Q-11 6 -17 14Z"/>',
+  '<path d="M-5 16 L-3 -8 H3 L5 16Z"/><path d="M-5 -8 H5 L4 -14 H-4Z"/><path d="M-1 -17 H1 V-14 H-1Z"/><path d="M5 -12 L17 -16 V-8 Z" opacity=".6"/>'];
+const logoSvg=(i,col,size)=>`<svg viewBox="-20 -20 40 40" width="${size||40}" height="${size||40}" aria-hidden="true" style="color:${col}" fill="${col}">${LOGOS[(i||0)%LOGOS.length]}</svg>`;
+const PORTRAITS=[{g:'m',look:11,hair:'#7a4a2a',suit:'#eef3f7',shirt:'#ffffff',skin:'#f6d2c4'},{g:'f',look:22,hair:'#d9a441',suit:'#8a8f96',shirt:'#24272b',skin:'#f6d2c4'},{g:'m',look:33,hair:'#24272b',suit:'#5a6270',shirt:'#ffffff',skin:'#efc3a4'},{g:'f',look:44,hair:'#5b3a26',suit:'#c9ccd0',shirt:'#a6302b',skin:'#f3dccf'},
+  {g:'m',look:55,hair:'#5b3a26',suit:'#2f3e55',shirt:'#ffffff',skin:'#b9784f'},{g:'f',look:66,hair:'#24272b',suit:'#f4f1ea',shirt:'#bcd8e8',skin:'#8d5a3b'},{g:'m',look:77,hair:'#24272b',suit:'#8a8f96',shirt:'#8a1f2b',skin:'#d9a07c'},{g:'f',look:88,hair:'#24272b',suit:'#3f6b2f',shirt:'#e0a040',skin:'#8d5a3b'},
+  {g:'m',look:99,hair:'#e07a2a',suit:'#f3d6dc',shirt:'#ffffff',skin:'#f6d2c4'},{g:'f',look:110,hair:'#7a4a2a',suit:'#b9bdc2',shirt:'#c9ecd9',skin:'#f6d2c4'},{g:'m',look:121,hair:'#24272b',suit:'#2f5f9a',shirt:'#ffffff',skin:'#efc3a4'},{g:'f',look:132,hair:'#24272b',suit:'#c8363b',shirt:'#ffffff',skin:'#b9784f'}];
+const CO_COLORS=['#e8643c','#5ec6f2','#3f9b62','#f2b33c','#e8558f','#7a4a2a','#8a8f96','#9b5de5'];
+const meLook=()=>Object.assign({},PORTRAITS[(G&&G.me.portrait)||0]);
+// ---------- Neues Spiel: Schritt für Schritt ----------
+const newOpt={diff:'normal',comps:2,cur:'EUR',cap:50000,color:null,logo:0,portrait:0,ceo:''};
+function setupHtml(){const B=K.BRANCHES[newBranch],col=newOpt.color||B.color;const segs=(a,list,cur)=>`<div class="seg">${list.map(([v,l])=>`<button data-a="${a}" data-v="${v}" aria-pressed="${String(v)===String(cur)}">${l}</button>`).join('')}</div>`;
+  return`<div class="say"><p>Hallo! Lass uns dein Unternehmen gründen. Ich führe dich durch die einzelnen Schritte.</p><span class="sayAva">${avatar(ASSIST,58)}</span></div>
+  <div class="eyebrow">Branche</div><div class="pick">${Object.entries(K.BRANCHES).map(([k,b])=>`<button data-a="pickBranch" data-k="${k}" aria-pressed="${k===newBranch}"><span class="e">${b.icon}</span><b>${b.long}</b><span>${b.desc}</span></button>`).join('')}</div>
+  <div class="eyebrow">Firmenfarbe</div><div class="swatches big">${CO_COLORS.map(c=>`<button data-a="nColor" data-v="${c}" style="background:${c}" aria-pressed="${c===col}" aria-label="Farbe"></button>`).join('')}</div>
+  <div class="eyebrow">Firmenlogo</div><div class="logos">${LOGOS.map((_,i)=>`<button data-a="nLogo" data-v="${i}" aria-pressed="${i===newOpt.logo}" aria-label="Logo ${i+1}">${logoSvg(i,col,40)}</button>`).join('')}</div>
+  <div class="row nameRow">${logoSvg(newOpt.logo,col,46)}<input type="text" id="fname" maxlength="26" value="${esc(newOpt.fname||{cafe:'Tafelrunde',soft:'Codewerk',prod:'Werkbank Nord'}[newBranch])}" aria-label="Firmenname" placeholder="Firmenname"></div>
+  <div class="eyebrow">Dein Porträt</div><div class="ports">${PORTRAITS.map((p,i)=>`<button data-a="nPort" data-v="${i}" aria-pressed="${i===newOpt.portrait}" aria-label="Porträt ${i+1}">${avatar(p,52)}</button>`).join('')}</div>
+  <div class="row nameRow">${avatar(PORTRAITS[newOpt.portrait],52)}<input type="text" id="ceoName" maxlength="26" value="${esc(newOpt.ceo)}" aria-label="Dein Name" placeholder="Dein Name als CEO"></div>
+  <div class="eyebrow">Spielebene</div>${segs('nDiff',Object.entries(K.DIFF).map(([k,d])=>[k,d.n]),newOpt.diff)}
+  <div class="sub">${{easy:'Mehr Kundschaft, schwächere Konkurrenz.',normal:'Ausgewogen.',hard:'Weniger Kundschaft, stärkere Konkurrenz.',tycoon:'Für Profis: harter Markt, kaum Fehler erlaubt.'}[newOpt.diff]}</div>
+  ${newBranch==='cafe'?`<div class="eyebrow">Restaurantketten der Konkurrenz je Stadt</div>${segs('nComps',[0,1,2,3,4,5].map(n=>[n,n]),newOpt.comps)}`:''}
+  <div class="eyebrow">Währung</div>${segs('nCur',[['USD','$ USD'],['EUR','€ EUR'],['JPY','¥ JPY'],['GBP','£ GBP']],newOpt.cur)}
+  <div class="eyebrow">Startkapital aus eigener Tasche</div>${segs('nCap',[[25000,'25.000'],[50000,'50.000'],[100000,'100.000']].map(([v,l])=>[v,l+' '+K.CURS[newOpt.cur]]),newOpt.cap)}
+  <div class="eyebrow">Zusätzliche Finanzierung</div><div class="pick">
+    <button data-a="pickFin" data-k="own" aria-pressed="${newFin==='own'}"><b>Keine</b><span>Dir gehört alles.</span></button>
+    <button data-a="pickFin" data-k="loan" aria-pressed="${newFin==='loan'}"><b>Bankkredit</b><span>Dazu ${newBranch==='prod'?'120.000':'60.000'} zu 6,5 % über fünf Jahre.</span></button>
+    <button data-a="pickFin" data-k="angel" aria-pressed="${newFin==='angel'}"><b>Business Angel</b><span>Dazu 150.000 gegen 20 % deiner Anteile.</span></button></div>
+  <button class="btn ink" data-a="start" style="padding:15px 22px">Geschäft starten</button>
+  <div class="sub">${newBranch==='prod'?'Tipp: Produktion braucht viel Kapital. Mit Kredit reicht es für Halle und erste Linie.':newBranch==='soft'?'Tipp: Apps verdienen erst nach dem Release. Ein Investor gibt dir Luft.':'Tipp: Ein Restaurant trägt sich schnell, wenn Lage und Personal stimmen.'}</div>`}
+function keepInputs(){const a=$('fname'),b=$('ceoName');if(a)newOpt.fname=a.value;if(b)newOpt.ceo=b.value}
+// ---------- Fassaden als Bild ----------
+function facadeSvg(kind,col,w){const glass=kind==='glas',stuck=kind==='stuck',wall=glass?'#e8eef2':stuck?'#d9d6cf':'#efe6d6',dark=glass?'#cfd8de':stuck?'#bfbcb4':'#d8ccb8';
+  return`<svg viewBox="0 0 100 80" width="${w||140}" aria-hidden="true"><path d="M2 22 L50 50 L50 78 L2 50Z" fill="${wall}"/><path d="M50 50 L98 22 L98 50 L50 78Z" fill="${dark}"/>
+    ${stuck?'<path d="M2 22 L50 50 L98 22 L98 18 L50 46 L2 18Z" fill="#f4f1ea"/>':'<path d="M2 22 L50 50 L98 22 L98 20 L50 48 L2 20Z" fill="#f4f1ea"/>'}
+    <g transform="matrix(1,0.58,0,1,0,-2)">${[0,1,2].map(i=>glass?`<rect x="${6+i*15}" y="${22}" width="12" height="22" fill="#9cc6d8" stroke="#fff"/>`:stuck?`<path d="M${7+i*15} 44 V28 Q${13+i*15} 21 ${19+i*15} 28 V44Z" fill="#3d4651" stroke="#f4f1ea"/>`:`<rect x="${8+i*15}" y="28" width="10" height="15" fill="#3d4651"/><path d="M${6+i*15} 28 h14 l-2 -5 h-10z" fill="${col}"/>`).join('')}</g>
+    <g transform="matrix(1,-0.58,0,1,0,57.5)">${[0,1,2].map(i=>glass?`<rect x="${54+i*15}" y="${-8}" width="12" height="22" fill="#86b4c8" stroke="#fff"/>`:stuck?`<path d="M${55+i*15} 14 V-2 Q${61+i*15} -9 ${67+i*15} -2 V14Z" fill="#2f3439" stroke="#f4f1ea"/>`:`<rect x="${56+i*15}" y="-2" width="10" height="15" fill="#2f3439"/><path d="M${54+i*15} -2 h14 l-2 -5 h-10z" fill="${col}"/>`).join('')}</g>
+    <circle cx="26" cy="31" r="3.4" fill="${col}"/><circle cx="74" cy="31" r="3.4" fill="${col}"/></svg>`}
+// ---------- Restaurant bauen: Außenbereich, Innenbereich, Ausstattung ----------
+VIEWS.shopBuild=({id})=>{const [fid,pid]=String(id).split('|'),f=K.firm(G,fid),p=K.plot(G,pid);if(!f||!p||p.owner)return null;if(place)endPlace();
+  const o=view.p.o=view.p.o||{facade:'klassik',level:1,ups:{}};const col=f.color;
+  const ups=Object.entries(K.CAFE_UPS).filter(([k,U])=>!U.zones||U.zones.includes(p.zone));
+  const upSum=ups.reduce((a,[k,U])=>a+(o.ups[k]&&(!U.minLevel||o.level>=U.minLevel)?U.cost:0),0),fac=K.FACADES[o.facade],lvl=K.LEVELS[o.level],base=K.shopCost(p)-K.LEVELS[1].cost,total=fac.cost+lvl.cost+upSum+base;
+  let b=say('Bitte wähle den Außenbereich, den Innenbereich und die Ausstattung für das neue Restaurant. Die Kostenübersicht steht unten.');
+  b+=`<div class="room" style="display:flex;justify-content:center;padding:14px">${facadeSvg(o.facade,col,260)}</div>`;
+  b+=`<div class="sec"><h3>Außenbereich</h3><div class="hcards">${Object.entries(K.FACADES).map(([k,F])=>`<div class="card hc ${o.facade===k?'sel':''}">${facadeSvg(k,col,150)}<b>${F.n}</b><span class="sub">${F.d}</span><div class="row"><b class="serif" style="font-size:20px">${fe(F.cost)}</b><button class="btn ${o.facade===k?'':'ink'}" data-a="wzF" data-k="${k}">${o.facade===k?'Gewählt':'Auswählen'}</button></div></div>`).join('')}</div></div>`;
+  b+=`<div class="sec"><h3>Innenbereich</h3><div class="hcards">${[1,2,3].map(l=>{const L=K.LEVELS[l];return`<div class="card hc ${o.level===l?'sel':''}"><div class="room" style="padding:2px">${isoRoom({kind:'restaurant',w:8,d:7,s:12,tables:2+l*2,guests:0,staff:0,floor:l>=3?'#d9c3a5':'#e8d8bd',wall:l>=2?'#f1e3d3':'#f4f1ea',seed:l*5})}</div><b>${L.n}</b><span class="sub">Gemütlichkeit ${pct(L.comfort)}${l>1?' · '+(l-1)+' Woche(n) länger Bau':''}</span><div class="row"><b class="serif" style="font-size:20px">${fe(L.cost)}</b><button class="btn ${o.level===l?'':'ink'}" data-a="wzL" data-v="${l}">${o.level===l?'Gewählt':'Auswählen'}</button></div></div>`}).join('')}</div></div>`;
+  b+=`<div class="sec"><h3>Ausstattung</h3><div class="grid2">${ups.map(([k,U])=>upCard('wzU',`data-k="${k}"`,U.icon,U.n,U.d,fe(U.cost),!!o.ups[k],U.minLevel&&o.level<U.minLevel?'ab '+K.LEVELS[U.minLevel].n:null)).join('')}</div></div>`;
+  b+=`<div class="sec"><h3>Kostenübersicht</h3><table><tr><td>Außenbereich · ${fac.n}</td><td>${fe(fac.cost)}</td></tr><tr><td>Innenbereich · ${lvl.n}</td><td>${fe(lvl.cost)}</td></tr><tr><td>Ausstattung</td><td>${fe(upSum)}</td></tr><tr><td>Kaution und Anwerbung</td><td>${fe(base)}</td></tr><tr class="sum"><td>Gesamt</td><td>${fe(total)}</td></tr></table>
+    <div class="sub">Bauzeit ${K.BUILD.shop+o.level-1} Wochen, dann Eröffnung. Kasse: ${fe(G.cash)}.</div><button class="btn ink wide" data-a="wzGo" data-id="${f.id}" data-k="${p.id}" ${G.cash<total?'aria-disabled="true"':''}>Bauen · ${fe(total)}</button></div>`;
+  return{eyebrow:esc(f.name),title:'Restaurant bauen',sub:esc(K.address(p)),body:b}};
+// ---------- Karte der Umgebung ----------
+function miniMap(p){const W=6,H=5,cs=26;let s='';
+  const cells={};for(const q of G.plots)if(q.city===p.city){const k=q.r+'-'+q.c;(cells[k]=cells[k]||[]).push(q)}
+  for(const k in cells){const [r,c]=k.split('-').map(Number),list=cells[k],zone=list[0].zone,mine=list.some(q=>q.owner&&!q.owner.startsWith('c:')),comp=list.some(q=>q.owner&&q.owner.startsWith('c:')&&q.use==='cafe'),here=list.includes(p);
+    s+=`<rect x="${c*cs+3}" y="${r*cs+3}" width="${cs-6}" height="${cs-6}" rx="3" fill="${{city:'#d9d2c4',wohn:'#bcd7a3',buero:'#cfd3d8',gewerbe:'#d8cdb6'}[zone]}" stroke="${here?'#24272b':'none'}" stroke-width="2.5"/>${mine?`<circle cx="${c*cs+cs/2-5}" cy="${r*cs+cs/2}" r="4" fill="#3f9b62"/>`:''}${comp?`<circle cx="${c*cs+cs/2+5}" cy="${r*cs+cs/2}" r="4" fill="#cc3b33"/>`:''}`}
+  return`<div class="sec"><h3>Karte der Umgebung</h3><svg viewBox="0 0 ${W*cs} ${H*cs}" width="100%" style="max-width:320px;background:#9a9da2;border-radius:10px" aria-hidden="true">${s}</svg><div class="sub"><b style="color:#3f9b62">●</b> deine Standorte · <b style="color:#cc3b33">●</b> Restaurants der Konkurrenz · schwarzer Rahmen: diese Fläche</div></div>`}
+function leaseSay(p){const zs=G.plots.filter(q=>q.city===p.city&&q.zone===p.zone),avgT=zs.reduce((s,q)=>s+q.traffic,0)/zs.length,avgR=zs.reduce((s,q)=>s+q.rent,0)/zs.length;
+  const t=p.traffic>avgT*1.08?'hoch':p.traffic<avgT*0.92?'relativ gering':'durchschnittlich',r=p.rent>avgR*1.08?'eher teuer':p.rent<avgR*0.92?'günstig':'im Rahmen';
+  return'Diese Fläche ist zu vermieten. Der Fußgängerverkehr ist '+t+(t==='hoch'&&r!=='günstig'||t!=='hoch'&&r==='günstig'?', aber ':' und ')+'die Miete ist '+r+'.'}
+// ---------- Produkte: Karten, Verlauf, Hausrezept ----------
+function lineChart(series,labels){const W=360,H=150,all=series.flatMap(s=>s.v),mx=Math.max(1,...all),n=labels.length,X=i=>20+i*(W-40)/Math.max(1,n-1),Y=v=>H-26-v/mx*(H-46);
+  return`<svg viewBox="0 0 ${W} ${H}" width="100%" aria-hidden="true">${series.map(s=>`<polyline fill="none" stroke="${s.c}" stroke-width="3" points="${s.v.map((v,i)=>X(i)+','+Y(v)).join(' ')}"/>${s.v.map((v,i)=>`<circle cx="${X(i)}" cy="${Y(v)}" r="${i===n-1?6:4}" fill="${s.c}"/>`).join('')}`).join('')}
+    ${labels.map((l,i)=>`<text x="${X(i)}" y="${H-6}" text-anchor="middle" font-size="11" fill="#73746f">${l}</text>`).join('')}</svg>`}
+function catChart(s){const h=(s.hist||[]).filter(x=>x.cm!==undefined).slice(-6);if(h.length<2)return'<div class="sub">Der Verlauf erscheint nach zwei Wochen Betrieb.</div>';
+  const last=h[h.length-1],prev=h[h.length-2],k=(n,v,p,c)=>`<div><div class="eyebrow">${n}</div><b class="serif" style="font-size:30px;color:${c}">${fn(v)}</b> <span class="sub">Portionen</span><div class="sub">${sgnN(v-p)} (${p?Math.round((v/p-1)*100):0} %)</div></div>`;
+  return`<div class="card"><div class="resTop" style="grid-template-columns:1fr 1fr 1fr">${k('Hauptgerichte',last.cm,prev.cm,'#e07a2a')}${k('Getränke',last.cd,prev.cd,'#1fa9c4')}${k('Desserts',last.cs,prev.cs,'#9b6fb5')}</div>
+    ${lineChart([{v:h.map(x=>x.cm),c:'#e07a2a'},{v:h.map(x=>x.cd),c:'#1fa9c4'},{v:h.map(x=>x.cs),c:'#9b6fb5'}],h.map(x=>x.d||''))}</div>`}
+const sgnN=v=>(v>=0?'+':'')+fn(v);
+function prodCards(f,s){const ms=K.menuStats(G,f,s||null),byQ={};for(const it of ms.items)byQ[it.k]=it;const cat=view.p.cat||'main';
+  const keys=Object.keys(K.PRODUCTS).filter(k=>{const P=K.PRODUCTS[k];return!(P.res&&!f.res[P.res])&&(cat==='main'?P.main:cat==='drink'?P.drink:!P.main&&!P.drink)});
+  let b=`<div class="seg">${[['main','🍝 Hauptgerichte'],['drink','🥤 Getränke'],['dessert','🍰 Desserts']].map(([v,l])=>`<button data-a="pCat" data-v="${v}" aria-pressed="${cat===v}">${l}</button>`).join('')}</div><div class="hcards">`;
+  for(const k of keys){const P=K.PRODUCTS[k],m=f.menu[k],it=byQ[k],price=s&&!f.uniform&&s.px&&s.px[k]!=null?s.px[k]:m.price,uc=K.unitCost(G,f,k),mg=Math.max(0,1-uc/price);
+    let rev=0,prv=null;if(s){rev=s.stat&&s.stat.items&&s.stat.items[k]?s.stat.items[k].rev:0;prv=s.prevItems&&s.prevItems[k]?s.prevItems[k].rev:null}else{for(const x of f.shops){const i2=x.stat&&x.stat.items&&x.stat.items[k];if(i2)rev+=i2.rev;const p2=x.prevItems&&x.prevItems[k];if(p2)prv=(prv||0)+p2.rev}}
+    const own=s&&!f.uniform;b+=`<div class="card hc pcard" style="${m.on?'':'opacity:.6'}"><div class="picon">${P.icon}</div><b style="font-size:18px;text-align:center">${P.n}</b><div style="text-align:center">${starsH(K.stars(it?it.qual:0.5))}</div>
+      <div class="row"><span>${tog('menuOn',m.on,`data-k="${k}"`)} <span class="sub">Im Menü</span></span><span style="text-align:right"><span class="eyebrow">Umsatz letzte Woche</span><br><b class="serif" style="font-size:22px">${fe(rev)}</b>${prv!=null?`<br><span class="sub">${sgn(rev-prv)}</span>`:''}</span></div>
+      <div class="row" style="align-items:center"><span style="position:relative;display:inline-flex">${donut([{v:mg,c:'#f0c27a'},{v:1-mg,c:'#cc4a1e'}],96)}<span class="mlab"><small>Marge</small><b>${pct(mg)}</b></span></span>
+        <span style="text-align:right"><span class="sub neg">Stückkosten ${uc.toFixed(2).replace('.',',')} ${K.CURS[G.currency]}</span><br><span class="eyebrow">Preis${own?' hier':''}</span><br>${step(own?'shopPx':'menuPrice',price.toFixed(2).replace('.',',')+' '+K.CURS[G.currency],`data-k="${k}"${own?` data-id="${s.id}"`:''}`)}</span></div>
+      ${!s?seg('menuQ',[[1,'Einfach'],[2,'Gut'],[3,'Premium']],m.q,`data-k="${k}"`):''}</div>`}
+  b+='</div>';
+  b+=`<div class="row"><span><b>Die Preise für alle Restaurants durchsetzen</b><br><span class="sub">${f.uniform?'Überall gelten die Preise der Speisekarte.':'Jedes Restaurant hat eigene Preise, einstellbar im Restaurant unter Produkt.'}</span></span>${tog('uniform',f.uniform,'')}</div>`;
+  return b}
+function recipeCard(f){const r=view.p.rec=view.p.rec||Object.assign({},f.recipe),ax=[['wuerze','Würze'],['frische','Frische'],['portion','Portion']],cx=90,cy=82,R=62;
+  const pt=(i,v)=>{const a=-Math.PI/2+i*2*Math.PI/3;return[cx+Math.cos(a)*R*v,cy+Math.sin(a)*R*v]};const poly=v=>ax.map(([k],i)=>pt(i,v(k)).join(',')).join(' ');
+  const fits=K.CITIES.filter(c=>G.cities[c.id]).map(c=>{const T=K.TASTE[c.id],d=(Math.abs(r.wuerze-T.wuerze)+Math.abs(r.frische-T.frische)+Math.abs(r.portion-T.portion))/3;return c.n+': '+(d<0.12?'trifft den Geschmack':d<0.25?'kommt gut an':'passt nicht so gut')});
+  const changed=ax.some(([k])=>Math.abs(r[k]-f.recipe[k])>0.001);
+  return`<div class="sec"><h3>Hausrezept</h3><div class="card"><div class="row" style="align-items:center"><svg viewBox="0 0 180 160" width="180" aria-hidden="true">
+      ${[0.33,0.66,1].map(v=>`<polygon points="${poly(()=>v)}" fill="none" stroke="#c9c4b8"/>`).join('')}<polygon points="${poly(k=>f.recipe[k])}" fill="rgba(36,39,43,.12)" stroke="#73746f" stroke-dasharray="4 3"/>
+      <polygon points="${poly(k=>r[k])}" fill="rgba(224,122,42,.35)" stroke="#e07a2a" stroke-width="2.5"/>${ax.map(([k,n],i)=>{const [x,y]=pt(i,1.18);return`<text x="${x}" y="${y+4}" text-anchor="middle" font-size="12" fill="#24272b">${n}</text>`}).join('')}</svg>
+    <span style="flex:1;display:flex;flex-direction:column;gap:6px">${ax.map(([k,n])=>`<span class="row"><span class="sub">${n}</span>${step('rec',Math.round(r[k]*10),`data-k="${k}"`)}</span>`).join('')}</span></div>
+    <div class="sub">Das Hausrezept gilt für alle Hauptgerichte. Jede Stadt hat ihren eigenen Geschmack. Größere Portionen machen satt, kosten aber mehr Zutaten.<br>${fits.join(' · ')}</div>
+    ${changed?`<button class="btn ink" data-a="recGo">Neues Rezept einführen · ${fe(2000)} Testküche</button>`:''}</div></div>`}
 // ---------- Sprechblase mit Person ----------
 const say=(t,who)=>`<div class="say"><p>${t}</p><span class="sayAva">${avatar(who||ASSIST,58)}</span></div>`;
 const BARISTA={g:'f',look:777,hair:'#5b3a26',suit:'#9b6fb5',shirt:'#ffffff',skin:'#efc3a4'};
@@ -879,7 +986,7 @@ function floatMoney(r){const el=$('floats');el.innerHTML='';const byPlot={};
   let k=0;for(const pid in byPlot){const p=K.plot(G,pid);if(p.city!==World.city)continue;const pr=World.project(pid,9);if(!pr||!pr.vis)continue;const v=byPlot[pid];
     const d=document.createElement('div');d.className='money '+(v>=0?'p':'n');d.textContent=sgn(v);d.style.left=pr.x+'px';d.style.top=pr.y+'px';d.style.animationDelay=(k++*0.12)+'s';el.appendChild(d)}
   setTimeout(()=>{el.innerHTML=''},4500)}
-function report(r){const m=$('modal');m.hidden=false;const wk=G.weeks||[],prev=wk.length>1?wk[wk.length-2]:null,mon=r.monthEnd?G.months[G.months.length-1]:null;
+function report(r){const m=$('modal');m.hidden=false;if(G.currency&&G.currency!=='EUR')setTimeout(()=>{m.innerHTML=curFix(m.innerHTML);countUp($('bigNet'),r.net)},0);const wk=G.weeks||[],prev=wk.length>1?wk[wk.length-2]:null,mon=r.monthEnd?G.months[G.months.length-1]:null;
   const items=r.items.slice().sort((a,b)=>b.profit-a.profit);
   m.innerHTML=`<div class="report panel" role="dialog" aria-label="Wochenbericht"><div><div class="eyebrow">Wochenbericht</div><h2>${r.date||K.monthName(r.month)}</h2></div>
   <div class="resTop"><div><div class="eyebrow">Umsatz der Woche</div><div class="big2">${fe(r.rev)}</div>${dl(r.rev,prev?prev.rev:null)}</div>
@@ -910,8 +1017,10 @@ function run(res,quiet){if(!res)return res;if(res.msg&&(!quiet||!res.ok))toast(r
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||b.getAttribute('aria-disabled')==='true'||b.disabled)return;
   const a=b.dataset.a,d=+b.dataset.d||0,id=b.dataset.id,k=b.dataset.k,v=b.dataset.v;const f=G&&cur();
   switch(a){
-  case'pickBranch':newBranch=k;if(k==='prod'&&newFin==='own')newFin='loan';showMenu();break;
-  case'pickFin':newFin=k;showMenu();break;
+  case'nColor':keepInputs();newOpt.color=v;showMenu();break;case'nLogo':keepInputs();newOpt.logo=+v;showMenu();break;case'nPort':keepInputs();newOpt.portrait=+v;showMenu();break;
+  case'nDiff':keepInputs();newOpt.diff=v;showMenu();break;case'nComps':keepInputs();newOpt.comps=+v;showMenu();break;case'nCur':keepInputs();newOpt.cur=v;showMenu();break;case'nCap':keepInputs();newOpt.cap=+v;showMenu();break;
+  case'pickBranch':keepInputs();if(newBranch!==k)newOpt.fname=null;newBranch=k;if(k==='prod'&&newFin==='own')newFin='loan';showMenu();break;
+  case'pickFin':keepInputs();newFin=k;showMenu();break;
   case'start':start();break;
   case'continue':G=store.get();afterLoad();break;
   case'open':{const keep=b.dataset.keep==='1'&&view;open(v,{id:id&&isNaN(+id)?id:id!==undefined?+id||id:undefined,tab:b.dataset.tab},keep);if(b.dataset.tab){view.tab=b.dataset.tab;renderSheet(true)}break}
@@ -924,6 +1033,13 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
   case'mgrSal':{const [,s]=K.shopOf(G,+id);run(K.act.mgrSalary(G,+id,s.manager.salary+d*2500),1);break}
   case'figSay':{const el=$(k);if(el)el.querySelector('p').textContent=v;break}
   case'party':{const [,s]=K.shopOf(G,+id);run(K.act.shop(G,+id,{party:!s.party}),1);break}
+  case'wzF':view.p.o.facade=k;renderSheet();break;case'wzL':view.p.o.level=+v;renderSheet();break;case'wzU':if(b.dataset.lock!=='true'){view.p.o.ups[k]=!view.p.o.ups[k];renderSheet()}break;
+  case'wzGo':{const o=view.p.o,r=run(K.act.openShop(G,id,k,{facade:o.facade,level:o.level,ups:Object.keys(o.ups).filter(x=>o.ups[x])}));if(r&&r.ok){endPlace();save();World.sync(G);open('shop',{id:r.id})}break}
+  case'pCat':view.p.cat=v;renderSheet();break;
+  case'shopPx':{const [,s]=K.shopOf(G,+id),f2=K.shopOf(G,+id)[0];const curP=s.px&&s.px[k]!=null?s.px[k]:f2.menu[k].price;run(K.act.shopPrice(G,+id,k,curP+d*0.1),1);break}
+  case'uniform':{const f2=view.v==='shop'?K.shopOf(G,view.p.id)[0]:cur();run(K.act.uniform(G,f2.id,!f2.uniform),1);break}
+  case'rec':{const r=view.p.rec;r[k]=Math.max(0,Math.min(1,Math.round((r[k]+d*0.1)*10)/10));renderSheet();break}
+  case'recGo':{const r=run(K.act.recipe(G,cur().id,view.p.rec));if(r&&r.ok){view.p.rec=null;save();renderSheet()}break}
   case'mgrDeleg':run(K.act.mgrDeleg(G,+id,k),1);break;
   case'fireMgr':if(confirm('Filialleitung entlassen?'))run(K.act.fireMgr(G,+id));break;
   case'mgrOffer':{const i=+v,[,s]=K.shopOf(G,view.p.id),c=K.mgrCands(G,s.id)[i];view.p.offer=view.p.offer||{};view.p.offer[i]=Math.max(20000,(view.p.offer[i]||c.demand)+d*2500);renderSheet();break}
@@ -936,9 +1052,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
   case'shopSpecial':{const [,s]=K.shopOf(G,+id);run(K.act.shop(G,+id,{special:s.special===k?null:k}),1);break}
   case'closeShop':if(confirm('Filiale wirklich schließen? Die Einrichtung wird abgeschrieben.')){run(K.act.closeShop(G,+id));close()}break;
   case'selFirm':G.cur=id;if(b.dataset.open)open('firm');else renderSheet();refresh();break;
-  case'menuOn':run(K.act.menu(G,f.id,k,{on:!f.menu[k].on}),1);break;
-  case'menuQ':run(K.act.menu(G,f.id,k,{q:+v}),1);break;
-  case'menuPrice':run(K.act.menu(G,f.id,k,{price:f.menu[k].price+d*0.1}),1);break;
+  case'menuOn':case'menuQ':case'menuPrice':{const ff=view&&view.v==='shop'?K.shopOf(G,view.p.id)[0]:f;
+    run(K.act.menu(G,ff.id,k,a==='menuOn'?{on:!ff.menu[k].on}:a==='menuQ'?{q:+v}:{price:ff.menu[k].price+d*0.1}),1);break}
   case'research':run(K.act.research(G,f.id,k));break;
   case'hire':{const sf=view&&view.p&&view.p.id&&K.firm(G,view.p.id)||f;run(K.act.hire(G,sf.id,b.dataset.r,d),1);break}
   case'founderDev':run(K.act.founderDev(G,!G.founderDev),1);break;
@@ -1030,7 +1145,7 @@ document.addEventListener('input',e=>{const t=e.target;if(!G||!t.dataset.in)retu
   if(t.dataset.in==='ads'){K.act.app(G,+t.dataset.id,{ads:+t.value});$('adsV').textContent=fe(G.apps.find(a=>a.id===+t.dataset.id).ads)+' / Monat'}
   if(t.dataset.in==='brand'){K.act.firm(G,t.dataset.id,{brandMkt:+t.value});$('brandV').textContent=fe(K.firm(G,t.dataset.id).brand.mkt)+' / Monat'}});
 document.addEventListener('change',e=>{if(e.target.dataset&&e.target.dataset.in)refresh()});
-let toastT=0;function toast(t,k){const el=$('toast');el.textContent=t;el.className='toast panel '+(k||'');el.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>el.hidden=true,2800)}
+let toastT=0;function toast(t,k){const el=$('toast');el.textContent=curFix(t);el.className='toast panel '+(k||'');el.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>el.hidden=true,2800)}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('modal').hidden&&G&&!G.over){$('modal').hidden=true}else if(place)endPlace();else close()}});
 
 // ---------- Stadt ----------

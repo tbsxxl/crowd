@@ -90,7 +90,16 @@ const COLS=6,ROWS=5;
 const STAGES=[[0,'Gründung'],[6,'Kleinunternehmen'],[50,'Mittelstand'],[250,'Großunternehmen'],[1000,'Konzern']];
 const DEPTS={hr:{n:'Personal',icon:'🤝',d:'Bessere Stimmung, halb so viele Kündigungen'},mkt:{n:'Marketing',icon:'📣',d:'Werbung wirkt 35 % stärker'},
   ctrl:{n:'Controlling',icon:'📊',d:'5 % weniger Miete und Nebenkosten, keine Extra-Verwaltung'},rd:{n:'Forschung',icon:'🔬',d:'Entwicklungen doppelt so schnell, etwas mehr Qualität'}};
-const COMP_CAFE={kiel:[['Trattoria Bella','#8a6a52',0.66,1.0,3],['Fischhaus Förde','#6b7a8f',0.56,0.9,2]],hamburg:[['Elbküche','#4f7d8c',0.72,1.08,4],['Trattoria Bella','#8a6a52',0.66,1.0,2]],berlin:[['Spreeblick Grill','#7d5c8c',0.7,1.02,4],['Kiezküche','#a07a3a',0.6,0.88,3]]};
+const COMP_CAFE={kiel:[['Trattoria Bella','#8a6a52',0.66,1.0,3],['Fischhaus Förde','#6b7a8f',0.56,0.9,2],['Deichgrill','#7a8a5a',0.6,0.95,2],['Teestube Ostfriesland','#a07a3a',0.62,0.92,2],['Pizza Hafenkante','#b0503a',0.54,0.85,3]],
+  hamburg:[['Elbküche','#4f7d8c',0.72,1.08,4],['Trattoria Bella','#8a6a52',0.66,1.0,2],['Fleetbistro','#5f7a6a',0.64,0.98,3],['Kiez Burger','#a04a3a',0.58,0.88,3],['Alsterblick','#6a6a8f',0.74,1.15,2]],
+  berlin:[['Spreeblick Grill','#7d5c8c',0.7,1.02,4],['Kiezküche','#a07a3a',0.6,0.88,3],['Curry Eck','#b0603a',0.55,0.82,4],['Brandenburger Hof','#6a7a6a',0.73,1.12,2],['Dönerwerk','#8a5a3a',0.57,0.85,4]]};
+const DIFF={easy:{n:'Leicht',dm:1.15,cq:-0.06},normal:{n:'Normal',dm:1,cq:0},hard:{n:'Schwer',dm:0.88,cq:0.04},tycoon:{n:'Tycoon',dm:0.78,cq:0.08}};
+const CURS={EUR:'€',USD:'$',GBP:'£',JPY:'¥'};let CUR='€';
+// Geschmack je Stadt für das Hausrezept (Würze, Frische, Portion)
+const TASTE={kiel:{wuerze:0.35,frische:0.75,portion:0.75},hamburg:{wuerze:0.5,frische:0.65,portion:0.5},berlin:{wuerze:0.75,frische:0.45,portion:0.55}};
+// Neues Restaurant: Fassade, Einrichtung, Ausstattung
+const FACADES={klassik:{n:'Klassisch',cost:6000,d:'Schlichte Front mit Markise.'},glas:{n:'Glasfront',cost:18000,d:'Große Fenster: +10 % Laufkundschaft.',walk:1.1},stuck:{n:'Altbau mit Stuck',cost:26000,d:'Repräsentativ: +6 % Gemütlichkeit, Ruf steigt schneller.',comfort:0.06}};
+
 const COMP_APPS=[['Notio','prod',0.7,90000],['Listly','prod',0.58,40000],['FitBuddy','fit',0.62,120000],['RunRun','fit',0.55,60000],['Pixelquest','game',0.66,400000],['Klickfarm','game',0.5,250000],['Spargroschen','fin',0.68,50000]];
 const COMP_PROD={kiel:[['Nordholz Werke','#9a8f7a']],hamburg:[['Hanse Möbel','#7a8a9a'],['Speicherstadt Rösterei','#8a6a52']],berlin:[['Spree Manufaktur','#7a7a8a']]};
 const BUYERS={stuhl:['Möbelhaus Nord','Wohnwelt','Schulträger Emden','Hotelkette Seeblick'],tisch:['Wohnwelt','Möbelhaus Nord','Kantinenbau AG'],bohnen:['Bohnenwerk','Supermarkt Regional','Hotelkette Seeblick','Bürokaffee GmbH'],gebaeck:['Supermarkt Regional','Kantinenbau AG','Tankstellen-Shops']};
@@ -127,13 +136,14 @@ function newGame(o){
     idx:{rohkaffee:1,holz:1,mehl:1,wage:1},hedge:null,months:[],news:[],pending:[],offers:{contracts:[],investor:null},tax:{paidYTD:0,carry:0},ms:{},goals:{},over:null,report:null,founderDev:true,ev:{},led:null,execs:{},me:{cash:10000,salary:36000,stocks:{},lux:[],club:null},re:1};
   G.led=emptyLedger();
   for(const c of CITIES)genCity(G,c);
-  for(const c of CITIES)for(const [n,col,q,p,shops] of COMP_CAFE[c.id]){const cp=addComp(G,{branch:'cafe',name:n,color:col,q,price:p,city:c.id,rep:0.55+q*0.2});for(let k=0;k<shops;k++)compOpen(G,cp)}
+  G.diff=o.diff||'normal';G.dm=DIFF[G.diff].dm;G.currency=o.cur||'EUR';CUR=CURS[G.currency];
+  for(const c of CITIES)for(const [n,col,q0,p,shops] of COMP_CAFE[c.id].slice(0,o.comps===undefined?2:o.comps)){const q=clamp(q0+DIFF[G.diff].cq,0.4,0.92);const cp=addComp(G,{branch:'cafe',name:n,color:col,q,price:p,city:c.id,rep:0.55+q*0.2});for(let k=0;k<shops;k++)compOpen(G,cp)}
   for(const [n,g,q,u] of COMP_APPS){const cp=addComp(G,{branch:'soft',name:n,color:'#8a8f96',q});G.apps.push({id:uid(G),owner:'c:'+cp.id,name:n,genre:g,scope:'M',state:'live',progress:1,work:1,quality:q,bugs:20,users:u,payers:0,model:'freemium',price:4.99,fresh:0.8,released:-6})}
   for(const c of CITIES)for(const [n,col] of COMP_PROD[c.id]){const cp=addComp(G,{branch:'prod',name:n,color:col,q:0.6,city:c.id});const pl=freePlots(G,c.id,'factory')[0];if(pl){pl.owner='c:'+cp.id;pl.use='factory'}}
   equity(G,o.capital||50000);
   if(o.finance==='loan')takeLoan(G,{amount:o.branch==='prod'?120000:60000,rate:0.065,months:60,name:'Gründerkredit'});
   if(o.finance==='angel'){equity(G,150000);G.owner*=0.8;G.rounds=1;news(G,'Ein Business Angel steigt mit 150.000 € ein und erhält 20 % der Anteile.','fin')}
-  foundFirm(G,o.branch,o.name||'Mein Start-up');
+  foundFirm(G,o.branch,o.name||'Mein Start-up');if(o.color)G.firms[0].color=o.color;G.firms[0].logo=o.logo||0;G.me.name=o.ceo||'Du';G.me.portrait=o.portrait||0;
   genContracts(G);genMarket(G);migrate(G);
   return G}
 function emptyLedger(){return{f:{},H:fz(),cf:{op:0,inv:0,fin:0}}}
@@ -188,15 +198,18 @@ const summer=G=>{const m=season(G);return m>=3&&m<=8};
 // ---------- Restaurant ----------
 function menuStats(G,f,s){let sumA=0,sumW=0,sumQW=0,pf=0;const items=[];const ups=s?s.ups:{};
   for(const k in f.menu){const m=f.menu[k],P=PRODUCTS[k];if(!m.on||(P.res&&!has(f,P.res)))continue;
-    let q=QUAL[m.q]+(s?0.05*mq(s,'prod'):0);if(P.main&&ups.espresso)q+=0.1;if(P.main&&ups.roaster)q+=0.06;q=Math.min(1,q);
-    const pfac=clamp(Math.exp(-1.8*(m.price/P.ref-1)),0.15,1.6);let w=P.w;if(P.cake&&ups.vitrine)w*=1.4;if(P.summer&&summer(G))w*=1.8;if(s&&s.special===k)w*=1.3;
-    const a=w*q*pfac;items.push({k,a,price:m.price,q:m.q,pf:pfac,qual:q});sumA+=a;sumW+=w;sumQW+=w*q;pf+=pfac*w}
+    const price=(s&&!f.uniform&&s.px&&s.px[k]!=null)?s.px[k]:m.price;
+    let q=QUAL[m.q]+(s?0.05*mq(s,'prod'):0)+(P.main?recipeFit(G,f,s):0);if(P.main&&ups.espresso)q+=0.1;if(P.main&&ups.roaster)q+=0.06;q=Math.min(1,q);
+    const pfac=clamp(Math.exp(-1.8*(price/P.ref-1)),0.15,1.6);let w=P.w;if(P.cake&&ups.vitrine)w*=1.4;if(P.summer&&summer(G))w*=1.8;if(s&&s.special===k)w*=1.3;
+    const a=w*q*pfac;items.push({k,a,price,q:m.q,pf:pfac,qual:q});sumA+=a;sumW+=w;sumQW+=w*q;pf+=pfac*w}
   for(const it of items)it.share=sumA?it.a/sumA:0;
   const cq=1+0.05*ex(G,'cpo');return{items,score:Math.min(1.6,sumA/2.2*cq),quality:sumW?Math.min(1,sumQW/sumW*cq):0,price:sumW?pf/sumW:1}}
+function recipeFit(G,f,s){const r=f.recipe;if(!r)return 0;const p=s?plot(G,s.plot):null,T=TASTE[p?p.city:'kiel'];const d=(Math.abs(r.wuerze-T.wuerze)+Math.abs(r.frische-T.frische)+Math.abs(r.portion-T.portion))/3;return clamp(0.08-0.32*d,-0.06,0.08)}
+function unitCost(G,f,k,s){const P=PRODUCTS[k],m=f.menu[k];return(P.other*(P.main&&f.recipe?0.8+0.4*f.recipe.portion:1)+(P.beans?P.beans*GOODS.bohnen.ref*G.idx.rohkaffee:0)+(P.piece?P.mkt:0))*QMULT[m.q]}
 function compAttr(cp){return Math.pow(cp.q,0.8)*0.8*clamp(Math.exp(-1.8*(cp.price-1)),0.3,1.5)*(0.35+0.65*cp.rep)}
 const ZCONV={city:0.048,wohn:0.066,buero:0.052,gewerbe:0.018}; // im Wohnviertel kommen mehr Passanten als Stammgäste
 const near=(a,b)=>a.city===b.city&&Math.abs(a.r-b.r)<=1&&Math.abs(a.c-b.c)<=1;
-function comfortOf(s){return clamp(LEVELS[s.level].comfort+(s.ups.lounge?0.12:0)-(s.ups.togo?0.03:0),0,1)}
+function comfortOf(s){return clamp(LEVELS[s.level].comfort+(FACADES[s.facade||'klassik'].comfort||0)+(s.ups.lounge?0.12:0)-(s.ups.togo?0.03:0),0,1)}
 function shopForecast(G,f,s){ // Nachfrage und Kapazität im Monat (auch für die Vorschau)
   const p=plot(G,s.plot),ms=menuStats(G,f,s),comfort=comfortOf(s);
   const A=Math.pow(ms.score,0.8)*comfort*(0.4+0.6*s.rep);
@@ -205,7 +218,7 @@ function shopForecast(G,f,s){ // Nachfrage und Kapazität im Monat (auch für di
   if(u.wlan&&(p.zone==='city'||p.zone==='buero'))m*=1.12;if(u.togo)m*=1.15;if(u.kids&&p.zone==='wohn')m*=1.15;if(u.roaster)m*=1.08;if(u.terrasse&&summer(G))m*=1.2;
   m*=1+0.07*mq(s,'mkt');if(a.happy)m*=1.18;if(a.music)m*=1.06;if(a.stamp)m*=1.08;if(has(f,'treue'))m*=1.12;if(G.ev&&G.ev.heat)m*=1.1;if(G.ev&&G.ev.fest===s.id)m*=1.35;
   const la=Math.max(f.aware,s.la||0,(f.cityAw&&f.cityAw[p.city])||0);
-  const dem=p.traffic*DAYS*ZCONV[p.zone]*(0.5+0.5*la)*m*econ(G)*A/(A+comp*0.9+0.35);
+  const dem=p.traffic*DAYS*ZCONV[p.zone]*(0.5+0.5*la)*m*econ(G)*(G.dm||1)*(FACADES[s.facade||'klassik'].walk||1)*A/(A+comp*0.9+0.35);
   let cap=s.staff*GPS*DAYS*productivity(f)*H.cap*(1+0.15*mq(s,'ppl'))*(has(f,'schnell')?1.25:1)*(u.togo?1.2:1)*(u.terrasse&&summer(G)?1.2:1);
   cap=Math.min(cap,p.size*0.9*DAYS*H.cap*(u.terrasse&&summer(G)?1.2:1));
   return{dem,cap,ms,comfort,A,comp}}
@@ -214,7 +227,7 @@ function cafeMonth(G,f,rep){
     if(s.build>0){const r=rentOf(p)*W;pay(G,f.id,'rent',r);rep.items.push({kind:'shop',id:s.id,fid:f.id,plot:p.id,icon:'🚧',name:ZONES[p.zone].n+' '+cityName(p.city),firm:f.name,rev:0,profit:-r,kpi:'Im Bau · Eröffnung in '+s.build+(s.build>1?' Wochen':' Woche')});continue}
     const fc=shopForecast(G,f,s),H=HOURS[s.hours];
     const guests=Math.floor(Math.min(fc.dem,fc.cap));let rev=0,cogs=0,cogsInt=0;const per=PER;
-    for(const it of fc.ms.items){const P=PRODUCTS[it.k],n=guests*per*it.share,qm=QMULT[it.q];rev+=n*it.price;cogs+=n*P.other*qm;
+    const byItem={};for(const it of fc.ms.items){const P=PRODUCTS[it.k],n=guests*per*it.share,qm=QMULT[it.q];rev+=n*it.price;cogs+=n*P.other*qm*(P.main&&f.recipe?0.8+0.4*f.recipe.portion:1);byItem[it.k]={n:Math.round(n),rev:n*it.price*(s.act.happy?0.94:1)};
       if(P.beans){const kg=n*P.beans,sup=supplier(G,'bohnen');let got={qty:0,cost:0};if(sup)got=takeGoods(G,sup,'bohnen',kg);cogsInt+=got.cost;cogs+=(kg-got.qty)*GOODS.bohnen.ref*G.idx.rohkaffee*qm}
       if(P.piece){const pc=n*P.piece,sup=supplier(G,'gebaeck');let got={qty:0,cost:0};if(sup)got=takeGoods(G,sup,'gebaeck',pc);cogsInt+=got.cost;cogs+=(pc-got.qty)*P.mkt*qm}}
     if(s.act.happy)rev*=0.94;
@@ -231,7 +244,8 @@ function cafeMonth(G,f,rep){
     const profit=rev-cogs-cogsInt-wages-rentOf(p)*ctrl*W-other-mk;
     let hot=0,cold=0,food=0;for(const it of fc.ms.items){const P=PRODUCTS[it.k],v=guests*per*it.share*it.price*(s.act.happy?0.94:1)*(s.ups.delivery?1.15:1);if(P.main)hot+=v;else if(P.drink)cold+=v;else food+=v}
     const prev=s.stat;s.stat={guests,dem:Math.round(fc.dem),cap:Math.round(fc.cap),rev,cost:rev-profit,profit,sat,served,hot,cold,food,cogs:cogs+cogsInt,wages,rent:rentOf(p)*ctrl*W,other,mk};
-    s.hist=(s.hist||[]).concat([{m:G.month,w:G.week||0,d:dayOf(G)+'.'+(G.month%12+1)+'.',rev,profit,guests}]).slice(-12);s.rcount=(s.rcount||0)+Math.round(guests*0.012);
+    let cm=0,cd=0,cs=0;for(const k in byItem){const P=PRODUCTS[k];if(P.main)cm+=byItem[k].n;else if(P.drink)cd+=byItem[k].n;else cs+=byItem[k].n}
+    s.prevItems=prev&&prev.items||null;s.stat.items=byItem;s.hist=(s.hist||[]).concat([{m:G.month,w:G.week||0,d:dayOf(G)+'.'+(G.month%12+1)+'.',rev,profit,guests,cm,cd,cs}]).slice(-12);s.rcount=(s.rcount||0)+Math.round(guests*0.012);
     s.reviews=reviewsFor(G,s,fc,served);
     rep.items.push({kind:'shop',id:s.id,fid:f.id,plot:p.id,icon:'🍽️',name:ZONES[p.zone].n+' '+cityName(p.city),firm:f.name,rev,profit,kpi:fn(guests)+' Gäste',delta:prev?guests-prev.guests:null,stars:stars(s.rep)})}
   if(f.shops.length)f.rep+=(f.shops.reduce((a,s)=>a+s.rep,0)/f.shops.length-f.rep)*kW(0.5)}
@@ -272,7 +286,7 @@ function softMonth(G,f,rep){
   for(const a of mine)if(a.state==='live'){const gen=GENRES[a.genre],rivals=G.apps.filter(b=>b!==a&&b.genre===a.genre&&b.state==='live');
     const A=appAttr(a),Ac=rivals.reduce((s,b)=>s+appAttr(b),0),total=rivals.reduce((s,b)=>s+b.users,0)+a.users,sat=clamp(total/(gen.pot*1.6),0,1);
     const mult=(G.month-a.released<=1?2:1)*(a.focus==='growth'?1.3:1)*(a.camp.social?1.15:1)*(a.camp.influencer?1.5:1)*(a.model==='paid'?0.55:1)*(G.ev&&G.ev.feature===a.id?2.5:1);
-    let nu=gen.pot*SCOPES[a.scope].pot*0.005*DAYS*(0.25+f.aware*1.2)*A/(A+Ac*0.4+0.3)*(1-sat)*mult;
+    let nu=gen.pot*SCOPES[a.scope].pot*0.005*DAYS*(G.dm||1)*(0.25+f.aware*1.2)*A/(A+Ac*0.4+0.3)*(1-sat)*mult;
     if(a.camp.influencer)nu+=gen.pot*0.01*rating(a);if(a.ads>0)nu+=a.ads*W/gen.cpi*(0.5+rating(a));
     const bd=a.bugs/(40+a.users/1500),fr=a.fresh===undefined?1:a.fresh;
     const churnR=Math.min(0.5,DAYS*(0.002+0.012*Math.min(1.5,bd)+0.004*(1-fr)+(a.model==='free'?0.001:0))*(a.focus==='perf'?0.7:1));
@@ -568,6 +582,7 @@ function migrate(G){
   for(const k in G.execs){const e=G.execs[k];if(e===true){const p=person(G);G.execs[k]=Object.assign(p,{since:G.month,salary:marketPay(G,k),deleg:{},grants:[]})}else if(!e)delete G.execs[k]}
   for(const k in G.depts)if(G.depts[k]===true)G.depts[k]=dneed(G);
   if(!G.macro)G.macro={rate:0.025,gdp:0.012,infl:0.02};if(!G.dues)G.dues=[];if(G.divPS===undefined)G.divPS=0;if(!G.deptWage)G.deptWage=60000;
+  if(!G.currency)G.currency='EUR';CUR=CURS[G.currency]||'€';if(!G.dm)G.dm=1;for(const f of G.firms)if(f.branch==='cafe'){if(f.uniform===undefined)f.uniform=true;if(!f.recipe)f.recipe={wuerze:0.5,frische:0.5,portion:0.5}}
   for(const cp of G.comps)if(!cp.qrev)cp.qrev=[];if(G.me.club){const C=CLUBS.find(x=>x.id===G.me.club.id);if(C)G.me.club.n=C.n}for(const st of G.stocks||[]){const d=STOCKS.find(x=>x[0]===st.tk);if(d)st.n=d[1]}for(const l of G.me.lux)if(l.k==='wein')l.n=LUX.wein.n;mgrMigrate(G);for(const f of G.firms)if(f.branch==='cafe'&&!(f.menu&&f.menu.pasta)){f.menu={};for(const k in PRODUCTS)f.menu[k]={on:['pasta','pizza','salat','limo','espresso','tiramisu'].includes(k),q:k==='limo'?1:2,price:PRODUCTS[k].ref};for(const s of f.shops)s.special=null}}
 function econ(G){return 1+clamp(G.macro?G.macro.gdp:0.012,-0.04,0.05)*2-0.024}
 // monatlich: Gehälter, Loyalität, Vesting, Rücktritte
@@ -791,11 +806,12 @@ const MGR_PICK={blogger:(m,s)=>s.rep>0.72?1:0,rent:m=>m.mkt>65?1:0,fest:(m,s,G,f
 function mgrIncidents(G,rep){for(const e of [...G.pending]){if(!MGR_PICK[e.k]||!e.ref)continue;const f=firm(G,e.fid),s=f&&(f.shops||[]).find(x=>x.id===e.ref);if(!s||!s.manager||!(s.manager.deleg||{}).inc)continue;
   const o=MGR_PICK[e.k](s.manager,s,G,f),r=decide(G,e.id,o);if(rep)rep.events.push({icon:'🧑‍💼',t:s.manager.name+' ('+shopName(G,s)+') hat entschieden: '+EVENTS[e.k].opts[o].n+'. '+(r.msg||'')})}}
 function newShop(G,pid,o){return Object.assign({id:uid(G),plot:pid,level:1,staff:2,manager:false,hours:'normal',ups:{},act:{},special:null,rep:0.55,la:0.15,train:0,stat:null,reviews:[],opened:G.month},o||{})}
-A.openShop=(G,fid,pid)=>{const f=firm(G,fid),p=plot(G,pid);if(!f||f.branch!=='cafe')return{ok:false,msg:'Nur für Restaurants.'};if(!p||p.owner)return{ok:false,msg:'Das Grundstück ist nicht frei.'};
+A.openShop=(G,fid,pid,o)=>{o=o||{};const lv=clamp(o.level||1,1,3),fc=FACADES[o.facade]||FACADES.klassik,ups=(o.ups||[]).filter(k=>CAFE_UPS[k]&&(!CAFE_UPS[k].minLevel||lv>=CAFE_UPS[k].minLevel));const f=firm(G,fid),p=plot(G,pid);if(!f||f.branch!=='cafe')return{ok:false,msg:'Nur für Restaurants.'};if(!p||p.owner)return{ok:false,msg:'Das Grundstück ist nicht frei.'};
   if(!G.cities[p.city])return{ok:false,msg:'Diese Stadt ist noch nicht erschlossen.'};if(!usesOf(p).includes('cafe'))return{ok:false,msg:'Hier ist keine Gastronomie möglich.'};
-  const cost=shopCost(p);if(!can(G,cost))return noMoney(cost);
-  pay(G,f.id,'other',cost-LEVELS[1].cost);buyAsset(G,f.id,'Einrichtung',LEVELS[1].cost,60,'shop:'+p.id);p.owner=f.id;p.use='cafe';
-  const s=newShop(G,p.id,{build:BUILD.shop});f.shops.push(s);news(G,f.name+' baut ein neues Restaurant ('+ZONES[p.zone].n+', '+cityName(p.city)+').','good');return{ok:true,msg:'Baustelle eingerichtet! Eröffnung in '+BUILD.shop+' Wochen.',id:s.id}};
+  if(ups.some(k=>CAFE_UPS[k].zones&&!CAFE_UPS[k].zones.includes(p.zone)))return{ok:false,msg:'Eine Ausstattung passt nicht zu diesem Standort.'};
+  const fit=LEVELS[lv].cost+fc.cost+ups.reduce((a,k)=>a+CAFE_UPS[k].cost,0),cost=shopCost(p)-LEVELS[1].cost+fit;if(!can(G,cost))return noMoney(cost);
+  pay(G,f.id,'other',cost-fit);buyAsset(G,f.id,'Einrichtung und Fassade',fit,60,'shop:'+p.id);p.owner=f.id;p.use='cafe';
+  const u={};for(const k of ups)u[k]=true;const s=newShop(G,p.id,{build:BUILD.shop+(lv-1),level:lv,facade:o.facade||'klassik',ups:u});f.shops.push(s);news(G,f.name+' baut ein neues Restaurant ('+ZONES[p.zone].n+', '+cityName(p.city)+').','good');return{ok:true,msg:'Baustelle eingerichtet! Eröffnung in '+s.build+' Wochen.',id:s.id}};
 const shopCost=p=>LEVELS[1].cost+p.rent*2+1600;
 A.shop=(G,sid,ch)=>{const [f,s]=shopOf(G,sid);if(!s)return{ok:false};const p=plot(G,s.plot);
   if(ch.staff!==undefined){const n=clamp(ch.staff,1,Math.max(2,Math.floor(p.size/12)));if(n>s.staff){const c=800*(n-s.staff);if(!can(G,c))return noMoney(c);pay(G,f.id,'other',c)}s.staff=n}
@@ -885,6 +901,9 @@ A.hireMgr=(G,sid,i,salary)=>{const [f,s]=shopOf(G,sid);if(!s)return{ok:false};if
 A.mgrSalary=(G,sid,v)=>{const [f,s]=shopOf(G,sid);if(!s||!s.manager)return{ok:false};s.manager.salary=clamp(Math.round(v/500)*500,20000,200000);return{ok:true}};
 A.mgrDeleg=(G,sid,k)=>{const [f,s]=shopOf(G,sid);if(!s||!s.manager)return{ok:false};s.manager.deleg=s.manager.deleg||{};s.manager.deleg[k]=!s.manager.deleg[k];return{ok:true}};
 A.fireMgr=(G,sid)=>{const [f,s]=shopOf(G,sid);if(!s||!s.manager)return{ok:false};const m=s.manager;pay(G,f.id,'staff',m.salary/12);s.manager=null;return{ok:true,msg:m.name+' verlässt die Filiale (ein Monatsgehalt Abfindung).'}};
+A.shopPrice=(G,sid,k,v)=>{const [f,s]=shopOf(G,sid);if(!s)return{ok:false};s.px=s.px||{};s.px[k]=Math.round(clamp(v,0.5,60)*10)/10;return{ok:true}};
+A.uniform=(G,fid,on)=>{const f=firm(G,fid);f.uniform=!!on;if(on)for(const s of f.shops||[])s.px={};return{ok:true}};
+A.recipe=(G,fid,r)=>{const f=firm(G,fid);if(!can(G,2000))return noMoney(2000);pay(G,f.id,'rd',2000);f.recipe={wuerze:clamp(r.wuerze,0,1),frische:clamp(r.frische,0,1),portion:clamp(r.portion,0,1)};return{ok:true,msg:'Neues Hausrezept eingeführt (Testküche 2.000 €).'}};
 A.founderDev=(G,on)=>{G.founderDev=!!on;return{ok:true}};
 A.buyProp=(G,pid)=>{const p=plot(G,pid);if(!p||p.prop)return{ok:false};if(p.owner==='H')return{ok:false};if(!G.cities[p.city])return{ok:false,msg:'Diese Stadt ist noch nicht erschlossen.'};
   const v=propValue(G,p),c=v*1.05;if(!can(G,c))return noMoney(c);pay(G,'H','other',v*0.05);buyAsset(G,'H','Immobilie '+ZONES[p.zone].n+' '+cityName(p.city),v,1e9,'prop:'+p.id);p.prop='H';p.leaseR=1;p.buyP=Math.round(c);p.buyM=G.month;
@@ -925,12 +944,12 @@ function cityName(id){return(CITIES.find(c=>c.id===id)||{}).n}
 function yearOf(m){return 2027+Math.floor(m/12)}
 function monthName(m){return MONTHS[m%12]+' '+yearOf(m)}
 function fn(v){return Math.round(v).toLocaleString('de-DE')}
-function fmtE(v,d){if(Math.abs(v)<0.5)v=0;const a=Math.abs(v);if(d)return v.toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d})+' €';
-  if(a>=1e6)return(v/1e6).toLocaleString('de-DE',{maximumFractionDigits:a>=1e8?0:1})+' Mio. €';return Math.round(v).toLocaleString('de-DE')+' €'}
+function fmtE(v,d){if(Math.abs(v)<0.5)v=0;const a=Math.abs(v);if(d)return v.toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d})+' '+CUR;
+  if(a>=1e6)return(v/1e6).toLocaleString('de-DE',{maximumFractionDigits:a>=1e8?0:1})+' Mio. '+CUR;return Math.round(v).toLocaleString('de-DE')+' '+CUR}
 function curLedger(G){return{m:G.month,f:G.led.f,H:G.led.H,cf:G.led.cf}}
 
 const K={MONTHS,BRANCHES,WAGE,PRODUCTS,QMULT,QUAL,QN,LEVELS,CAFE_UPS,CAFE_ACTIONS,HOURS,GENRES,SCOPES,FOCUS,MODELS,CAMPAIGNS,OFFICE_UPS,RAW,GOODS,LINES,SHIFTS,GMULT,GQUAL,SUPPLIERS,PLANT_UPS,RESEARCH,CITIES,ZONES,COLS,ROWS,STAGES,DEPTS,GOALS,
   newGame,endTurn,act:A,plot,firm,staffOf,adminOf,totalStaff,hqStaff,stage,menuStats,shopForecast,forecastShop,shopCost,officeCost,softTeam,desks,rating,goodsTotal,lineOut,lineNeed,rawPrice,wholesalePrice,storageCap,reserved,effGrade,
-  balance,valuation,firmValue,compValue,takeoverPrice,loanOffer,ipoCheck,pl,curLedger,dateStr,dayOf,W,WEEKS,BUILD,underBuild,monthName,yearOf,cityName,dispo,fmtE,fmtN:fn,freePlots,stars,eventOpts,productivity,summer,shopOf,lineOf,sumF,wageOf,propValue,propIncome,leaseOcc,rentOf,CITY_CAMPS,EXECS,SECTORS,LUX,CLUBS,wealth,genMarket,MGR_DELEG,mgrCands,mgrPay,flights,dist,AIRPORTS,address,compShop,squadStr,TEAMS,CLUB_STAD,pSal,ex,dcov,dneed,deptN,marketPay,cands,grantValue,migrate,econ,BOARD_Q,UNITS,KINDS,usesOf,unitName,YIELD};
+  balance,valuation,firmValue,compValue,takeoverPrice,loanOffer,ipoCheck,pl,curLedger,dateStr,dayOf,W,WEEKS,BUILD,underBuild,monthName,yearOf,cityName,dispo,fmtE,fmtN:fn,freePlots,stars,eventOpts,productivity,summer,shopOf,lineOf,sumF,wageOf,propValue,propIncome,leaseOcc,rentOf,CITY_CAMPS,EXECS,SECTORS,LUX,CLUBS,wealth,genMarket,DIFF,CURS,TASTE,FACADES,unitCost,recipeFit,setCur:c=>{CUR=CURS[c]||'€'},MGR_DELEG,mgrCands,mgrPay,flights,dist,AIRPORTS,address,compShop,squadStr,TEAMS,CLUB_STAD,pSal,ex,dcov,dneed,deptN,marketPay,cands,grantValue,migrate,econ,BOARD_Q,UNITS,KINDS,usesOf,unitName,YIELD};
 if(typeof module!=='undefined'&&module.exports)module.exports=K;else root.K=K;
 })(typeof window!=='undefined'?window:globalThis);
