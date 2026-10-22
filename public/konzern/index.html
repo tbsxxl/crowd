@@ -283,8 +283,8 @@ window.addEventListener('error',function(e){var m=document.getElementById('bootM
   if(m&&!document.getElementById('menu').hidden)m.textContent=t;else{var d=document.getElementById('toast');if(d){d.textContent=t;d.hidden=false}}},true);
 </script>
 <script src="../vendor/three-r128-bloom.js"></script>
-<script src="sim.js?v=20261022f"></script>
-<script src="world.js?v=20261022f"></script>
+<script src="sim.js?v=20261023a"></script>
+<script src="world.js?v=20261023a"></script>
 <script>
 (function(){
 'use strict';
@@ -784,11 +784,11 @@ VIEWS.shopBuild=({id})=>{const [fid,pid]=String(id).split('|'),f=K.firm(G,fid),p
     <div class="sub">Bauzeit ${K.BUILD.shop+o.level-1} Wochen, dann Eröffnung. Kasse: ${fe(G.cash)}.</div><button class="btn ink wide" data-a="wzGo" data-id="${f.id}" data-k="${p.id}" ${G.cash<total?'aria-disabled="true"':''}>Bauen · ${fe(total)}</button></div>`;
   return{eyebrow:esc(f.name),title:'Restaurant bauen',sub:esc(K.address(p)),body:b}};
 // ---------- Karte der Umgebung ----------
-function miniMap(p){const W=6,H=5,cs=26;let s='';
+function miniMap(p){const W=K.COLS,H=K.ROWS,cs=22;let s='';
   const cells={};for(const q of G.plots)if(q.city===p.city){const k=q.r+'-'+q.c;(cells[k]=cells[k]||[]).push(q)}
   for(const k in cells){const [r,c]=k.split('-').map(Number),list=cells[k],zone=list[0].zone,mine=list.some(q=>q.owner&&!q.owner.startsWith('c:')),comp=list.some(q=>q.owner&&q.owner.startsWith('c:')&&q.use==='cafe'),here=list.includes(p);
     s+=`<rect x="${c*cs+3}" y="${r*cs+3}" width="${cs-6}" height="${cs-6}" rx="3" fill="${{city:'#d9d2c4',wohn:'#bcd7a3',buero:'#cfd3d8',gewerbe:'#d8cdb6'}[zone]}" stroke="${here?'#24272b':'none'}" stroke-width="2.5"/>${mine?`<circle cx="${c*cs+cs/2-5}" cy="${r*cs+cs/2}" r="4" fill="#3f9b62"/>`:''}${comp?`<circle cx="${c*cs+cs/2+5}" cy="${r*cs+cs/2}" r="4" fill="#cc3b33"/>`:''}`}
-  return`<div class="sec"><h3>Karte der Umgebung</h3><svg viewBox="0 0 ${W*cs} ${H*cs}" width="100%" style="max-width:320px;background:#9a9da2;border-radius:10px" aria-hidden="true">${s}</svg><div class="sub"><b style="color:#3f9b62">●</b> deine Standorte · <b style="color:#cc3b33">●</b> Restaurants der Konkurrenz · schwarzer Rahmen: diese Fläche</div></div>`}
+  return`<div class="sec"><h3>Karte der Umgebung</h3><svg viewBox="0 0 ${W*cs} ${H*cs}" width="100%" style="max-width:360px;background:#9a9da2;border-radius:10px" aria-hidden="true">${s}</svg><div class="sub"><b style="color:#3f9b62">●</b> deine Standorte · <b style="color:#cc3b33">●</b> Restaurants der Konkurrenz · schwarzer Rahmen: diese Fläche</div></div>`}
 function leaseSay(p){const tr=K.CITY_TRAITS[p.city];const zs=G.plots.filter(q=>q.city===p.city&&q.zone===p.zone),avgT=zs.reduce((s,q)=>s+q.traffic,0)/zs.length,avgR=zs.reduce((s,q)=>s+q.rent,0)/zs.length;
   const t=p.traffic>avgT*1.08?'hoch':p.traffic<avgT*0.92?'relativ gering':'durchschnittlich',r=p.rent>avgR*1.08?'eher teuer':p.rent<avgR*0.92?'günstig':'im Rahmen';
   return(G.plots.filter(q=>q.city===p.city&&q.owner&&!q.owner.startsWith('c:')).length?'':K.cityName(p.city)+': '+tr.d+' ')+'Diese Fläche ist zu vermieten. Der Fußgängerverkehr ist '+t+(t==='hoch'&&r!=='günstig'||t!=='hoch'&&r==='günstig'?', aber ':' und ')+'die Miete ist '+r+'.'}
@@ -1229,11 +1229,14 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('modal').hidd
 // ---------- Stadt ----------
 const cv=$('gl');const pts=new Map();let drag=null,pinch=null;
 cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(pts.size===1)drag={x:e.clientX,y:e.clientY,yaw:World.view.yaw,tilt:World.view.tilt,moved:false};
-  if(pts.size===2){const [a,b]=[...pts.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),z:World.view.zoom};drag=null}});
+  // Ein Finger oder linke Maustaste: verschieben. Rechte Maustaste oder Umschalt: drehen und neigen. Zwei Finger: zoomen, drehen, verschieben.
+  if(pts.size===1)drag={x:e.clientX,y:e.clientY,lx:e.clientX,ly:e.clientY,yaw:World.view.yaw,tilt:World.view.tilt,moved:false,rot:e.button===2||e.shiftKey};
+  if(pts.size===2){const [a,b]=[...pts.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),z:World.view.zoom,ang:Math.atan2(b.y-a.y,b.x-a.x),yaw:World.view.yaw,cx:(a.x+b.x)/2,cy:(a.y+b.y)/2,cy0:(a.y+b.y)/2,tilt:World.view.tilt};drag=null}});
+cv.addEventListener('contextmenu',e=>e.preventDefault());
 cv.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId)){World.hover(World.plotAt(e.clientX,e.clientY));return}pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(pinch&&pts.size===2){const [a,b]=[...pts.values()];World.view.zoom=pinch.z*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d;World.applyView();return}
-  if(drag){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>7)drag.moved=true;if(drag.moved){World.view.yaw=drag.yaw-dx*0.006;World.view.tilt=drag.tilt-dy*0.004;World.applyView()}}});
+  if(pinch&&pts.size===2){const [a,b]=[...pts.values()],cx=(a.x+b.x)/2,cy=(a.y+b.y)/2;World.view.zoom=pinch.z*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d;World.view.yaw=pinch.yaw-(Math.atan2(b.y-a.y,b.x-a.x)-pinch.ang);World.pan(cx-pinch.cx,cy-pinch.cy);pinch.cx=cx;pinch.cy=cy;return}
+  if(drag){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>7)drag.moved=true;
+    if(drag.moved){if(drag.rot){World.view.yaw=drag.yaw-dx*0.006;World.view.tilt=drag.tilt-dy*0.004;World.applyView()}else World.pan(e.clientX-drag.lx,e.clientY-drag.ly)}drag.lx=e.clientX;drag.ly=e.clientY}});
 cv.addEventListener('pointerup',e=>{pts.delete(e.pointerId);if(pts.size<2)pinch=null;if(drag&&!drag.moved&&G)tapPlot(World.plotAt(e.clientX,e.clientY));drag=null});
 cv.addEventListener('pointercancel',e=>{pts.delete(e.pointerId);drag=null;pinch=null});
 cv.addEventListener('wheel',e=>{e.preventDefault();World.view.zoom*=Math.exp(-e.deltaY*0.0012);World.applyView()},{passive:false});
@@ -1256,7 +1259,7 @@ function tags(){const el=$('tags');if(!G){el.innerHTML='';return}const out=[];
 let lastTag=0;function loop(t){if(G&&t-lastTag>120){tags();lastTag=t}World.frame(t);requestAnimationFrame(loop)}
 addEventListener('visibilitychange',()=>{if(document.hidden)save()});addEventListener('pagehide',save);
 
-if(typeof World==='undefined')window.World={view:{yaw:0,tilt:1,zoom:1},applyView(){},city:null};
+if(typeof World==='undefined')window.World={view:{yaw:0,tilt:1,zoom:1},applyView(){},pan(){},city:null};
 let glOk=true;try{World.init(cv)}catch(e){glOk=false;console.error(e)}
 if(!glOk){Object.assign(World,{frame(){},sync(){},setCity(){},plotAt:()=>null,project:()=>null,select(){},hover(){},resize(){},applyView(){},highlight(){}});Object.defineProperty(World,'city',{get:()=>G&&G.cityCur,configurable:true})}
 const saved=store.get();if(saved&&saved.v===2){G=saved;afterLoad();if(G.over)gameOver()}else showMenu();

@@ -86,16 +86,21 @@ const ZONES={
   buero:{n:'Büroviertel',traffic:[2200,3600],rent:[2600,4200],size:[300,650],uses:['cafe','office','hq']},
   gewerbe:{n:'Gewerbegebiet',traffic:[300,800],rent:[1500,2600],size:[1500,3000],uses:['factory']}};
 // Stadtpläne: w Wohnviertel, c Innenstadt, b Büroviertel, g Gewerbe, P Park, A Wasser, L Wahrzeichen
-const CITY_MAP={kiel:['ALccwP','Acccww','wcbcww','wwbwPw','gggwww'],hamburg:['ggbccw','gbcLAw','gbccAw','wcbPww','wwwwwg'],berlin:['PPbbcw','PPcLcw','wbccbw','wwbbww','ggwwgg']};
-// Blöcke: gleiche Buchstaben in Nachbarfeldern bilden einen großen Block (Fußgängerzone, Park oder Wasser statt Straße)
-const CITY_BLOCKS={kiel:['abccde','afccgg','hfijgk','hlimnk','ooopqq'],hamburg:['aabccd','aefghd','aefihk','lmnopp','qqrrrs'],berlin:['aabbcd','aaefgd','hijjkl','hmnnoo','ppqqrr']};
+// Stadtpläne 10×8. Die alten 6×5-Pläne stecken unverändert ab Zeile 1, Spalte 2 darin (für ältere Spielstände).
+const CITY_MAP={kiel:['wwPwwcwwPw','wwcLccwPww','wcccccwwcw','wcwcbcwwcw','PwwwbwPwww','gggggwwwwP','gggwwcwwww','ggwwPwwggg'],
+  hamburg:['gggbbccwww','ggggbccwww','gggbcLAwPw','bbgbccAwww','ccwcbPwwcw','wPwwwwwgww','wwcwwPwwgg','wwwwwwwggg'],
+  berlin:['wwbbccbbww','wbPPbbcwww','wcPPcLcwcw','wbwbccbwbw','PwwwbbwwwP','ggggwwgggg','wwwPwwwwcw','ggwwwwwwgg']};
+// Blöcke: gleiche Zeichen in Nachbarfeldern bilden einen großen Block (Fußgängerzone, Park oder Wasser statt Straße)
+const OLD_BLOCKS={kiel:['abccde','afccgg','hfijgk','hlimnk','ooopqq'],hamburg:['aabccd','aefghd','aefihk','lmnopp','qqrrrs'],berlin:['aabbcd','aaefgd','hijjkl','hmnnoo','ppqqrr']};
+const GRID_OFF=[1,2];
+const CITY_BLOCKS={};for(const id in OLD_BLOCKS){let n=0;CITY_BLOCKS[id]=[...Array(8)].map((_,r)=>[...Array(10)].map((_,c)=>{const o=OLD_BLOCKS[id][r-GRID_OFF[0]];const ch=o&&o[c-GRID_OFF[1]];return ch||String.fromCharCode(0x100+n++)}).join(''))}
 const CODE={w:'wohn',c:'city',b:'buero',g:'gewerbe'};
 const ZONE_MAP=CITY_MAP.kiel.map(r=>[...r].map(ch=>CODE[ch]||'wohn'));
 // Eigenheiten der Städte: Saison, Preisbewusstsein, Nachtleben, Terrassen
 const CITY_TRAITS={kiel:{d:'Hafenstadt mit Altstadt: günstige Mieten, weniger Laufkundschaft, im Sommer kommen viele Touristen.',summer:1.25,price:1,night:0.9,terr:1.2},
   hamburg:{d:'Wohlhabend und oft verregnet: Gäste zahlen mehr, Terrassen bringen weniger, das Geschäft läuft das ganze Jahr.',summer:1.05,price:0.7,night:1,terr:1.08},
   berlin:{d:'Preisbewusst und nachtaktiv: Gäste achten genau auf Preise, lange Öffnungszeiten lohnen sich besonders.',summer:1.12,price:1.35,night:1.14,terr:1.2}};
-const COLS=6,ROWS=5;
+const COLS=10,ROWS=8;
 const STAGES=[[0,'Gründung'],[6,'Kleinunternehmen'],[50,'Mittelstand'],[250,'Großunternehmen'],[1000,'Konzern']];
 const DEPTS={hr:{n:'Personal',icon:'🤝',d:'Bessere Stimmung, halb so viele Kündigungen'},mkt:{n:'Marketing',icon:'📣',d:'Werbung wirkt 35 % stärker'},
   ctrl:{n:'Controlling',icon:'📊',d:'5 % weniger Miete und Nebenkosten, keine Extra-Verwaltung'},rd:{n:'Forschung',icon:'🔬',d:'Entwicklungen doppelt so schnell, etwas mehr Qualität'}};
@@ -145,7 +150,7 @@ function newGame(o){
     firms:[],plots:[],comps:[],apps:[],loans:[],assets:[],nextId:1,cities:{kiel:true},cityCur:'kiel',hq:null,depts:{},
     idx:{rohkaffee:1,holz:1,mehl:1,wage:1},hedge:null,months:[],news:[],pending:[],offers:{contracts:[],investor:null},tax:{paidYTD:0,carry:0},ms:{},goals:{},over:null,report:null,founderDev:true,ev:{},led:null,execs:{},me:{cash:10000,salary:36000,stocks:{},lux:[],club:null},re:1};
   G.led=emptyLedger();
-  for(const c of CITIES)genCity(G,c);
+  for(const c of CITIES)genCity(G,c);G.grid=2;
   G.diff=o.diff||'normal';G.dm=DIFF[G.diff].dm;G.currency=o.cur||'EUR';CUR=CURS[G.currency];
   for(const c of CITIES)for(const [n,col,q0,p,shops] of COMP_CAFE[c.id].slice(0,o.comps===undefined?2:o.comps)){const q=clamp(q0+DIFF[G.diff].cq,0.4,0.92);const cp=addComp(G,{branch:'cafe',name:n,color:col,q,price:p,city:c.id,rep:0.55+q*0.2});for(let k=0;k<shops;k++)compOpen(G,cp)}
   for(const [n,g,q,u] of COMP_APPS){const cp=addComp(G,{branch:'soft',name:n,color:'#8a8f96',q});G.apps.push({id:uid(G),owner:'c:'+cp.id,name:n,genre:g,scope:'M',state:'live',progress:1,work:1,quality:q,bugs:20,users:u,payers:0,model:'freemium',price:4.99,fresh:0.8,released:-6})}
@@ -169,9 +174,9 @@ function dropAssets(G,ref){for(const a of G.assets.filter(a=>a.ref===ref)){L(G,a
 const UNITS={wohn:['laden','laden'],city:['laden','laden','etage'],buero:['laden','etage','etage'],gewerbe:['halle']};
 const KINDS={laden:{n:'Ladenlokal',uses:['cafe']},etage:{n:'Büroetage',uses:['office','hq']},halle:{n:'Halle',uses:['factory']}};
 const UNIT_RANGE={'city-etage':{rent:[3800,6400],size:[250,520]},'buero-laden':{rent:[2200,3400],size:[90,160]}};
-function genCity(G,c){const map=CITY_MAP[c.id]||CITY_MAP.kiel;for(let r=0;r<ROWS;r++)for(let col=0;col<COLS;col++){const zk=CODE[map[r][col]];if(!zk)continue;const z=ZONES[zk],tr=Math.round(rr(G,z.traffic[0],z.traffic[1])*c.traffic/50)*50;
+function genCity(G,c){const map=CITY_MAP[c.id]||CITY_MAP.kiel;for(let r=0;r<ROWS;r++)for(let col=0;col<COLS;col++){const zk=CODE[map[r][col]];if(!zk||G.plots.some(q=>q.city===c.id&&q.r===r&&q.c===col))continue;const z=ZONES[zk],tr=Math.round(rr(G,z.traffic[0],z.traffic[1])*c.traffic/50)*50;
   UNITS[zk].forEach((kind,u)=>{const R=UNIT_RANGE[zk+'-'+kind]||z;
-    G.plots.push({id:c.id+'-'+r+'-'+col+'-'+u,city:c.id,r,c:col,u,kind,zone:zk,traffic:kind==='laden'?Math.round(tr*rr(G,0.9,1.1)/50)*50:tr,rent:Math.round(rr(G,R.rent[0],R.rent[1])*c.rent/50)*50,size:Math.round(rr(G,R.size[0],R.size[1])/10)*10,owner:null,use:null})})}}
+    G.plots.push({id:c.id+':'+r+':'+col+':'+u,city:c.id,r,c:col,u,kind,zone:zk,traffic:kind==='laden'?Math.round(tr*rr(G,0.9,1.1)/50)*50:tr,rent:Math.round(rr(G,R.rent[0],R.rent[1])*c.rent/50)*50,size:Math.round(rr(G,R.size[0],R.size[1])/10)*10,owner:null,use:null})})}}
 const usesOf=p=>p.kind?KINDS[p.kind].uses.filter(x=>ZONES[p.zone].uses.includes(x)):ZONES[p.zone].uses;
 const unitName=p=>p.kind?KINDS[p.kind].n:p.zone==='gewerbe'?'Halle':'Gewerbefläche';
 const plot=(G,id)=>G.plots.find(p=>p.id===id);
@@ -614,6 +619,7 @@ function ex(G,k){const e=G.execs&&G.execs[k];if(!e||G.hqBuild>0)return 0;if(e===
 function grantValue(G,gr,unvestedOnly){const left=unvestedOnly?gr.n*(1-(gr.vested||0)/4):gr.n,px=G.sharePrice||0;return gr.type==='rsu'?left*px:left*Math.max(0,px-gr.strike)}
 // ältere Spielstände ergänzen
 function migrate(G){
+  if(G.grid!==2&&G.plots){for(const p of G.plots){p.r+=GRID_OFF[0];p.c+=GRID_OFF[1]}const rs0=G.rs;for(const c of CITIES)genCity(G,c);G.rs=rs0;G.grid=2}
   if(!G.me)G.me={cash:10000,salary:36000,stocks:{},lux:[],club:null};if(!G.me.loc)G.me.loc=G.cityCur||'kiel';if(!G.me.wh)G.me.wh=[];if(G.me.look===undefined)G.me.look=(G.rs>>>3)%100000;
   if(G.me.club&&!G.me.club.players)initClub(G,CLUBS.find(x=>x.id===G.me.club.id),G.me.club);if(!G.execs)G.execs={};if(!G.re)G.re=1;if(!G.stocks)genMarket(G);
   for(const k in G.execs){const e=G.execs[k];if(e===true){const p=person(G);G.execs[k]=Object.assign(p,{since:G.month,salary:marketPay(G,k),deleg:{},grants:[]})}else if(!e)delete G.execs[k]}

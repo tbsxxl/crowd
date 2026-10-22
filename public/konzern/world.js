@@ -1,7 +1,7 @@
 // Gründerzeit: die Stadt als Diorama-Block. Liest den Spielstand, schreibt nichts hinein.
 (function(){
 'use strict';
-const P=10,S=4,COLS=6,ROWS=5,WW=COLS*P+(COLS+1)*S,DD=ROWS*P+(ROWS+1)*S,MARGIN=5,BW=WW+2*MARGIN,BD=DD+2*MARGIN,DEPTH=7;
+const P=10,S=4,COLS=10,ROWS=8,WW=COLS*P+(COLS+1)*S,DD=ROWS*P+(ROWS+1)*S,MARGIN=5,BW=WW+2*MARGIN,BD=DD+2*MARGIN,DEPTH=7;
 const px=c=>-WW/2+S+c*(P+S)+P/2,pz=r=>-DD/2+S+r*(P+S)+P/2;
 const streetX=i=>-WW/2+S/2+i*(P+S),streetZ=i=>-DD/2+S/2+i*(P+S);
 const grow=[],marks=[];let markGeo=null;
@@ -66,7 +66,7 @@ function container(g,x,z,len){B(len,1.4,4,'#3d4651',x,-0.2,z,g);B(len*0.18,3,3.4
 const LANDMARKS={
   kiel:{n:'Emden',ground:'#bfd2a2',build(g){ // Vor dem Wall: Felder, Weide mit Kühen, Mühlen, Giebelhäuser und Speicher
     const FC=['#dcc57c','#a9c47a','#c9a86a','#9cc47e','#e3d28c'];
-    for(let i=0;i<9;i++){const x=-42+i*10.5,c=FC[i%5];B(9.8,0.1,7.5,c,x,0,LZ+1,g);for(let k=0;k<5;k++)B(9.6,0.13,0.2,shade3(c,0.86),x,0,LZ-2.2+k*1.6,g)}
+    for(let i=0;i<14;i++){const x=-68+i*10.5,c=FC[i%5];B(9.8,0.1,7.5,c,x,0,LZ+1,g);for(let k=0;k<5;k++)B(9.6,0.13,0.2,shade3(c,0.86),x,0,LZ-2.2+k*1.6,g)}
     B(24,0.1,7,'#8fbf73',32,0,LZ+9.5,g);for(const z of [LZ+6,LZ+13])B(24,0.5,0.12,'#e9e4d8',32,0,z,g);
     for(let i=0;i<6;i++){const x=23+i*3.4+(i%2)*0.8,z=LZ+8+(i%3)*1.4;B(1.3,0.7,0.6,'#f4f1ea',x,0.45,z,g);B(0.5,0.72,0.62,'#24272b',x-0.2,0.45,z,g);B(0.4,0.4,0.4,'#f4f1ea',x+0.8,0.8,z,g);for(const dx of [-0.45,0.45])for(const dz of [-0.2,0.2])B(0.14,0.45,0.14,'#4a4f55',x+dx,0,z+dz,g)}
     // Speicher und Kontorhäuser am Delft
@@ -74,10 +74,10 @@ const LANDMARKS={
     // Giebelhäuser am anderen Ufer
     ['#a6472f','#b8553a','#8e3b2a','#c46a4a','#f2ece0','#a6472f','#b8553a'].forEach((c,i)=>gableHouse(g,-40+i*4.2,LZ-7,3.8,4+(i%3)*1.2,c,i%2===0));
     // Mühlen und Bäume auf dem Land
-    windmill(g,24,LZ-7);windmill(g,38,LZ-8);trees(g,9,18,44,LZ-12,LZ-4);
+    windmill(g,24,LZ-7);windmill(g,38,LZ-8);windmill(g,-60,LZ-8);trees(g,14,18,74,LZ-12,LZ-4);B(24,0.1,7,'#8fbf73',-56,0,LZ+9.5,g);trees(g,8,-74,-48,LZ-12,LZ-4);
     // Backsteinkirche
     B(9,6,5,'#9a4430',8,0,LZ-8,g);add(prism(9.2,3.5,5.2),'#5a3b30',8,6,LZ-8,g);B(2.6,11,2.6,'#9a4430',3.5,0,LZ-8,g);add(new THREE.ConeGeometry(1.9,4,4),'#5f9e8a',3.5,13,LZ-8,g).rotation.y=Math.PI/4;
-    trees(g,6,-46,46,LZ+7,LZ+12)}},
+    trees(g,10,-74,74,LZ+7,LZ+12)}},
   hamburg:{n:'Hamburg',ground:'#cfcac0',build(g){ // Elbe mit Containerschiff und Kränen, Konzerthaus auf dem Speicher, Kirchturm, Speicherstadt
     water(g,LZ-6,LZ+4,'#6f93a8');container(g,-6,LZ-1,22);boat(g,26,LZ+1.8,'#f4f1ea',6,true);
     for(let i=0;i<4;i++)crane(g,-38+i*7,LZ-10,i%2?'#cc3b33':'#2f6fd0');
@@ -88,9 +88,9 @@ const LANDMARKS={
     for(let i=0;i<4;i++){const x=-30+i*7;B(6,6.5,5,'#9a4a35',x,0,LZ+9,g);add(prism(6.2,1.8,5.2),'#5f8f7a',x,6.5,LZ+9,g);for(let k=0;k<3;k++)B(0.8,0.9,0.05,'#f4f1ea',x-1.8+k*1.8,2+k*0,LZ+11.55,g)}
     // Kirchturm mit grünem Helm
     B(4,14,4,'#9a4a35',8,0,LZ+9,g);B(4.4,0.8,4.4,'#e8e3d6',8,14,LZ+9,g);cyl(1.4,1.9,3,'#5f9e8a',8,14.8,LZ+9,g,8);cyl(0.5,1.2,2.4,'#5f9e8a',8,17.8,LZ+9,g,8);add(new THREE.ConeGeometry(0.5,3.2,8),'#5f9e8a',8,21.8,LZ+9,g);
-    trees(g,7,30,46,LZ+7,LZ+12)}},
+    trees(g,12,30,74,LZ+7,LZ+12);for(let i=0;i<3;i++)crane(g,52+i*8,LZ-10,i%2?'#cc3b33':'#2f6fd0');container(g,-50,LZ+0.5,16)}},
   berlin:{n:'Berlin',ground:'#d2d6c4',build(g){ // Spree mit Ausflugsschiff, Fernsehturm, Stadttor mit Säulen, Parlament mit Glaskuppel
-    B(BW,0.08,5,'#93c27a',0,0,LZ+1.5,g);trees(g,16,-46,46,LZ-0.5,LZ+4);
+    B(BW,0.08,5,'#93c27a',0,0,LZ+1.5,g);trees(g,24,-74,74,LZ-0.5,LZ+4);
     // Dom mit Kuppeln an der Spree
     B(12,7,8,'#9a958a',10,0,LZ-7,g);add(new THREE.SphereGeometry(3.4,16,10,0,Math.PI*2,0,Math.PI/2),'#4f8a78',10,7,LZ-7,g);cyl(0.5,0.8,1.6,'#4f8a78',10,10.2,LZ-7,g,8);
     for(const dx of [-5,5])for(const dz of [-3,3]){B(2,9,2,'#9a958a',10+dx,0,LZ-7+dz,g);add(new THREE.SphereGeometry(1,10,8,0,Math.PI*2,0,Math.PI/2),'#4f8a78',10+dx,9,LZ-7+dz,g)}
@@ -100,7 +100,7 @@ const LANDMARKS={
     // Parlament mit Kuppel
     B(18,6,9,'#ddd2b6',-28,0,LZ-8,g);for(const dx of [-8,8])for(const dz of [-3.5,3.5])B(3,8,3,'#d4c8aa',-28+dx,0,LZ-8+dz,g);
     const dome=add(new THREE.SphereGeometry(3.4,16,10,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:'#cfe3ec',metalness:0.4,roughness:0.15,transparent:true,opacity:0.85}),-28,6,LZ-8,g);
-    trees(g,10,26,46,LZ-12,LZ-3);trees(g,6,-12,4,LZ+7,LZ+12)}}};
+    trees(g,16,26,74,LZ-12,LZ-3);trees(g,6,-12,4,LZ+7,LZ+12);trees(g,10,-74,-42,LZ-12,LZ+12)}}};
 // ---------- Besondere Felder im Stadtraster: Wahrzeichen, Parks, Wasser ----------
 const MAP_CITY={kiel:{top:'#9c938b',ground:'#e4ddd0',park:'#8fbf73'},hamburg:{top:'#8e959b',ground:'#dfe0dc',park:'#7fb37a'},berlin:{top:'#a0a29f',ground:'#e6e2d8',park:'#93c27a'}};
 let topMat=null,roadGroup=null;
@@ -141,7 +141,7 @@ function special(code,id,r,c,g){seed=(r*17+c*5+id.length*11)|0||3;
 // Wasser läuft entlang eines Straßenzugs: h=1 waagerecht auf streetZ(i), sonst senkrecht auf streetX(i), von a bis b (Rasterkoordinaten).
 // Querstraßen führen über Brücken, Straßen am Ende eines Kanals enden am Ufer.
 const RIVERS={
-  berlin:[{h:1,i:2,a:-BW/2,b:BW/2}]}; // Spree quer durch die Mitte
+  berlin:[{h:1,i:3,a:-BW/2,b:BW/2}]}; // Spree quer durch die Mitte
 // Am Fluss rücken die Häuserreihen auseinander; zum Rand hin läuft die Verschiebung aus, damit der Block seine Form behält.
 const RK=4.2,RW=S+2*RK*0.8+0.8;
 function rFade(r,al){const e=al<r.a?r.a-al:al>r.b?al-r.b:0;return Math.max(0,1-e/7)}
@@ -172,7 +172,7 @@ function buildWater(){if(!waterGroup)return;while(waterGroup.children.length){co
   if(cityId==='kiel'){ // Wall mit Bäumen und Mühlen, davor der Stadtgraben
     const ow=WW/2+1.6,od=DD/2+1.6,mw=WW/2+3.9,md=DD/2+3.9;
     const sides=[[t=>[t,-md],t=>[t,-od],-BW/2,BW/2],[t=>[t,md],t=>[t,od],-BW/2,BW/2],[t=>[-mw,t],t=>[-ow,t],-BD/2,BD/2],[t=>[mw,t],t=>[ow,t],-BD/2,BD/2]];
-    const open=(x,z)=>inRiver(x,z)||(z<0&&Math.abs(x-px(0))<P/2+1);
+    const open=(x,z)=>inRiver(x,z);
     const wallM=new THREE.MeshStandardMaterial({color:'#7fae6a',flatShading:true,roughness:0.9,side:THREE.DoubleSide});let n=0;
     for(const [m,w,a,b] of sides){g.add(ribbon(along(m,a,b),2.1,0.14,wm));const wa=m===sides[0][0]||m===sides[1][0]?-ow-1.3:-od-1.3;
       let run=[];const flush=()=>{if(run.length>1)g.add(dam(run,2.8,1.6,0.6,wallM));run=[]};
@@ -232,7 +232,7 @@ function init(cv){
   for(const [w,d,x,z] of [[BW,MARGIN+1.2,0,-BD/2+(MARGIN+1.2)/2],[BW,MARGIN+1.2,0,BD/2-(MARGIN+1.2)/2],[MARGIN+1.2,BD,-BW/2+(MARGIN+1.2)/2,0],[MARGIN+1.2,BD,BW/2-(MARGIN+1.2)/2,0]])B(w,0.12,d,walkM,x,0,z);
   roadGroup=new THREE.Group();root.add(roadGroup);waterGroup=new THREE.Group();root.add(waterGroup);
   // Bäume und Laternen am Rand
-  for(let i=0;i<34;i++){const side=i%4,t=rnd();let x,z;if(side<2){x=-BW/2+2+t*(BW-4);z=side?BD/2-2.2:-BD/2+2.2}else{z=-BD/2+2+t*(BD-4);x=side===2?-BW/2+2.2:BW/2-2.2}
+  for(let i=0;i<72;i++){const side=i%4,t=rnd();let x,z;if(side<2){x=-BW/2+2+t*(BW-4);z=side?BD/2-2.2:-BD/2+2.2}else{z=-BD/2+2+t*(BD-4);x=side===2?-BW/2+2.2:BW/2-2.2}
     edgeTrees.push({x,z,o:[add(new THREE.CylinderGeometry(0.12,0.16,1,5),'#6b4a2f',x,0.6,z),add(new THREE.IcosahedronGeometry(0.9+rnd()*0.3,0),['#6fae5a','#5e9e4e','#86be62'][i%3],x,1.7,z)]})}
   plotGroup=new THREE.Group();root.add(plotGroup);
   const ringGeo=new THREE.RingGeometry(P*0.62,P*0.7,4,1);ringGeo.rotateZ(Math.PI/4);ringGeo.rotateX(-Math.PI/2);
@@ -244,6 +244,9 @@ function init(cv){
 function applyView(){view.tilt=Math.min(1.35,Math.max(0.35,view.tilt));view.zoom=Math.min(3.2,Math.max(0.55,view.zoom));
   const d=150,cp=Math.cos(view.tilt);camera.position.set(view.tx+d*Math.sin(view.tilt)*Math.sin(view.yaw),d*cp+20,view.tz+d*Math.sin(view.tilt)*Math.cos(view.yaw));
   camera.lookAt(view.tx,0,view.tz);camera.zoom=view.zoom;camera.updateProjectionMatrix()}
+// Karte verschieben: Bildschirmpixel in Bodenkoordinaten umrechnen
+function pan(dx,dy){const u=(camera.right-camera.left)/camera.zoom/(canvas.clientWidth||innerWidth),c=Math.cos(view.yaw),s=Math.sin(view.yaw),k=1/Math.max(0.3,Math.cos(view.tilt));
+  view.tx-=(dx*c+dy*s*k)*u;view.tz-=(-dx*s+dy*c*k)*u;view.tx=Math.max(-BW/2,Math.min(BW/2,view.tx));view.tz=Math.max(-BD/2-LD,Math.min(BD/2,view.tz));applyView()}
 function resize(){const w=canvas.clientWidth||innerWidth,h=canvas.clientHeight||innerHeight;renderer.setSize(w,h,false);
   // Die Stadt soll mitten im freien Bereich liegen: neben dem Pult (Desktop) oder über dem Bottom-Sheet (Handy)
   const mob=w<=760,aspect=w/h,span=mob?BW*0.47/aspect:(BD+LD)*0.52,tw=2*span*aspect,th=2*span;
@@ -400,10 +403,10 @@ function initWalkers(){const geo=new THREE.CylinderGeometry(0.18,0.22,0.9,6);geo
 function newWalker(){const horiz=rnd()<0.5,line=horiz?Math.floor(rnd()*(ROWS+1)):Math.floor(rnd()*(COLS+1)),side=rnd()<0.5?-1.55:1.55;
   return{horiz,line,side,t:rnd(),dir:rnd()<0.5?1:-1,v:0.012+rnd()*0.01}}
 function updateWalkerDensity(G){const t=G.plots.filter(p=>p.city===cityId).reduce((s,p)=>s+p.traffic,0);wCount=Math.min(WMAX,Math.round(t/260))}
-function initCars(){const geo=new THREE.BoxGeometry(1.6,0.7,0.8);geo.translate(0,0.45,0);cInst=new THREE.InstancedMesh(geo,new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.6}),24);
-  cInst.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(24*3),3);cInst.castShadow=true;root.add(cInst);
+function initCars(){const geo=new THREE.BoxGeometry(1.6,0.7,0.8);geo.translate(0,0.45,0);cInst=new THREE.InstancedMesh(geo,new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.6}),48);
+  cInst.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(48*3),3);cInst.castShadow=true;root.add(cInst);
   const cols=['#f4f1ea','#d63c3c','#3d78d8','#24272b','#f2c14e','#9da3a8'].map(c=>new THREE.Color(c));
-  for(let i=0;i<24;i++){cInst.setColorAt(i,cols[i%cols.length]);cData.push({horiz:i%2===0,line:i%(i%2?COLS+1:ROWS+1),t:rnd(),dir:i%4<2?1:-1,v:0.03+rnd()*0.02})}}
+  for(let i=0;i<48;i++){cInst.setColorAt(i,cols[i%cols.length]);cData.push({horiz:i%2===0,line:i%(i%2?COLS+1:ROWS+1),t:rnd(),dir:i%4<2?1:-1,v:0.03+rnd()*0.02})}}
 const O=new THREE.Object3D();
 function moveOnGrid(o,dt,lane){ // läuft entlang einer Straße und biegt an Kreuzungen manchmal ab
   const L=o.horiz?WW:DD,prev=o.t*L-L/2;o.t+=o.v*o.dir*dt/L*60;if(o.t>1){o.t=1;o.dir=-1}if(o.t<0){o.t=0;o.dir=1}
@@ -439,5 +442,5 @@ let last=0;function frame(t){const dt=Math.min(0.05,(t-last)/1000||0.016);last=t
   for(const m of marks)m.material.opacity=0.3+0.2*Math.sin(t/260);
   if(selRing.visible)selRing.material.opacity=0.6+0.3*Math.sin(t/300);renderer.render(scene,camera)}
 function setLogo(svg){const im=new Image();im.onload=()=>{logoImg=im;for(const k in pinTex)delete pinTex[k];if(G0&&plotGroup)sync(G0,true)};im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg)}
-window.World={init,setLogo,resize,setCity,sync,select,hover,plotAt,project,frame,view,applyView,highlight,get city(){return cityId}};
+window.World={pan,init,setLogo,resize,setCity,sync,select,hover,plotAt,project,frame,view,applyView,highlight,get city(){return cityId}};
 })();
