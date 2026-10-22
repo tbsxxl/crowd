@@ -170,6 +170,9 @@ table.cf td{padding:5px 0;font-size:13.5px}table.cf td:last-child{text-align:rig
 .cands{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.cand{min-width:min(280px,82%);scroll-snap-align:center;display:flex;flex-direction:column;gap:6px}.cand .ava,.execCard .ava,.execHead .ava{flex:none;align-self:center}
 @media (max-width:440px){.execHead{flex-direction:column;align-items:center}.mast{font-size:26px}}
 /* Start, Wizard, Produktkarten */
+.questRes{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}.questRes.ok{background:rgba(47,138,85,.08);border-color:rgba(47,138,85,.3)}.questRes.next{background:rgba(212,167,44,.1);border-color:rgba(212,167,44,.35)}.questRes .e{font-size:22px}
+.rw2{font-family:var(--f-mono);font-size:12px;background:rgba(212,167,44,.16);color:#7a5c10;padding:4px 8px;border-radius:6px;white-space:nowrap}
+.heatLeg{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}.heatLeg i{width:54px;height:8px;border-radius:4px;background:linear-gradient(90deg,#f2c14e,#7cc56b,#14632f)}
 .tips>div{display:flex;flex-direction:column;gap:8px;padding-bottom:12px;flex:1}.tips p{margin:0;align-self:stretch}.tip{display:flex;flex-direction:column;align-items:flex-start;gap:6px}.tip .btn.sm{background:#fff;color:var(--ink);padding:6px 12px;font-size:12.5px}
 .flag{font-style:normal;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;margin-left:4px;white-space:nowrap;vertical-align:1px}.flag.good{background:#e3f1e8;color:#2f8a55}.flag.bad{background:#f8e1df;color:#cc3b33}.flag.warn{background:#f6edd2;color:#9a7414}.flag.mute{background:var(--soft);color:var(--muted)}
 .load{display:block;height:4px;border-radius:2px;background:var(--soft);margin-top:5px;overflow:hidden}.load i{display:block;height:100%}
@@ -293,8 +296,8 @@ window.addEventListener('error',function(e){var m=document.getElementById('bootM
   if(m&&!document.getElementById('menu').hidden)m.textContent=t;else{var d=document.getElementById('toast');if(d){d.textContent=t;d.hidden=false}}},true);
 </script>
 <script src="../vendor/three-r128-bloom.js"></script>
-<script src="sim.js?v=20261023c"></script>
-<script src="world.js?v=20261023c"></script>
+<script src="sim.js?v=20261023f"></script>
+<script src="world.js?v=20261023f"></script>
 <script>
 (function(){
 'use strict';
@@ -326,7 +329,8 @@ function refresh(){if(!G)return;const last=(G.weeks||[])[(G.weeks||[]).length-1]
   $('endSub').textContent=G.pending.length?G.pending.length+(G.pending.length>1?' Entscheidungen offen':' Entscheidung offen'):'Woche ab '+K.dateStr(G).replace(/ \d{4}$/,'');$('endBtn').dataset.wait=G.pending.length>0;
   const ts=tutStep(),gc0=$('goalCard');if(ts){gc0.hidden=false;gc0.dataset.v=ts.v||'goals';gc0.innerHTML=`<span class="gi">${ic('hand',22)}</span><span><b>${esc(ts.t(G.firms[0].branch))}</b><br><span>${esc(ts.d)} · Schritt ${G.tut+1} von ${TUT.length}</span></span>`;if(!ts.v)gc0.dataset.v='goals';}
   const g=ts?null:K.GOALS.find(x=>!G.goals[x.k]);const gc=$('goalCard');if(ts){}else{gc.dataset.v='goals';
-  if(g){gc.hidden=false;gc.innerHTML=curFix(`<span class="gi">${ic('target',22)}</span><span><b>${esc(g.n)}</b><br><span>Nächstes Ziel</span></span>${g.reward?`<span class="rw">+${fe(g.reward)}</span>`:''}`)}else gc.hidden=true;}
+  if(G.quest){gc.hidden=false;gc.innerHTML=curFix(`<span class="gi">${ic('target',22)}</span><span><b>${esc(G.quest.t)}</b><br><span>Wochenauftrag${g?' · danach: '+esc(g.n):''}</span></span><span class="rw">+${fe(G.quest.r)}</span>`)}
+  else if(g){gc.hidden=false;gc.innerHTML=curFix(`<span class="gi">${ic('target',22)}</span><span><b>${esc(g.n)}</b><br><span>Nächstes Ziel</span></span>${g.reward?`<span class="rw">+${fe(g.reward)}</span>`:''}`)}else gc.hidden=true;}
   World.sync(G);tags();if(view&&!$('sheet').hidden&&!busyInput())renderSheet()}
 function busyInput(){const a=document.activeElement;return a&&a.tagName==='INPUT'&&$('sheet').contains(a)}
 
@@ -375,8 +379,11 @@ VIEWS.build=()=>{let b='<div class="hint">Wähle, was du bauen willst. Danach le
   return{eyebrow:K.monthName(G.month),title:'Bauen',body:b}};
 function buildOpt(kind,f,ico,t,d,price,lock){return`<button class="li" data-a="place" data-k="${kind}" data-id="${f?f.id:''}" ${lock?'aria-disabled="true"':''}><span class="ico">${ico}</span><span class="t"><b>${t}</b><span>${d}</span></span><span class="v">${lock?`<small>${lock}</small>`:price}</span></button>`}
 function eligible(kind){const use={cafe:'cafe',office:'office',factory:'factory',hq:'hq'}[kind];return G.plots.filter(p=>p.city===World.city&&!p.owner&&K.usesOf(p).includes(use)).map(p=>p.id)}
-function startPlace(kind,fid){if(!G.cities[World.city]){toast('Diese Stadt ist noch nicht erschlossen.','bad');return}place={kind,fid};close();const ids=eligible(kind);World.highlight(ids);
-  $('placeBar').hidden=false;$('placeBar').innerHTML=`<span>${{cafe:'🍽️',office:'🏢',factory:'🏭',hq:'🏛️'}[kind]} <b>${ids.length} freie Flächen</b> leuchten grün. Tippe eins an.</span><button class="btn" data-a="cancelPlace">Abbrechen</button>`;
+function heatCol(k){const a=[[242,193,78],[124,197,107],[20,99,47]],i=k<0.5?0:1,t=k<0.5?k*2:(k-0.5)*2,c=a[i].map((v,j)=>Math.round(v+(a[i+1][j]-v)*t));return'#'+c.map(v=>v.toString(16).padStart(2,'0')).join('')}
+function startPlace(kind,fid){if(!G.cities[World.city]){toast('Diese Stadt ist noch nicht erschlossen.','bad');return}place={kind,fid};close();const ids=eligible(kind);
+  // Rang statt Rohwert: die Farben verteilen sich gleichmäßig über alle freien Flächen
+  const tr=ids.map(id=>K.plot(G,id).traffic),srt=tr.slice().sort((a,b)=>a-b),n=Math.max(1,ids.length-1);World.highlight(ids.map((id,i)=>{const k=srt.indexOf(tr[i])/n;return[id,heatCol(k),k]}));
+  $('placeBar').hidden=false;$('placeBar').innerHTML=`<span>${{cafe:'🍽️',office:'🏢',factory:'🏭',hq:'🏛️'}[kind]} <b>${ids.length} freie Flächen</b>. Je höher die Säule, desto mehr Laufkundschaft.<span class="heatLeg">wenig <i></i> viel</span></span><button class="btn" data-a="cancelPlace">Abbrechen</button>`;
   if(!ids.length)toast('Hier ist gerade nichts frei. Andere Stadt im Bereich Konzern erschließen.','bad')}
 function endPlace(){place=null;$('placeBar').hidden=true;World.highlight(null)}
 // Grundstück (frei, Konkurrenz)
@@ -925,11 +932,11 @@ const CATICO={produkt:'☕',preis:'💶',atmo:'🛋️',service:'🙂'};
 function reviewCards(list){return`<div class="revs">${list.map((r,i)=>`<div class="card rev"><div class="row">${starsH(r.s)}<span class="revAva"><i>${CATICO[r.k]||'💬'}</i>${avatar({g:r.g||(i%2?'f':'m'),look:r.look||((r.t||'').length*97+i)},52)}</span></div><div class="quote" style="font-size:14px">${esc(r.t)}</div></div>`).join('')}</div>`}
 function catStars(cat){return`<span style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">${cat.map(([n,v])=>`<span class="row" style="gap:8px"><span class="sub">${n}</span>${starsH(K.stars(v))}<b>${String(K.stars(v)).replace('.',',')}</b></span>`).join('')}</span>`}
 // Ziele
-VIEWS.goals=()=>{let b='<div class="sub">Für jedes erreichte Ziel gibt es eine Förderprämie.</div><div class="list">';const next=K.GOALS.find(x=>!G.goals[x.k]);
+VIEWS.goals=()=>{let b=`<div class="card"><div class="eyebrow">Wochenauftrag</div>${G.quest?`<div class="row"><b style="font-size:16px">${esc(G.quest.t)}</b><span class="rw2">+${fe(G.quest.r)}</span></div><div class="sub">Gilt bis zum Ende dieser Woche. Jede Woche gibt es einen neuen Auftrag. Erfüllt: ${fn(G.questsDone||0)}.</div>`:'<div class="sub">Ab der dritten Woche gibt es jede Woche einen Auftrag mit Prämie.</div>'}</div><div class="sub">Für jedes erreichte Ziel gibt es eine Förderprämie.</div><div class="list">`;const next=K.GOALS.find(x=>!G.goals[x.k]);
   for(const g of K.GOALS){const done=G.goals[g.k]!==undefined;b+=`<div class="li" style="${done?'background:rgba(47,138,85,.07)':g===next?'border-color:var(--ink)':'opacity:.7'}"><span class="ico">${done?'✅':g===next?'🎯':'⬜'}</span><span class="t"><b>${g.n}</b><span>${done?'erreicht im '+K.monthName(G.goals[g.k]-1):g.d||''}</span></span><span class="v">${g.reward?fe(g.reward):''}</span></div>`}
   return{eyebrow:K.stage(G).n,title:'Ziele',body:b+'</div>'}};
 // Entscheidungen
-VIEWS.decide=()=>{if(!G.pending.length)return{title:'Keine offenen Entscheidungen',body:'<div class="sub">Alles erledigt. Du kannst die Woche abschließen.</div><button class="btn ink" data-a="endTurn">Monat abschließen</button>'};
+VIEWS.decide=()=>{if(!G.pending.length)return{title:'Keine offenen Entscheidungen',body:'<div class="sub">Alles erledigt. Du kannst die Woche abschließen.</div><button class="btn ink" data-a="endTurn">Woche abschließen</button>'};
   let b='';for(const e of G.pending){b+=`<div class="card"><div class="ch"><span class="ico">${e.icon||'❓'}</span><span class="t"><b>${esc(K.firm(G,e.fid).name)}</b></span></div><div class="quote" style="font-style:normal;font-size:17px">${esc(e.t)}</div><div class="list">${K.eventOpts(e).map((o,i)=>`<button class="li" data-a="decide" data-id="${e.id}" data-v="${i}"><span class="t"><b>${esc(o.n)}</b><span>${esc(o.d)}</span></span><span class="v">→</span></button>`).join('')}</div></div>`}
   return{eyebrow:K.monthName(G.month),title:G.pending.length>1?'Entscheidungen':'Entscheidung',body:b}};
 VIEWS.more=()=>({title:'Mehr',body:`<div class="list">${[['wealth','wealth','Vermögen','Gehalt, Depot, Luxus, Verein'],['bank','bank','Börse','Aktienmarkt, Eigenkapital, Übernahmen'],['airport','travel','Reisen','In andere Städte fliegen'],['goals','goals','Ziele','Meilensteine und Prämien'],['menu','menu','Spiel','Speichern, Spielstände, Hilfe']].map(([v,i,t,d])=>li(`data-a="open" data-v="${v}" data-keep="1"`,ic(i,20),t,d,'→')).join('')}</div>`});
@@ -1096,6 +1103,8 @@ function report(r){const m=$('modal');m.hidden=false;if(G.currency&&G.currency!=
     <div><div class="eyebrow">Nettoeinkommen</div><div class="big2 ${r.net>=0?'pos':'neg'}" id="bigNet">${sgn(0)}</div>${r.weeks>1?'':dl(r.net,prev?prev.net:null)}</div></div>
   ${cfTable(r.cf)}${mon?`<div class="hint">📘 Monatsabschluss ${K.monthName(mon.m)}: Umsatz ${fe(K.pl(mon).rev)}, Ergebnis <b class="${mon.net>=0?'pos':'neg'}">${sgn(mon.net)}</b>. Details unter Finanzen.</div>`:''}
   ${kpis([[fe(r.cash),'Kasse',r.cash<0?'neg':''],[fe(K.wealth(G).total),'Dein Vermögen'],[fn(r.staff),'Mitarbeitende']])}
+  ${r.quest?`<div class="questRes ${r.quest.ok?'ok':''}"><span class="e">${r.quest.ok?'✅':'⏳'}</span><span><b>Wochenauftrag ${r.quest.ok?'erfüllt':'verpasst'}</b><br><span class="sub">${esc(r.quest.t)}${r.quest.ok?' · +'+fe(r.quest.r):''}</span></span></div>`:''}
+  ${r.nextQuest?`<div class="questRes next"><span class="e">🎯</span><span><b>Neuer Auftrag: ${esc(r.nextQuest.t)}</b><br><span class="sub">Prämie ${fe(r.nextQuest.r)}, bis Ende der Woche</span></span></div>`:''}
   ${r.goals.map(g=>`<div class="goalWin"><span class="e">🏆</span><span><b>Ziel erreicht: ${esc(g.n)}</b><br><span class="sub">${g.reward?'+'+fe(g.reward)+' Förderprämie':'Großartig!'}</span></span></div>`).join('')}
   ${items.length?`<div class="sec"><h3>Deine Geschäfte</h3><div class="list">${items.map(it=>`<div class="li" style="cursor:default"><span class="ico">${it.icon}</span><span class="t"><b>${esc(it.name)}</b><span>${esc(it.kpi)}${it.delta!=null&&it.delta!==0?` <b class="${it.delta>0?'pos':'neg'}">${it.delta>0?'▲':'▼'} ${fn(Math.abs(it.delta))}</b>`:''}${it.stars?'<i class="rs">'+starsH(it.stars)+'</i>':''}${it.broke?' · ⚠️ Ausfall':''}</span></span><span class="v ${it.profit>=0?'pos':'neg'}">${it.kind==='dev'?'':sgn(it.profit)}</span></div>`).join('')}</div></div>`:'<div class="hint">Noch keine Geschäfte. Öffne „Bauen“ und leg los!</div>'}
   ${r.events.length?`<div class="sec"><h3>Was passiert ist</h3>${r.events.map(e=>`<div class="evt"><span class="e">${e.icon}</span><span class="${e.bad?'neg':''}">${esc(e.t)}</span></div>`).join('')}</div>`:''}

@@ -238,6 +238,8 @@ function init(cv){
   const ringGeo=new THREE.RingGeometry(P*0.62,P*0.7,4,1);ringGeo.rotateZ(Math.PI/4);ringGeo.rotateX(-Math.PI/2);
   selRing=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color:'#24272b',transparent:true,opacity:0.85,depthWrite:false}));selRing.visible=false;selRing.renderOrder=5;root.add(selRing);
   hoverRing=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color:'#24272b',transparent:true,opacity:0.25,depthWrite:false}));hoverRing.visible=false;root.add(hoverRing);
+  // Auf dem Handy passt die ganze Stadt aufs Bild: etwas weiter weg und mittig über dem Dock
+  if((cv.clientWidth||innerWidth)<=760){view.zoom=0.74;view.tz=-44;view.tx=8}
   initWalkers();initCars();resize();applyView()}
 
 // ---------- Kamera ----------
@@ -435,11 +437,13 @@ function hover(pid){if(hovBox){root.remove(hovBox);hovBox=null}const a=pid&&pid!
 function project(pid,y){const a=anchors[pid];if(!a)return null;const pinX=a.pinX!==undefined?a.pinX:a.x,v=y==='pin'?new THREE.Vector3(pinX,(a.pin||a.y+a.h)+4.8,a.pinZ!==undefined?a.pinZ:a.z):a.fz!==undefined&&y!==undefined?new THREE.Vector3(a.fx,a.y+a.h*0.45,a.fz):new THREE.Vector3(a.x,y===undefined?a.y+a.h:Math.max(y,a.y+a.h*0.6),a.z);v.project(camera);
   const r=canvas.getBoundingClientRect();return{x:r.left+(v.x+1)/2*r.width,y:r.top+(1-v.y)/2*r.height,vis:v.z<1}}
 function highlight(list,color){for(const m of marks){root.remove(m)}marks.length=0;if(!list||!list.length)return;
-  for(const pid of list){const a=anchors[pid];if(!a)continue;const m=boxAt({...a,w:a.w+0.3,h:a.h+0.3,d:a.d+0.3,y:a.y-0.15},new THREE.MeshBasicMaterial({color:color||'#3f9b62',transparent:true,opacity:0.4,depthWrite:false}));root.add(m);marks.push(m)}}
+  for(const it of list){const pid=Array.isArray(it)?it[0]:it,col=Array.isArray(it)?it[1]:color;const a=anchors[pid];if(!a)continue;const m=boxAt({...a,w:a.w+0.3,h:a.h+0.3,d:a.d+0.3,y:a.y-0.15},new THREE.MeshBasicMaterial({color:col||'#3f9b62',transparent:true,opacity:Array.isArray(it)?0.6:0.4,depthWrite:false}));root.add(m);marks.push(m);
+    // Säule über der Fläche: Höhe zeigt die Laufkundschaft
+    if(Array.isArray(it)&&it[2]!==undefined){const hh=1.5+it[2]*11,c=new THREE.Mesh(new THREE.CylinderGeometry(0.85,0.85,hh,10),new THREE.MeshBasicMaterial({color:col}));c.position.set(a.pinX!==undefined?a.pinX:a.x,a.y+a.h+0.6+hh/2,a.pinZ!==undefined?a.pinZ:a.z);c.userData.bar=true;root.add(c);marks.push(c)}}}
 let last=0;function frame(t){const dt=Math.min(0.05,(t-last)/1000||0.016);last=t;animate(dt*60);for(const f of landAnim)f(t);
   for(let i=grow.length-1;i>=0;i--){const a=grow[i];if(a.pop){a.t+=dt/0.5;const k=Math.min(1,a.t),e=k<1?1-Math.pow(1-k,3)*Math.cos(k*7):1;const sc=Math.max(0.01,e);a.g.scale.set(a.g.isSprite?3.6*sc*(a.g.userData.sc||1):sc,a.g.isSprite?4.5*sc*(a.g.userData.sc||1):sc,1*(a.g.isSprite?1:sc));if(k>=1){if(!a.g.isSprite)a.g.scale.set(1,1,1);grow.splice(i,1)}continue}
     a.t+=dt/0.7;const k=Math.min(1,a.t),e=1+Math.sin(k*Math.PI)*0.18*(1-k)+(k<1?-(1-k)*(1-k):0);a.g.scale.set(1,Math.max(0.02,k<1?k*k*(3-2*k)*(1+0.15*Math.sin(k*Math.PI)):1),1);if(k>=1){a.g.scale.set(1,1,1);grow.splice(i,1)}}
-  for(const m of marks)m.material.opacity=0.3+0.2*Math.sin(t/260);
+  for(const m of marks)if(!m.userData.bar)m.material.opacity=0.3+0.2*Math.sin(t/260);
   if(selRing.visible)selRing.material.opacity=0.6+0.3*Math.sin(t/300);renderer.render(scene,camera)}
 function setLogo(svg){const im=new Image();im.onload=()=>{logoImg=im;for(const k in pinTex)delete pinTex[k];if(G0&&plotGroup)sync(G0,true)};im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg)}
 window.World={pan,init,setLogo,resize,setCity,sync,select,hover,plotAt,project,frame,view,applyView,highlight,get city(){return cityId}};

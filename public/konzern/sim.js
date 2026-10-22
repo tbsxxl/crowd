@@ -405,6 +405,20 @@ function underBuild(G,p){if(!p||!p.owner||p.owner.startsWith('c:'))return 0;if(p
   if(p.use==='cafe'){const s=f.shops.find(x=>x.plot===p.id);return s&&s.build||0}if(p.use==='office')return f.officeBuild||0;if(p.use==='factory'){const pl=f.plants.find(x=>x.plot===p.id);return pl&&pl.build||0}return 0}
 function dayOf(G){return 1+7*(G.week||0)}
 function dateStr(G){return dayOf(G)+'. '+MONTHS[G.month%12]+' '+yearOf(G.month)}
+// ---------- Wochenaufträge: eine Aufgabe pro Woche, mit Prämie ----------
+function cafeGuests(G){return G.firms.reduce((a,f)=>a+(f.shops||[]).reduce((b,s)=>b+(s.stat&&!s.build?s.stat.guests:0),0),0)}
+const overloaded=G=>G.firms.flatMap(f=>(f.shops||[]).filter(s=>s.stat&&!s.build&&s.stat.dem>s.stat.cap*1.15));
+const QUESTS={
+  rev:{make:(G,w)=>w.rev>0&&{n:Math.ceil(w.rev*1.04/100)*100,get t(){return'Steigere den Wochenumsatz auf '+fmtE(this.n)}},test:(G,q,rep)=>rep.rev>=q.n,val:q=>q.n*0.04},
+  net:{make:(G,w)=>({n:w.net>0?Math.ceil(w.net*1.1/100)*100:0,get t(){return this.n?'Erziele mindestens '+fmtE(this.n)+' Gewinn in der Woche':'Schreibe in dieser Woche schwarze Zahlen'}}),test:(G,q,rep)=>rep.net>=q.n,val:q=>Math.max(2500,q.n*0.25)},
+  guests:{make:(G,w)=>w.guests>0&&{n:Math.ceil(w.guests*1.04/10)*10,get t(){return'Bewirte '+fn(this.n)+' Gäste in einer Woche'}},test:(G,q)=>cafeGuests(G)>=q.n,val:q=>q.n*2},
+  calm:{make:G=>overloaded(G).length>0&&{n:0,t:'Keine überlasteten Restaurants am Ende der Woche'},test:G=>!overloaded(G).length,val:()=>3000}};
+function questWeek(G,rep){const q=G.quest;
+  if(q&&QUESTS[q.k]){const ok=QUESTS[q.k].test(G,q,rep);rep.quest={t:q.t,r:q.r,ok};if(ok){G.cash+=q.r;G.paidIn+=q.r;G.led.cf.fin+=q.r;G.questsDone=(G.questsDone||0)+1;news(G,'Wochenauftrag erfüllt: +'+fmtE(q.r),'good')}}
+  G.quest=null;const w=G.weeks[G.weeks.length-1];if(!w||G.weeks.length<2)return;
+  const keys=Object.keys(QUESTS).filter(k=>k!==(q&&q.k));for(let i=0;i<6;i++){const k=pick(G,keys),o=QUESTS[k].make(G,w);if(!o)continue;
+    G.quest={k,n:o.n,t:o.t,r:Math.round(clamp(QUESTS[k].val(o),1000,40000)/100)*100};break}
+  if(G.quest)rep.nextQuest={t:G.quest.t,r:G.quest.r}}
 function endTurn(G){
   if(G.over)return null;
   for(const e of [...G.pending])decide(G,e.id,EVENTS[e.k].def||0); // offene Entscheidungen bekommen die Standardwahl
@@ -455,7 +469,8 @@ function endTurn(G){
     G.led=emptyLedger();
     if(G.cash<-dispo(G)){G.insolvT=(G.insolvT||0)+1;rep.events.push({icon:'⚠️',bad:true,t:'Der Dispo ist überzogen ('+G.insolvT+' von 3). Nach drei Monaten im Minus droht die Insolvenz.'});if(G.insolvT>=3)G.over='insolvent'}else G.insolvT=0;
     marketsMonth(G,rep);clubMonth(G,rep);G.me.wh.push(wealth(G).total);if(G.me.wh.length>24)G.me.wh.shift()}
-  G.weeks=(G.weeks||[]).concat([{m:G.month,w:G.week||0,rev:rep.rev,net:rep.net,cash:G.cash}]).slice(-26);
+  G.weeks=(G.weeks||[]).concat([{m:G.month,w:G.week||0,rev:rep.rev,net:rep.net,cash:G.cash,guests:cafeGuests(G)}]).slice(-26);
+  questWeek(G,rep);
   G.week=((G.week||0)+1)%WEEKS;G.ev={};
   if(ME){G.month++;
     if(G.month%12===0){if(!G.rentFreeze)for(const p of G.plots)p.rent=Math.round(p.rent*1.02/10)*10;G.rentFreeze=false}
