@@ -88,7 +88,7 @@ const ZONES={
 // Stadtpläne: w Wohnviertel, c Innenstadt, b Büroviertel, g Gewerbe, P Park, A Wasser, L Wahrzeichen
 const CITY_MAP={kiel:['ALccwP','Acccww','wcbcww','wwbwPw','gggwww'],hamburg:['ggbccw','gbcLAw','gbccAw','wcbPww','wwwwwg'],berlin:['PPbbcw','PPcLcw','wbccbw','wwbbww','ggwwgg']};
 // Blöcke: gleiche Buchstaben in Nachbarfeldern bilden einen großen Block (Fußgängerzone, Park oder Wasser statt Straße)
-const CITY_BLOCKS={kiel:['abccde','afccgg','hxijgk','hlimnk','ooopqq'],hamburg:['aabcxd','aefghd','aefihk','lmnopp','qqrrrs'],berlin:['aabbcd','aaefgd','hijjkl','hmnnoo','ppqqrr']};
+const CITY_BLOCKS={kiel:['abccde','afccgg','hfijgk','hlimnk','ooopqq'],hamburg:['aabccd','aefghd','aefihk','lmnopp','qqrrrs'],berlin:['aabbcd','aaefgd','hijjkl','hmnnoo','ppqqrr']};
 const CODE={w:'wohn',c:'city',b:'buero',g:'gewerbe'};
 const ZONE_MAP=CITY_MAP.kiel.map(r=>[...r].map(ch=>CODE[ch]||'wohn'));
 // Eigenheiten der Städte: Saison, Preisbewusstsein, Nachtleben, Terrassen

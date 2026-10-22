@@ -15,7 +15,7 @@ const WARPS={
   berlin:(x,z)=>{const u=(x+WW/2)/WW,v=(z+DD/2)/DD,e=Math.sin(Math.PI*u)*Math.sin(Math.PI*v);return[x+7*(v-0.5)*e*1.4+3*Math.sin(2*Math.PI*v)*Math.sin(Math.PI*u),z-4*(u-0.5)*e*1.4]}};
 const Wp=(x,z)=>{[x,z]=rPush(x,z);if(!WARP)return[x,z];const [a,b]=WARP(x,z);return[x+(a-x)*WA,z+(b-z)*WA]};
 const Wang=(x,z)=>{const a=Wp(x-0.5,z),b=Wp(x+0.5,z);return-Math.atan2(b[1]-a[1],b[0]-a[0])};
-function placeCell(g,r,c){const h=((r*73+c*151+(cityId||'').length*37)%97)/97,h2=((r*41+c*29+7)%89)/89,[x,z]=Wp(px(c)+(h-0.5)*1.6,pz(r)+(h2-0.5)*1.2);g.position.set(x,0,z);g.rotation.y=Wang(px(c),pz(r))+(h2-0.5)*0.22}
+function placeCell(g,r,c){const j=(RIVERS[cityId]||[]).some(q=>q.h?(r===q.i||r===q.i-1):(c===q.i||c===q.i-1))?0:1,h=((r*73+c*151+(cityId||'').length*37)%97)/97,h2=((r*41+c*29+7)%89)/89,[x,z]=Wp(px(c)+(h-0.5)*1.6*j,pz(r)+(h2-0.5)*1.2*j);g.position.set(x,0,z);g.rotation.y=Wang(px(c),pz(r))+(h2-0.5)*0.22*j}
 function shade3(hex,k){const n=parseInt(hex.slice(1),16),f=v=>Math.max(0,Math.min(255,Math.round(v*k)));return'#'+[f(n>>16),f(n>>8&255),f(n&255)].map(v=>v.toString(16).padStart(2,'0')).join('')}
 const toW=(g,lx,lz)=>{const c=Math.cos(g.rotation.y),s=Math.sin(g.rotation.y);return[g.position.x+lx*c+lz*s,g.position.z-lx*s+lz*c]};
 let renderer,scene,camera,root,plotGroup,canvas,walkers,cars,ray=new THREE.Raycaster(),sel=null,selRing,hoverRing,cityId=null,sig={},bases=[],G0=null;
@@ -141,15 +141,13 @@ function special(code,id,r,c,g){seed=(r*17+c*5+id.length*11)|0||3;
 // Wasser läuft entlang eines Straßenzugs: h=1 waagerecht auf streetZ(i), sonst senkrecht auf streetX(i), von a bis b (Rasterkoordinaten).
 // Querstraßen führen über Brücken, Straßen am Ende eines Kanals enden am Ufer.
 const RIVERS={
-  kiel:[{h:1,i:2,a:-BW/2,b:streetX(3)+S/2},{h:0,i:3,a:streetZ(2)-S/2,b:BD/2}], // Delft vom Graben bis zum Hafen
-  hamburg:[{h:0,i:4,a:LZ+4,b:streetZ(3)-S/2}], // Fleet von der Elbe zur Alster
   berlin:[{h:1,i:2,a:-BW/2,b:BW/2}]}; // Spree quer durch die Mitte
 // Am Fluss rücken die Häuserreihen auseinander; zum Rand hin läuft die Verschiebung aus, damit der Block seine Form behält.
-const RK=2.6;
+const RK=4.2,RW=S+2*RK*0.8+0.8;
 function rFade(r,al){const e=al<r.a?r.a-al:al>r.b?al-r.b:0;return Math.max(0,1-e/7)}
 function rPush(x,z){const rs=RIVERS[cityId];if(!rs)return[x,z];let dx=0,dz=0;
-  for(const r of rs){if(r.h){const z0=streetZ(r.i),f=rFade(r,x);if(!f)continue;dz+=z<z0?-RK*f*(z+DD/2)/(z0+DD/2):z>z0?RK*f*(DD/2-z)/(DD/2-z0):0}
-    else{const x0=streetX(r.i),f=rFade(r,z);if(!f)continue;dx+=x<x0?-RK*f*(x+WW/2)/(x0+WW/2):x>x0?RK*f*(WW/2-x)/(WW/2-x0):0}}
+  for(const r of rs){if(r.h){const z0=streetZ(r.i),f=rFade(r,x);if(!f)continue;dz+=z<z0?-RK*f*Math.max(0,z+BD/2)/(z0+BD/2):z>z0?RK*f*Math.max(0,BD/2-z)/(BD/2-z0):0}
+    else{const x0=streetX(r.i),f=rFade(r,z);if(!f)continue;dx+=x<x0?-RK*f*Math.max(0,x+BW/2)/(x0+BW/2):x>x0?RK*f*Math.max(0,BW/2-x)/(BW/2-x0):0}}
   return[x+dx,z+dz]}
 function inRiver(x,z){for(const r of RIVERS[cityId]||[]){const d=r.h?Math.abs(z-streetZ(r.i)):Math.abs(x-streetX(r.i)),al=r.h?x:z;if(d>S/2+0.2||al<r.a||al>r.b)continue;
     const n=r.h?COLS:ROWS,sf=r.h?streetX:streetZ;for(let j=0;j<=n;j++){const q=sf(j);if(q>r.a+S&&q<r.b-S&&Math.abs(al-q)<S/2+0.2)return 2}return 1}return 0}
@@ -161,12 +159,13 @@ function buildWater(){if(!waterGroup)return;while(waterGroup.children.length){co
   const along=(fn,a,b)=>{const pts=[];for(let t=a;;t+=1.2){const u=Math.min(t,b);pts.push(Wq(...fn(u)));if(u>=b)break}return pts};
   const deck=M((MAP_CITY[cityId]||MAP_CITY.kiel).top);
   for(const r of RIVERS[cityId]||[]){const at=(u,o)=>r.h?[u,streetZ(r.i)+(o||0)]:[streetX(r.i)+(o||0),u];
-    g.add(ribbon(along(u=>at(u),r.a,r.b),S+2*RK+0.6,0.14,wm));
-    for(let k=0;k<r.b-r.a;k+=2.2){const o=((k*7)%5-2)*0.4,[x,z]=Wq(...at(r.a+k+1,o));if(inRiver(...at(r.a+k+1,o))===1)B(0.9,0.03,0.08,'#cfe6f2',x,0.15,z,g).rotation.y=Wang(...at(r.a+k,0))+(r.h?0:Math.PI/2)}
+    g.add(ribbon(along(u=>at(u),r.a,r.b),RW,0.14,wm));
+    for(const e of [-1,1])g.add(ribbon(along(u=>at(u,e*(S/2+0.25)),r.a,r.b),0.5,0.2,M('#c9c2b2')));
+    for(let k=0;k<r.b-r.a;k+=1.3){const u=r.a+k+0.6,o=((k*7.3)%5-2)/2*(RW/2-1.2);if(inRiver(...at(u))!==1)continue;const [cx,cz]=Wq(...at(u)),an=Wang(...at(u)),[x,z]=r.h?[cx+Math.sin(an)*o,cz+Math.cos(an)*o]:[cx+Math.cos(an)*o,cz-Math.sin(an)*o];B(1.3,0.03,0.1,'#d7ecf6',x,0.15,z,g).rotation.y=an+(r.h?0:Math.PI/2)}
     // Brücken
     const n=r.h?COLS:ROWS,sf=r.h?streetX:streetZ;
     for(let j=0;j<=n;j++){const q=sf(j);if(!(q>r.a+S&&q<r.b-S))continue;const [gx,gz]=at(q),[x,z]=Wq(gx,gz),bg=new THREE.Group();bg.position.set(x,0,z);bg.rotation.y=Wang(gx,gz)+(r.h?Math.PI/2:0);g.add(bg);
-      const L=S+2*RK+1.6;B(L,0.22,S+0.2,deck,0,0.14,0,bg);B(L,0.2,S+0.6,'#b9b2a4',0,0,0,bg);for(const e of [-1,1])B(L,0.45,0.18,'#e9e4d8',0,0.36,e*(S/2+0.1),bg);for(const e of [-1,1])B(0.8,0.6,S+0.4,'#b9b2a4',e*(L/2-1.4),-0.45,0,bg)}
+      const L=RW+1.2;B(L,0.22,S+0.2,deck,0,0.14,0,bg);B(L,0.2,S+0.6,'#b9b2a4',0,0,0,bg);for(const e of [-1,1])B(L,0.45,0.18,'#e9e4d8',0,0.36,e*(S/2+0.1),bg);for(const e of [-1,1])B(0.8,0.6,S+0.4,'#b9b2a4',e*(L/2-1.4),-0.45,0,bg)}
     // Boote zwischen den Brücken
     const stops=[];for(let j=0;j<n;j++){const m=(sf(j)+sf(j+1))/2;if(m>r.a+3&&m<r.b-3)stops.push(m)}
     stops.filter((_,k)=>k%2===0).slice(0,3).forEach((m,k)=>{const [gx,gz]=at(m,(k%2?-0.6:0.6)),[x,z]=Wq(gx,gz),bt=boat(g,x,z,cityId==='kiel'&&k===0?'#c8363b':['#f4f1ea','#2f6fd0','#6b4a2f'][k%3],3.4,true);bt.scale.setScalar(0.8);bt.rotation.y=Wang(gx,gz)+(r.h?0:Math.PI/2)})}
@@ -174,12 +173,19 @@ function buildWater(){if(!waterGroup)return;while(waterGroup.children.length){co
     const ow=WW/2+1.6,od=DD/2+1.6,mw=WW/2+3.9,md=DD/2+3.9;
     const sides=[[t=>[t,-md],t=>[t,-od],-BW/2,BW/2],[t=>[t,md],t=>[t,od],-BW/2,BW/2],[t=>[-mw,t],t=>[-ow,t],-BD/2,BD/2],[t=>[mw,t],t=>[ow,t],-BD/2,BD/2]];
     const open=(x,z)=>inRiver(x,z)||(z<0&&Math.abs(x-px(0))<P/2+1);
-    let n=0;for(const [m,w,a,b] of sides){g.add(ribbon(along(m,a,b),2.1,0.14,wm));
-      for(let t=a+1.3;t<b-1;t+=2.4){const [gx,gz]=w(t);if(open(gx,gz))continue;const [x,z]=Wq(gx,gz),k=B(2.6,0.55,2.8,'#7fae6a',x,0,z,g);k.rotation.y=Wang(gx,gz)+(m===sides[2][0]||m===sides[3][0]?Math.PI/2:0);
-        if((n++)%2===0){cyl(0.1,0.14,0.9,'#6b4a2f',x,0.55,z,g,5);add(new THREE.IcosahedronGeometry(0.75,0),['#6fae5a','#5e9e4e','#86be62'][n%3],x,1.9,z,g)}}}
-    for(const [gx,gz] of [[ow,-od],[-ow,od],[ow,DD/4]]){const [x,z]=Wq(gx,gz),mg=new THREE.Group();mg.position.set(x,0.55,z);mg.scale.setScalar(0.5);g.add(mg);windmill(mg,0,0)}}
+    const wallM=new THREE.MeshStandardMaterial({color:'#7fae6a',flatShading:true,roughness:0.9,side:THREE.DoubleSide});let n=0;
+    for(const [m,w,a,b] of sides){g.add(ribbon(along(m,a,b),2.1,0.14,wm));const wa=m===sides[0][0]||m===sides[1][0]?-ow-1.3:-od-1.3;
+      let run=[];const flush=()=>{if(run.length>1)g.add(dam(run,2.8,1.6,0.6,wallM));run=[]};
+      for(let t=wa;t<=-wa+0.01;t+=1){const q=w(t);if(open(...q)){flush();continue}run.push(Wq(...q))}flush();
+      for(let t=wa+2;t<-wa-1;t+=3.2){const q=w(t);if(open(...q))continue;const [x,z]=Wq(...q);n++;cyl(0.1,0.14,0.9,'#6b4a2f',x,0.6,z,g,5);add(new THREE.IcosahedronGeometry(0.75,0),['#6fae5a','#5e9e4e','#86be62'][n%3],x,1.9,z,g)}}
+    for(const [gx,gz] of [[ow,-od],[-ow,od],[ow,DD/4]]){const [x,z]=Wq(gx,gz),mg=new THREE.Group();mg.position.set(x,0.6,z);mg.scale.setScalar(0.5);g.add(mg);windmill(mg,0,0)}}
   g.traverse(o=>{if(o.isMesh){o.receiveShadow=true;o.castShadow=o.position.y>0.2}});
   for(const t of edgeTrees){const v=cityId!=='kiel'&&!inRiver(t.x,t.z);t.o.forEach(o=>o.visible=v)}}
+// Damm mit schrägen Flanken: unten breit, oben schmal
+function dam(pts,wb,wt,h,mat){const pos=[],idx=[],n=pts.length,side=(i,o)=>{const a=pts[Math.max(0,i-1)],b=pts[Math.min(n-1,i+1)],dx=b[0]-a[0],dz=b[1]-a[1],l=Math.hypot(dx,dz)||1;return[pts[i][0]-dz/l*o,pts[i][1]+dx/l*o]};
+  const strip=(o1,y1,o2,y2)=>{const s0=pos.length/3;for(let i=0;i<n;i++){const p=side(i,o1),q=side(i,o2);pos.push(p[0],y1,p[1],q[0],y2,q[1]);if(i)idx.push(s0+2*i-2,s0+2*i-1,s0+2*i,s0+2*i-1,s0+2*i+1,s0+2*i)}};
+  strip(wb/2,0.1,wt/2,h);strip(wt/2,h,-wt/2,h);strip(-wt/2,h,-wb/2,0.1);
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setIndex(idx);geo.computeVertexNormals();const m=new THREE.Mesh(geo,mat);m.castShadow=m.receiveShadow=true;return m}
 // Lücken zwischen Feldern desselben Blocks füllen: Platz, Park oder Wasser. Autos meiden diese Flächen.
 const gaps=[];
 const PLAZA={kiel:'#cdb8a4',hamburg:'#c9cdd0',berlin:'#d3cdbf'};
