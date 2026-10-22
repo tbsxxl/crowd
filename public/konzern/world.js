@@ -5,6 +5,19 @@ const P=10,S=4,COLS=6,ROWS=5,WW=COLS*P+(COLS+1)*S,DD=ROWS*P+(ROWS+1)*S,MARGIN=5,
 const px=c=>-WW/2+S+c*(P+S)+P/2,pz=r=>-DD/2+S+r*(P+S)+P/2;
 const streetX=i=>-WW/2+S/2+i*(P+S),streetZ=i=>-DD/2+S/2+i*(P+S);
 const grow=[],marks=[];let markGeo=null;
+// Stadtplan biegen: Rasterpunkt (x,z) -> Weltpunkt. Am Rand verschwindet die Verschiebung, damit der Block sauber abschließt.
+let WARP=null;
+const WA=1.55;
+const WARPS={
+  kiel:(x,z)=>{const u=(x+WW/2)/WW,v=(z+DD/2)/DD,e=Math.sin(Math.PI*u)*Math.sin(Math.PI*v);return[x+6.5*Math.sin(Math.PI*v)*(1.1-u)*Math.sin(Math.PI*u)*1.6-3.5*e,z-5*e+2.5*Math.sin(2*Math.PI*u)*Math.sin(Math.PI*v)]},
+  hamburg:(x,z)=>{const cx=WW/2-P*1.6,cz=-DD/2+P*1.9,dx=x-cx,dz=z-cz,d=Math.hypot(dx,dz)||1,u=(x+WW/2)/WW,v=(z+DD/2)/DD,edge=Math.sin(Math.PI*u)*Math.sin(Math.PI*v),f=7.5*Math.exp(-d*d/520)*Math.min(1,edge*1.6);
+    return[x+dx/d*f+2.5*Math.sin(Math.PI*v*2)*Math.sin(Math.PI*u),z+dz/d*f-2*Math.sin(Math.PI*u*2)*Math.sin(Math.PI*v)]},
+  berlin:(x,z)=>{const u=(x+WW/2)/WW,v=(z+DD/2)/DD,e=Math.sin(Math.PI*u)*Math.sin(Math.PI*v);return[x+7*(v-0.5)*e*1.4+3*Math.sin(2*Math.PI*v)*Math.sin(Math.PI*u),z-4*(u-0.5)*e*1.4]}};
+const Wp=(x,z)=>{if(!WARP)return[x,z];const [a,b]=WARP(x,z);return[x+(a-x)*WA,z+(b-z)*WA]};
+const Wang=(x,z)=>{const a=Wp(x-0.5,z),b=Wp(x+0.5,z);return-Math.atan2(b[1]-a[1],b[0]-a[0])};
+function placeCell(g,r,c){const h=((r*73+c*151+(cityId||'').length*37)%97)/97,h2=((r*41+c*29+7)%89)/89,[x,z]=Wp(px(c)+(h-0.5)*1.6,pz(r)+(h2-0.5)*1.2);g.position.set(x,0,z);g.rotation.y=Wang(px(c),pz(r))+(h2-0.5)*0.22}
+function shade3(hex,k){const n=parseInt(hex.slice(1),16),f=v=>Math.max(0,Math.min(255,Math.round(v*k)));return'#'+[f(n>>16),f(n>>8&255),f(n&255)].map(v=>v.toString(16).padStart(2,'0')).join('')}
+const toW=(g,lx,lz)=>{const c=Math.cos(g.rotation.y),s=Math.sin(g.rotation.y);return[g.position.x+lx*c+lz*s,g.position.z-lx*s+lz*c]};
 let renderer,scene,camera,root,plotGroup,canvas,walkers,cars,ray=new THREE.Raycaster(),sel=null,selRing,hoverRing,cityId=null,sig={},bases=[],G0=null;
 const view={yaw:-0.62,tilt:0.98,zoom:1,tx:0,tz:-7};
 const mats={};
@@ -88,8 +101,17 @@ const LANDMARKS={
     const dome=add(new THREE.SphereGeometry(3.4,16,10,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:'#cfe3ec',metalness:0.4,roughness:0.15,transparent:true,opacity:0.85}),-28,6,LZ-8,g);
     trees(g,10,26,46,LZ-12,LZ-3);trees(g,6,-12,4,LZ+7,LZ+12)}}};
 // ---------- Besondere Felder im Stadtraster: Wahrzeichen, Parks, Wasser ----------
-const MAP_CITY={kiel:{top:'#a39a92',park:'#8fbf73'},hamburg:{top:'#8e959b',park:'#7fb37a'},berlin:{top:'#a3a5a2',park:'#93c27a'}};
-let topMat=null;
+const MAP_CITY={kiel:{top:'#9c938b',ground:'#e4ddd0',park:'#8fbf73'},hamburg:{top:'#8e959b',ground:'#dfe0dc',park:'#7fb37a'},berlin:{top:'#a0a29f',ground:'#e6e2d8',park:'#93c27a'}};
+let topMat=null,roadGroup=null;
+function ribbon(pts,w,y,col){const pos=[],idx=[];for(let i=0;i<pts.length;i++){const a=pts[Math.max(0,i-1)],b=pts[Math.min(pts.length-1,i+1)],dx=b[0]-a[0],dz=b[1]-a[1],l=Math.hypot(dx,dz)||1,nx=-dz/l*w/2,nz=dx/l*w/2;
+    pos.push(pts[i][0]+nx,y,pts[i][1]+nz,pts[i][0]-nx,y,pts[i][1]-nz);if(i)idx.push(2*i-2,2*i-1,2*i,2*i-1,2*i+1,2*i)}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setIndex(idx);geo.computeVertexNormals();
+  const m=new THREE.Mesh(geo,typeof col==='string'?M(col):col);m.receiveShadow=true;return m}
+function buildRoads(){if(!roadGroup)return;while(roadGroup.children.length){const c=roadGroup.children.pop();if(c.geometry)c.geometry.dispose()}
+  const asphalt=new THREE.MeshStandardMaterial({color:(MAP_CITY[cityId]||MAP_CITY.kiel).top,roughness:0.95,side:THREE.DoubleSide}),dashM=new THREE.MeshBasicMaterial({color:'#f3f1ea',side:THREE.DoubleSide});
+  const line=(fn,a0,a1)=>{const pts=[];for(let t=a0;t<=a1+0.01;t+=1.5)pts.push(Wp(...fn(t)));return pts};
+  const lines=[];for(let i=0;i<=COLS;i++)lines.push(line(t=>[streetX(i),t],-BD/2,BD/2));for(let i=0;i<=ROWS;i++)lines.push(line(t=>[t,streetZ(i)],-BW/2,BW/2));
+  for(const L of lines){roadGroup.add(ribbon(L,S,0.015,asphalt));for(let k=0;k<L.length-1;k+=2)roadGroup.add(ribbon([L[k],L[k+1]],0.18,0.03,dashM))}}
 function special(code,id,r,c,g){seed=(r*17+c*5+id.length*11)|0||3;
   if(code==='P'){B(P,0.3,P,(MAP_CITY[id]||MAP_CITY.kiel).park,0,0,0,g);B(P,0.04,1.1,'#e2d6b8',0,0.3,0,g);B(1.1,0.04,P,'#e2d6b8',0,0.3,0,g);
     if((r+c)%2){const pond=add(new THREE.CylinderGeometry(2.1,2.1,0.1,18),new THREE.MeshStandardMaterial({color:'#6fa8c8',roughness:0.2}),2.6,0.32,-2.6,g)}else{cyl(0.9,1.1,0.5,'#d9d2c4',2.6,0.3,-2.6,g);cyl(0.15,0.2,1.2,'#d9d2c4',2.6,0.8,-2.6,g)}
@@ -121,7 +143,7 @@ function fillGaps(G){gaps.length=0;const map=K.CITY_MAP[cityId],bl=K.CITY_BLOCKS
   const g=new THREE.Group();g.userData.cell='gaps';plotGroup.add(g);
   const kind=(a,b)=>a==='A'&&b==='A'?'A':a==='P'&&b==='P'?'P':'Z';
   const col=k=>k==='A'?'#5c9cbf':k==='P'?(MAP_CITY[cityId]||MAP_CITY.kiel).park:PLAZA[cityId]||'#d0c8bc';
-  const put=(x,z,w,d,k)=>{const m=B(w,k==='A'?0.1:0.16,d,col(k),x,k==='A'?-0.02:0,z,g);gaps.push({x0:x-w/2,x1:x+w/2,z0:z-d/2,z1:z+d/2,k});
+  const put=(x0,z0,w,d,k)=>{gaps.push({x0:x0-w/2,x1:x0+w/2,z0:z0-d/2,z1:z0+d/2,k});const [x,z]=Wp(x0,z0);w+=0.8;d+=0.8;const m=B(w,k==='A'?0.1:0.16,d,col(k),x,k==='A'?-0.02:0,z,g);m.rotation.y=Wang(x0,z0);
     if(k==='Z'&&w*d>14){for(let i=0;i<2;i++){const tx=x+(i?1:-1)*w*0.25,tz=z+(i?-1:1)*d*0.25;cyl(0.1,0.14,0.9,'#6b4a2f',tx,0.16,tz,g,5);add(new THREE.IcosahedronGeometry(0.7,0),'#6fae5a',tx,1.6,tz,g)}B(1.2,0.35,0.4,'#7a5a3a',x,0.16,z,g)}
     if(k==='P'){cyl(0.12,0.16,1,'#6b4a2f',x,0.16,z,g,5);add(new THREE.IcosahedronGeometry(0.9,0),'#5e9e4e',x,1.8,z,g)}};
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const id=bl[r][c];
@@ -133,8 +155,8 @@ function fillGaps(G){gaps.length=0;const map=K.CITY_MAP[cityId],bl=K.CITY_BLOCKS
 const inGap=(x,z,water)=>{for(const q of gaps)if(x>q.x0&&x<q.x1&&z>q.z0&&z<q.z1&&(!water||q.k==='A'))return true;return false};
 function buildSpecials(G){const map=window.K&&K.CITY_MAP&&K.CITY_MAP[cityId];if(!map)return;if(!G.plots.some(p=>p.city===cityId&&'PAL'.includes(map[p.r][p.c])))fillGaps(G);else gaps.length=0;
   for(let r=0;r<map.length;r++)for(let c=0;c<map[r].length;c++){const code=map[r][c];if(!'PAL'.includes(code))continue;if(G.plots.some(p=>p.city===cityId&&p.r===r&&p.c===c))continue;
-    const g=new THREE.Group();g.userData.cell='x'+r+'-'+c;g.position.set(px(c),0,pz(r));plotGroup.add(g);special(code,cityId,r,c,g);g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}})}}
-function buildLand(id){if(topMat)topMat.color.set((MAP_CITY[id]||MAP_CITY.kiel).top);if(!landGroup)return;while(landGroup.children.length){const c=landGroup.children.pop();c.traverse(o=>{if(o.geometry)o.geometry.dispose()})}landAnim.length=0;
+    const g=new THREE.Group();g.userData.cell='x'+r+'-'+c;placeCell(g,r,c);plotGroup.add(g);special(code,cityId,r,c,g);g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}})}}
+function buildLand(id){if(topMat)topMat.color.set((MAP_CITY[id]||MAP_CITY.kiel).ground);if(!landGroup)return;while(landGroup.children.length){const c=landGroup.children.pop();c.traverse(o=>{if(o.geometry)o.geometry.dispose()})}landAnim.length=0;
   const L=LANDMARKS[id];if(!L)return;ground(landGroup,LZ-LD/2,LZ+LD/2,L.ground);L.build(landGroup);
   const sg=new THREE.Mesh(new THREE.PlaneGeometry(10,1.6),label(L.n.toUpperCase(),'#24272b','#ffffff'));sg.rotation.x=-Math.PI/2;sg.position.set(-BW/2+8,0.12,LZ+LD/2-2);landGroup.add(sg);
   landGroup.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}})}
@@ -158,8 +180,7 @@ function init(cv){
   // Gehweg-Rand ringsum und Fahrbahnmarkierungen
   const walkM=M('#d9d4c9'),dash=M('#f3f1ea');
   for(const [w,d,x,z] of [[BW,MARGIN+1.2,0,-BD/2+(MARGIN+1.2)/2],[BW,MARGIN+1.2,0,BD/2-(MARGIN+1.2)/2],[MARGIN+1.2,BD,-BW/2+(MARGIN+1.2)/2,0],[MARGIN+1.2,BD,BW/2-(MARGIN+1.2)/2,0]])B(w,0.12,d,walkM,x,0,z);
-  for(let i=0;i<=COLS;i++)for(let z=-DD/2;z<DD/2;z+=3)B(0.18,0.02,1.4,dash,streetX(i),0.01,z+0.7);
-  for(let i=0;i<=ROWS;i++)for(let x=-WW/2;x<WW/2;x+=3)B(1.4,0.02,0.18,dash,x+0.7,0.01,streetZ(i));
+  roadGroup=new THREE.Group();root.add(roadGroup);
   // Bäume und Laternen am Rand
   for(let i=0;i<34;i++){const side=i%4,t=rnd();let x,z;if(side<2){x=-BW/2+2+t*(BW-4);z=side?BD/2-2.2:-BD/2+2.2}else{z=-BD/2+2+t*(BD-4);x=side===2?-BW/2+2.2:BW/2-2.2}
     add(new THREE.CylinderGeometry(0.12,0.16,1,5),'#6b4a2f',x,0.6,z);add(new THREE.IcosahedronGeometry(0.9+rnd()*0.3,0),['#6fae5a','#5e9e4e','#86be62'][i%3],x,1.7,z)}
@@ -194,14 +215,14 @@ function plotSig(G,p){let s=p.owner+'|'+p.use+'|'+(p.prop||'')+'|b'+(window.K&&K
   if(p.owner&&p.owner.startsWith('c:')){const cp=G.comps.find(c=>'c:'+c.id===p.owner);s+='|'+(cp?cp.name:'')}
   return s}
 const dispKind=p=>p.kind||(p.zone==='gewerbe'?'halle':(p.use==='office'||p.use==='hq'||(!p.use&&p.zone==='buero'))?'etage':'laden');
-function setCity(G,id){if(cityId===id)return;cityId=id;buildLand(id);sig={};for(const k in cells)delete cells[k];for(const k in anchors)delete anchors[k];
+function setCity(G,id){if(cityId===id)return;cityId=id;WARP=WARPS[id]||null;buildLand(id);buildRoads();sig={};for(const k in cells)delete cells[k];for(const k in anchors)delete anchors[k];
   while(plotGroup.children.length){const c=plotGroup.children.pop();c.traverse(o=>{if(o.geometry)o.geometry.dispose()})}bases=[];buildSpecials(G);sync(G,true)}
 function sync(G,force){G0=G;if(!plotGroup)return;
   const byCell={};for(const p of G.plots){if(p.city!==cityId)continue;(byCell[p.r+'-'+p.c]=byCell[p.r+'-'+p.c]||[]).push(p)}
   for(const key in byCell){const list=byCell[key],us=list.map(p=>plotSig(G,p)),s=us.join('#');if(!force&&sig[key]===s)continue;
     const prev=cells[key]?cells[key].sigs:{};sig[key]=s;
     const old=plotGroup.children.find(c=>c.userData.cell===key);if(old){plotGroup.remove(old);old.traverse(o=>{if(o.geometry)o.geometry.dispose()})}
-    const g=new THREE.Group();g.userData.cell=key;const p0=list[0];g.position.set(px(p0.c),0,pz(p0.r));plotGroup.add(g);
+    const g=new THREE.Group();g.userData.cell=key;const p0=list[0];placeCell(g,p0.r,p0.c);plotGroup.add(g);
     const parts=buildCell(G,list,g);cells[key]={sigs:{}};list.forEach((p,i)=>{cells[key].sigs[p.id]=us[i];
       if(!force&&old&&prev[p.id]!==us[i]&&parts[p.id]){for(const o of parts[p.id])grow.push({g:o,t:0,pop:true})}})}
   bases=[];plotGroup.traverse(o=>{if(o.userData.base)bases.push(o)});
@@ -211,7 +232,8 @@ function buildCell(G,list,g){const p0=list[0];seed=(p0.r*31+p0.c*7+(p0.city||'')
   const zone=p0.zone,slots=SLOTS[zone],used=new Set(),units=slots.map((k,i)=>{let p=list.find(q=>q.u===i);
     if(!p)p=list.find(q=>q.u===undefined&&!used.has(q)&&dispKind(q)===k);if(p)used.add(p);return p||null});
   const def=(units.find(Boolean)||p0).id,parts={};
-  const base=B(P,0.25,P,ZCOL[zone],0,0,0,unitGroup(g,def));base.userData.base=true;
+  const bg=(MAP_CITY[cityId]||MAP_CITY.kiel),base=B(P,0.25,P,zone==='gewerbe'?'#d8d2c4':shade3(bg.ground,0.95),0,0,0,unitGroup(g,def));base.userData.base=true;
+  if(zone==='wohn'){const gw=3+rnd()*4,gd=1.6+rnd()*1.4;B(gw,0.04,gd,bg.park,(rnd()-0.5)*(P-gw),0.25,-P/2+gd/2+0.3,g);if(rnd()<0.7){const tx=(rnd()-0.5)*6;cyl(0.1,0.14,0.8,'#6b4a2f',tx,0.25,-P/2+1,g,5);add(new THREE.IcosahedronGeometry(0.7,0),'#6fae5a',tx,1.5,-P/2+1,g)}}
   const info=p=>{if(!p||!p.owner)return{};const own=!p.owner.startsWith('c:')&&p.owner!=='H',f=own?G.firms.find(x=>x.id===p.owner):null,cp=p.owner.startsWith('c:')?G.comps.find(c=>'c:'+c.id===p.owner):null;
     return{build:window.K&&K.underBuild?K.underBuild(G,p):0,f,cp,hq:p.owner==='H',color:p.owner==='H'?'#24272b':f?f.color:cp?cp.color:'#8a8f96',name:f?f.name:cp?cp.name:''}};
   const deco=(p,ug)=>{const d=new THREE.Group();ug.add(d);if(p)(parts[p.id]=parts[p.id]||[]).push(d);return d};
@@ -240,8 +262,8 @@ function buildCell(G,list,g){const p0=list[0];seed=(p0.r*31+p0.c*7+(p0.city||'')
     if(k==='halle')a={x:0,y:0.25,z:0,w:9.2,h:4.8,d:9.2};
     else if(k==='laden'){const sx=zone==='buero'?-2.1:i?2.2:-2.2;a={x:sx,y:0.25,z:1.2,w:4.4,h:GF+0.3,d:7.2,fz:FZ-0.3}}
     else{const top=g.userData.top||8,y0=g.userData['y'+i]||0.25+GF,hh=g.userData['h'+i]||top-y0;a={x:0,y:y0,z:-0.6,w:9.2,h:hh,d:7.2}}
-    a.x+=g.position.x;a.z+=g.position.z;anchors[p.id]=a});
-  for(const [p,I,x,y,z] of pins){const sp=pin(I,p);sp.position.set(x,y,z);g.add(sp);(parts[p.id]=parts[p.id]||[]).push(sp);anchors[p.id].pin=y;anchors[p.id].pinX=x+g.position.x;anchors[p.id].pinZ=z+g.position.z}
+    const [wx,wz]=toW(g,a.x,a.z);if(a.fz!==undefined){const f=toW(g,a.x,a.fz);a.fx=f[0];a.fz=f[1]}a.x=wx;a.z=wz;a.rot=g.rotation.y;anchors[p.id]=a});
+  for(const [p,I,x,y,z] of pins){const sp=pin(I,p);sp.position.set(x,y,z);g.add(sp);(parts[p.id]=parts[p.id]||[]).push(sp);anchors[p.id].pin=y;const pw=toW(g,x,z);anchors[p.id].pinX=pw[0];anchors[p.id].pinZ=pw[1]}
   return parts}
 function flag(g,x,y,z){B(0.08,2.4,0.08,'#24272b',x,y,z,g);B(1.1,0.65,0.04,'#d4a72c',x+0.6,y+1.7,z,g)}
 // Baugerüst: Stangen, Bretter, grünes Netz
@@ -340,22 +362,22 @@ function moveOnGrid(o,dt,lane){ // läuft entlang einer Straße und biegt an Kre
   const a=o.t*(o.horiz?WW:DD)-(o.horiz?WW:DD)/2;return o.horiz?[a,streetZ(o.line)+lane]:[streetX(o.line)+lane,a]}
 function animate(dt){
   for(let i=0;i<WMAX;i++){if(i>=wCount){O.position.set(0,-50,0);O.scale.setScalar(0.001);O.updateMatrix();wInst.setMatrixAt(i,O.matrix);continue}
-    const w=wData[i];const [x,z]=moveOnGrid(w,dt*0.05,w.side);if(inGap(x,z,true)){O.position.set(0,-50,0);O.scale.setScalar(0.001);O.updateMatrix();wInst.setMatrixAt(i,O.matrix);continue}O.position.set(x,0.12+Math.abs(Math.sin(performance.now()/180+i))*0.05,z);O.scale.setScalar(1);O.rotation.set(0,0,0);O.updateMatrix();wInst.setMatrixAt(i,O.matrix)}
+    const w=wData[i];const [gx,gz]=moveOnGrid(w,dt*0.05,w.side),[x,z]=Wp(gx,gz);if(inGap(gx,gz,true)){O.position.set(0,-50,0);O.scale.setScalar(0.001);O.updateMatrix();wInst.setMatrixAt(i,O.matrix);continue}O.position.set(x,0.12+Math.abs(Math.sin(performance.now()/180+i))*0.05,z);O.scale.setScalar(1);O.rotation.set(0,0,0);O.updateMatrix();wInst.setMatrixAt(i,O.matrix)}
   wInst.instanceMatrix.needsUpdate=true;
-  for(let i=0;i<cData.length;i++){const c=cData[i];const [x,z]=moveOnGrid(c,dt*0.07,(c.dir>0?0.55:-0.55));O.position.set(x,0,z);O.rotation.set(0,c.horiz?0:Math.PI/2,0);O.scale.setScalar(inGap(x,z,false)?0.001:1);O.updateMatrix();cInst.setMatrixAt(i,O.matrix)}
+  for(let i=0;i<cData.length;i++){const c=cData[i];const [gx,gz]=moveOnGrid(c,dt*0.07,(c.dir>0?0.55:-0.55)),[x,z]=Wp(gx,gz),q=c.horiz?Wp(gx+0.5,gz):Wp(gx,gz+0.5);O.position.set(x,0,z);O.rotation.set(0,-Math.atan2(q[1]-z,q[0]-x),0);O.scale.setScalar(inGap(gx,gz,false)?0.001:1);O.updateMatrix();cInst.setMatrixAt(i,O.matrix)}
   cInst.instanceMatrix.needsUpdate=true}
 
 // ---------- Auswahl und Interaktion ----------
 function plotAt(cx,cy){const r=canvas.getBoundingClientRect();const v=new THREE.Vector2((cx-r.left)/r.width*2-1,-(cy-r.top)/r.height*2+1);ray.setFromCamera(v,camera);
   const hit=ray.intersectObjects(plotGroup.children,true)[0];if(!hit)return null;let o=hit.object;while(o&&!o.userData.pid)o=o.parent;return o?o.userData.pid:null}
-function boxAt(a,m){const o=new THREE.Mesh(new THREE.BoxGeometry(a.w,a.h,a.d),m);o.position.set(a.x,a.y+a.h/2,a.z);o.renderOrder=6;return o}
+function boxAt(a,m){const o=new THREE.Mesh(new THREE.BoxGeometry(a.w,a.h,a.d),m);o.position.set(a.x,a.y+a.h/2,a.z);o.rotation.y=a.rot||0;o.renderOrder=6;return o}
 let selBox=null,hovBox=null;const edgeGeo={};
 function edgeBox(a,color,op){const k=[a.w,a.h,a.d].map(v=>v.toFixed(2)).join('x');if(!edgeGeo[k])edgeGeo[k]=new THREE.EdgesGeometry(new THREE.BoxGeometry(a.w,a.h,a.d));
-  const o=new THREE.LineSegments(edgeGeo[k],new THREE.LineBasicMaterial({color,transparent:true,opacity:op,depthTest:false}));o.position.set(a.x,a.y+a.h/2,a.z);o.renderOrder=9;return o}
+  const o=new THREE.LineSegments(edgeGeo[k],new THREE.LineBasicMaterial({color,transparent:true,opacity:op,depthTest:false}));o.position.set(a.x,a.y+a.h/2,a.z);o.rotation.y=a.rot||0;o.renderOrder=9;return o}
 function select(pid){sel=pid;if(selBox){root.remove(selBox);selBox=null}const a=pid&&anchors[pid];selRing.visible=!!a;
-  if(a){selRing.scale.set(a.w/P*0.8,1,a.d/P*0.8);selRing.position.set(a.x,0.3,a.z);selBox=edgeBox(a,'#24272b',0.9);root.add(selBox)}}
+  if(a){selRing.scale.set(a.w/P*0.8,1,a.d/P*0.8);selRing.position.set(a.x,0.3,a.z);selRing.rotation.y=a.rot||0;selBox=edgeBox(a,'#24272b',0.9);root.add(selBox)}}
 function hover(pid){if(hovBox){root.remove(hovBox);hovBox=null}const a=pid&&pid!==sel&&anchors[pid];hoverRing.visible=false;if(a){hovBox=edgeBox(a,'#24272b',0.35);root.add(hovBox)}}
-function project(pid,y){const a=anchors[pid];if(!a)return null;const pinX=a.pinX!==undefined?a.pinX:a.x,v=y==='pin'?new THREE.Vector3(pinX,(a.pin||a.y+a.h)+4.8,a.pinZ!==undefined?a.pinZ:a.z):a.fz!==undefined&&y!==undefined?new THREE.Vector3(a.x,a.y+a.h*0.45,a.fz+(a.z-1.2)):new THREE.Vector3(a.x,y===undefined?a.y+a.h:Math.max(y,a.y+a.h*0.6),a.z);v.project(camera);
+function project(pid,y){const a=anchors[pid];if(!a)return null;const pinX=a.pinX!==undefined?a.pinX:a.x,v=y==='pin'?new THREE.Vector3(pinX,(a.pin||a.y+a.h)+4.8,a.pinZ!==undefined?a.pinZ:a.z):a.fz!==undefined&&y!==undefined?new THREE.Vector3(a.fx,a.y+a.h*0.45,a.fz):new THREE.Vector3(a.x,y===undefined?a.y+a.h:Math.max(y,a.y+a.h*0.6),a.z);v.project(camera);
   const r=canvas.getBoundingClientRect();return{x:r.left+(v.x+1)/2*r.width,y:r.top+(1-v.y)/2*r.height,vis:v.z<1}}
 function highlight(list,color){for(const m of marks){root.remove(m)}marks.length=0;if(!list||!list.length)return;
   for(const pid of list){const a=anchors[pid];if(!a)continue;const m=boxAt({...a,w:a.w+0.3,h:a.h+0.3,d:a.d+0.3,y:a.y-0.15},new THREE.MeshBasicMaterial({color:color||'#3f9b62',transparent:true,opacity:0.4,depthWrite:false}));root.add(m);marks.push(m)}}
