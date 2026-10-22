@@ -14,8 +14,10 @@ function add(geo,m,x,y,z,parent){const o=new THREE.Mesh(geo,typeof m==='string'|
 function B(w,h,d,m,x,y,z,p){return add(new THREE.BoxGeometry(w,h,d),m,x,y+h/2,z,p)}
 function prism(w,h,d){const s=new THREE.Shape();s.moveTo(-w/2,0);s.lineTo(w/2,0);s.lineTo(0,h);s.closePath();const g=new THREE.ExtrudeGeometry(s,{depth:d,bevelEnabled:false});g.translate(0,0,-d/2);return g}
 let seed=7;const rnd=()=>(seed=seed*16807%2147483647,(seed-1)/2147483646);
-function label(text,bg,fg,w,h){return new THREE.MeshBasicMaterial({map:canvasTex(256,64,(g,W,H)=>{g.fillStyle=bg;g.fillRect(0,0,W,H);g.fillStyle=fg;let f=40;
-  g.font=`700 ${f}px Manrope, system-ui, sans-serif`;while(g.measureText(text).width>W*0.9&&f>14){f-=2;g.font=`700 ${f}px Manrope, system-ui, sans-serif`}g.textAlign='center';g.textBaseline='middle';g.fillText(text,W/2,H/2+2)})})}
+let logoImg=null;
+function label(text,bg,fg,img){return new THREE.MeshBasicMaterial({map:canvasTex(256,64,(g,W,H)=>{g.fillStyle=bg;g.fillRect(0,0,W,H);g.fillStyle=fg;let f=40;const off=img?50:0;
+  if(img){g.fillStyle='#ffffff';g.beginPath();g.arc(30,32,25,0,7);g.fill();g.drawImage(img,8,10,44,44);g.fillStyle=fg}
+  g.font=`700 ${f}px Manrope, system-ui, sans-serif`;while(g.measureText(text).width>(W-off)*0.9&&f>14){f-=2;g.font=`700 ${f}px Manrope, system-ui, sans-serif`}g.textAlign='center';g.textBaseline='middle';g.fillText(text,off+(W-off)/2,H/2+2)})})}
 
 function strataTex(len){return canvasTex(Math.round(len*8),128,(g,w,h)=>{
   const L=[[0,'#8d9096'],[.07,'#f1e9d7'],[.25,'#e5d5b2'],[.52,'#d2b98d'],[.78,'#ad8a5d']];
@@ -215,7 +217,7 @@ function shopfront(G,p,ug,d,I,sx,w){
   if(fac==='glas'){B(w*0.92,GF-0.3,0.05,'#9cc6d8',sx,0.3,FZ+0.02,ug);for(let i=0;i<=4;i++)B(0.08,GF-0.3,0.08,'#f4f1ea',sx-w*0.46+i*w*0.23,0.3,FZ+0.05,ug)}
   else if(fac==='stuck'){B(w*0.86,1.2,0.05,'#2f3439',sx,0.4,FZ+0.01,ug);for(const dx of [-w/2+0.15,0,w/2-0.15])B(0.3,GF,0.18,'#e9e4d8',sx+dx,0.25,FZ+0.08,ug);B(w+0.1,0.25,0.3,'#e9e4d8',sx,0.25+GF-0.05,FZ+0.1,ug)}
   else B(w*0.86,1.2,0.05,lvl>=3?'#bcd8e8':'#3d4651',sx,0.4,FZ+0.01,ug);
-  const sg=new THREE.Mesh(new THREE.PlaneGeometry(w*0.9,0.5),label(I.name||'Restaurant',color,'#ffffff'));sg.position.set(sx,0.25+GF-0.11,FZ+0.12);d.add(sg);
+  const sg=new THREE.Mesh(new THREE.PlaneGeometry(w*0.9,0.5),label(I.name||'Restaurant',color,'#ffffff',I.f&&I.f===G.firms[0]?logoImg:null));sg.position.set(sx,0.25+GF-0.11,FZ+0.12);d.add(sg);
   const aw=add(prism(w,0.7,1.3),color,sx,1.55,FZ+0.65,d);aw.rotation.x=-Math.PI/2;aw.scale.set(1,1,0.5);
   const nT=lvl>=2?2:1;for(let i=0;i<nT;i++){const x=sx+(nT===1?0:(i?1:-1)*1.1),z=FZ+1.7;add(new THREE.CylinderGeometry(0.38,0.38,0.06,10),'#f4f1ea',x,0.9,z,d);B(0.07,0.65,0.07,'#2d3436',x,0.25,z,d);
     if(lvl>=2||u.terrasse){add(new THREE.ConeGeometry(0.9,0.42,8),color,x,2.25,z,d);B(0.05,1.5,0.05,'#2d3436',x,0.85,z,d)}}
@@ -265,13 +267,13 @@ function glyph(g,k,x,y){g.save();g.translate(x,y);g.fillStyle='#fff';g.strokeSty
   else{g.beginPath();g.arc(0,0,16,0,7);g.fill()}
   g.restore()}
 // Pin über dem Dach: Markenfarbe, Symbol der Branche, Goldrand bei eigener Immobilie
-function pin(I,p){const icon=I.build?'bau':I.hq?'hq':p.use||'x',own=!!I.f||I.hq,key=I.color+icon+(p.prop==='H')+own;
+function pin(I,p){const icon=I.build?'bau':I.hq?'hq':p.use||'x',own=!!I.f||I.hq,useLogo=!!(I.f&&logoImg&&!I.build&&I.f===G0.firms[0]),key=I.color+icon+(p.prop==='H')+own+useLogo;
   if(!pinTex[key])pinTex[key]=canvasTex(128,160,(g,w,h)=>{g.fillStyle='rgba(36,39,43,.18)';g.beginPath();g.ellipse(64,152,16,5,0,0,7);g.fill();
-    g.fillStyle=I.color;g.strokeStyle=p.prop==='H'?'#d4a72c':'#ffffff';g.lineWidth=p.prop==='H'?9:6;g.beginPath();
+    if(!own)g.globalAlpha=0.62;g.fillStyle=I.color;g.strokeStyle=p.prop==='H'?'#d4a72c':'#ffffff';g.lineWidth=p.prop==='H'?9:6;g.beginPath();
     const r=22,x0=10,y0=8,x1=118,y1=112;g.moveTo(x0+r,y0);g.lineTo(x1-r,y0);g.quadraticCurveTo(x1,y0,x1,y0+r);g.lineTo(x1,y1-r);g.quadraticCurveTo(x1,y1,x1-r,y1);g.lineTo(78,y1);g.lineTo(64,146);g.lineTo(50,y1);g.lineTo(x0+r,y1);g.quadraticCurveTo(x0,y1,x0,y1-r);g.lineTo(x0,y0+r);g.quadraticCurveTo(x0,y0,x0+r,y0);g.closePath();g.fill();g.stroke();
-    glyph(g,icon,64,60);
+    g.globalAlpha=1;if(useLogo){g.fillStyle='#ffffff';g.beginPath();g.arc(64,60,40,0,7);g.fill();g.drawImage(logoImg,30,26,68,68)}else glyph(g,icon,64,60);
     if(own){g.fillStyle='#ffffff';g.beginPath();g.arc(104,20,13,0,7);g.fill();g.fillStyle=I.color;g.beginPath();g.arc(104,20,7,0,7);g.fill()}});
-  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:pinTex[key],depthTest:false,transparent:true}));sp.scale.set(3.6,4.5,1);sp.center.set(0.5,0.05);sp.renderOrder=8;sp.userData.pid=p.id;sp.userData.pinBase=0;return sp}
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:pinTex[key],depthTest:false,transparent:true}));const sc=own?1:0.66;sp.scale.set(3.6*sc,4.5*sc,1);sp.userData.sc=sc;sp.center.set(0.5,0.05);sp.renderOrder=own?9:8;sp.userData.pid=p.id;sp.userData.pinBase=0;return sp}
 // ---------- Passanten und Autos ----------
 const WMAX=420;let wInst,wData=[],wCount=0,cInst,cData=[];
 function initWalkers(){const geo=new THREE.CylinderGeometry(0.18,0.22,0.9,6);geo.translate(0,0.45,0);
@@ -313,9 +315,10 @@ function project(pid,y){const a=anchors[pid];if(!a)return null;const pinX=a.pinX
 function highlight(list,color){for(const m of marks){root.remove(m)}marks.length=0;if(!list||!list.length)return;
   for(const pid of list){const a=anchors[pid];if(!a)continue;const m=boxAt({...a,w:a.w+0.3,h:a.h+0.3,d:a.d+0.3,y:a.y-0.15},new THREE.MeshBasicMaterial({color:color||'#3f9b62',transparent:true,opacity:0.4,depthWrite:false}));root.add(m);marks.push(m)}}
 let last=0;function frame(t){const dt=Math.min(0.05,(t-last)/1000||0.016);last=t;animate(dt*60);for(const f of landAnim)f(t);
-  for(let i=grow.length-1;i>=0;i--){const a=grow[i];if(a.pop){a.t+=dt/0.5;const k=Math.min(1,a.t),e=k<1?1-Math.pow(1-k,3)*Math.cos(k*7):1;const sc=Math.max(0.01,e);a.g.scale.set(a.g.isSprite?3.6*sc:sc,a.g.isSprite?4.5*sc:sc,1*(a.g.isSprite?1:sc));if(k>=1){if(!a.g.isSprite)a.g.scale.set(1,1,1);grow.splice(i,1)}continue}
+  for(let i=grow.length-1;i>=0;i--){const a=grow[i];if(a.pop){a.t+=dt/0.5;const k=Math.min(1,a.t),e=k<1?1-Math.pow(1-k,3)*Math.cos(k*7):1;const sc=Math.max(0.01,e);a.g.scale.set(a.g.isSprite?3.6*sc*(a.g.userData.sc||1):sc,a.g.isSprite?4.5*sc*(a.g.userData.sc||1):sc,1*(a.g.isSprite?1:sc));if(k>=1){if(!a.g.isSprite)a.g.scale.set(1,1,1);grow.splice(i,1)}continue}
     a.t+=dt/0.7;const k=Math.min(1,a.t),e=1+Math.sin(k*Math.PI)*0.18*(1-k)+(k<1?-(1-k)*(1-k):0);a.g.scale.set(1,Math.max(0.02,k<1?k*k*(3-2*k)*(1+0.15*Math.sin(k*Math.PI)):1),1);if(k>=1){a.g.scale.set(1,1,1);grow.splice(i,1)}}
   for(const m of marks)m.material.opacity=0.3+0.2*Math.sin(t/260);
   if(selRing.visible)selRing.material.opacity=0.6+0.3*Math.sin(t/300);renderer.render(scene,camera)}
-window.World={init,resize,setCity,sync,select,hover,plotAt,project,frame,view,applyView,highlight,get city(){return cityId}};
+function setLogo(svg){const im=new Image();im.onload=()=>{logoImg=im;for(const k in pinTex)delete pinTex[k];if(G0&&plotGroup)sync(G0,true)};im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg)}
+window.World={init,setLogo,resize,setCity,sync,select,hover,plotAt,project,frame,view,applyView,highlight,get city(){return cityId}};
 })();

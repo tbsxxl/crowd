@@ -37,6 +37,7 @@ button{font:inherit;color:inherit}
 @media (max-width:1500px) and (min-width:761px){.hud{left:220px;transform:none}.hud .k.opt2{display:none}}
 .ib{all:unset;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:58px;height:54px;border-radius:10px;font-size:20px;line-height:1}
 .ib small{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.02em}
+.mobOnly{display:none}@media (max-width:760px){.mobOnly{display:flex}}
 .ib:hover{background:#fff}
 .badge{position:absolute;top:4px;right:6px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--bad);color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center}
 .goalCard{position:fixed;top:calc(86px + env(safe-area-inset-top,0px));left:calc(16px + env(safe-area-inset-left,0px));display:flex;align-items:center;gap:10px;padding:8px 8px 8px 12px;z-index:2;max-width:min(520px,calc(100vw - 32px));cursor:pointer;border:0}
@@ -169,6 +170,7 @@ table.cf td{padding:5px 0;font-size:13.5px}table.cf td:last-child{text-align:rig
 .cands{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.cand{min-width:min(280px,82%);scroll-snap-align:center;display:flex;flex-direction:column;gap:6px}.cand .ava,.execCard .ava,.execHead .ava{flex:none;align-self:center}
 @media (max-width:440px){.execHead{flex-direction:column;align-items:center}.mast{font-size:26px}}
 /* Start, Wizard, Produktkarten */
+.ffBtn{flex:none}@media (max-width:760px){.ffBtn{min-width:40px;flex:0 0 44px}.ffBtn small{display:none}.endBtn b{font-size:16px}}
 .sh-body>*{flex-shrink:0}
 .menuCard{margin:auto 0}.menuCard .seg{flex-wrap:wrap}
 .swatches.big button{width:42px;height:42px;border-radius:10px}
@@ -182,7 +184,8 @@ table.cf td{padding:5px 0;font-size:13.5px}table.cf td:last-child{text-align:rig
 .pcard .picon{font-size:64px;text-align:center;line-height:1.1}.mlab{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px}.mlab small{color:var(--muted)}
 /* Innenansichten und Figuren */
 .room,.figs,.figSay{flex:none}
-.room{background:linear-gradient(180deg,#e7ecef,#f5f4f0);border-radius:12px;padding:6px 4px 0;overflow:hidden}.room svg{display:block;max-height:300px}
+.room{background:linear-gradient(180deg,#e7ecef,#f5f4f0);border-radius:12px;padding:6px 4px 0;overflow:hidden}.room svg{display:block;max-height:300px;margin:0 auto}
+@media (max-width:760px){.room svg{max-height:190px}.figSay{padding:8px 12px}.figSay p{font-size:13.5px}}
 .figSay{min-height:0;padding:10px 14px}.figSay p{margin:0}
 .figs{display:flex;gap:4px;overflow-x:auto;padding:22px 2px 2px;scrollbar-width:none}.figs::-webkit-scrollbar{display:none}
 .fig{all:unset;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center;min-width:58px;border-radius:10px;padding:2px}.fig:hover,.fig:focus-visible{background:var(--soft)}
@@ -220,7 +223,8 @@ table.league td{padding:3px 4px;font-size:12.5px}table.league td:nth-child(2){wi
   .hud{left:8px;right:8px;transform:none;top:calc(8px + env(safe-area-inset-top,0px));padding:4px;justify-content:space-between}
   .hud .k{padding:3px 7px}.hud .k b{font-size:16px}.hud .k span{font-size:8.5px;letter-spacing:.08em}.hud .k.opt{display:none}
   .topBtns{top:auto;bottom:calc(84px + env(safe-area-inset-bottom,0px));right:8px;flex-direction:column}
-  .ib{width:46px;height:42px;font-size:17px}.ib small{font-size:8.5px}
+  .ib{width:50px;height:46px;font-size:18px}.ib small{font-size:9px}
+  .topBtns .ib:not([data-v="fin"]):not([data-v="group"]):not(.mobOnly){display:none}
   .goalCard{top:calc(62px + env(safe-area-inset-top,0px));left:8px;right:8px;transform:none;max-width:none}
   .dock{left:8px;right:8px;transform:none;bottom:calc(8px + env(safe-area-inset-bottom,0px));gap:4px;padding:4px}
   .db{min-width:0;flex:1;height:54px;font-size:20px}.db small{font-size:10px}
@@ -253,12 +257,14 @@ table.league td{padding:3px 4px;font-size:12.5px}table.league td:nth-child(2){wi
   <button class="ib panel" data-a="open" data-v="group" aria-label="Konzern">🏛️<small>Konzern</small></button>
   <button class="ib panel" data-a="open" data-v="goals" aria-label="Ziele">🎯<small>Ziele</small></button>
   <button class="ib panel" data-a="open" data-v="menu" aria-label="Menü">☰<small>Menü</small></button>
+  <button class="ib panel mobOnly" data-a="open" data-v="more" aria-label="Mehr">☰<small>Mehr</small></button>
 </div>
 <button class="goalCard panel" id="goalCard" data-a="open" data-v="goals" hidden></button>
 <nav class="dock panel" id="dock" hidden>
   <button class="db" data-a="open" data-v="build" aria-label="Bauen">🏗️<small>Bauen</small></button>
   <button class="db" data-a="open" data-v="list" aria-label="Geschäfte">📋<small>Geschäfte</small></button>
   <button class="db" data-a="open" data-v="firm" aria-label="Firma">🏢<small>Firma</small></button>
+  <button class="db ffBtn" data-a="multiEnd" aria-label="Mehrere Wochen">⏩<small>Wochen</small></button>
   <button class="endBtn" data-a="endTurn" id="endBtn"><span><b>Woche abschließen</b><small id="endSub">Januar 2027 abrechnen</small></span><span class="arr">→</span></button>
 </nav>
 <aside class="sheet panel" id="sheet" hidden></aside>
@@ -291,9 +297,10 @@ function showMenu(){const saved=store.get();const m=$('menu');m.hidden=false;
   <p class="lead">Gründe ein kleines Unternehmen und mach daraus Woche für Woche einen Konzern mit tausenden Mitarbeitenden in mehreren Städten.</p>
   ${saved?`<button class="btn ink" data-a="continue" style="padding:14px">Weiterspielen: ${esc(saved.firms[0].name)}, ${K.monthName(saved.month)}</button><div class="eyebrow">Oder neues Unternehmen gründen</div>`:''}
   ${setupHtml()}</div>`}
-function start(){keepInputs();const name=(newOpt.fname||'Mein Start-up').trim().slice(0,26);G=K.newGame({branch:newBranch,name,finance:newFin,seed:(Date.now()%1e9)|0,diff:newOpt.diff,comps:newOpt.comps,cur:newOpt.cur,capital:newOpt.cap,color:newOpt.color||K.BRANCHES[newBranch].color,logo:newOpt.logo,portrait:newOpt.portrait,ceo:(newOpt.ceo||'').trim().slice(0,26)||'Du'});afterLoad();
+function start(){keepInputs();setTimeout(()=>{if(G){G.tut=0;refresh()}},0);const name=(newOpt.fname||'Mein Start-up').trim().slice(0,26);G=K.newGame({branch:newBranch,name,finance:newFin,seed:(Date.now()%1e9)|0,diff:newOpt.diff,comps:newOpt.comps,cur:newOpt.cur,capital:newOpt.cap,color:newOpt.color||K.BRANCHES[newBranch].color,logo:newOpt.logo,portrait:newOpt.portrait,ceo:(newOpt.ceo||'').trim().slice(0,26)||'Du'});afterLoad();
   setTimeout(()=>open('build'),300)}
-function afterLoad(){$('menu').hidden=true;['hud','topBtns','dock'].forEach(id=>$(id).hidden=false);World.setCity(G,G.cityCur);World.sync(G,true);refresh();save()}
+const logoXml=(i,c)=>logoSvg(i,c,128).replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" ');
+function afterLoad(){if(G.tut===undefined)G.tut=(G.weeks||[]).length>3?99:0;try{World.setLogo(logoXml(G.firms[0].logo||0,G.firms[0].color))}catch(e){}$('menu').hidden=true;['hud','topBtns','dock'].forEach(id=>$(id).hidden=false);World.setCity(G,G.cityCur);World.sync(G,true);refresh();save()}
 function save(){if(G)store.set(G)}
 
 // ---------- Kopf ----------
@@ -302,8 +309,9 @@ function refresh(){if(!G)return;const last=(G.weeks||[])[(G.weeks||[]).length-1]
   const n=$('hNet');n.textContent=last?sgn(last.net):'–';n.className=last?(last.net>=0?'pos':'neg'):'';$('hStaff').textContent=fn(K.totalStaff(G));$('hWealth').textContent=fe(K.wealth(G).total);
   $('brandSub').innerHTML=logoSvg(G.firms[0].logo||0,G.firms[0].color,18)+' '+esc(cur().name)+' · '+K.stage(G).n;
   $('endSub').textContent=G.pending.length?G.pending.length+(G.pending.length>1?' Entscheidungen offen':' Entscheidung offen'):'Woche ab '+K.dateStr(G).replace(/ \d{4}$/,'');$('endBtn').dataset.wait=G.pending.length>0;
-  const g=K.GOALS.find(x=>!G.goals[x.k]);const gc=$('goalCard');
-  if(g){gc.hidden=false;gc.innerHTML=curFix(`<span class="gi">🎯</span><span><b>${esc(g.n)}</b><br><span>Nächstes Ziel</span></span>${g.reward?`<span class="rw">+${fe(g.reward)}</span>`:''}`)}else gc.hidden=true;
+  const ts=tutStep(),gc0=$('goalCard');if(ts){gc0.hidden=false;gc0.dataset.v=ts.v||'goals';gc0.innerHTML=`<span class="gi">👋</span><span><b>${esc(ts.t(G.firms[0].branch))}</b><br><span>${esc(ts.d)} · Schritt ${G.tut+1} von ${TUT.length}</span></span>`;if(!ts.v)gc0.dataset.v='goals';}
+  const g=ts?null:K.GOALS.find(x=>!G.goals[x.k]);const gc=$('goalCard');if(ts){}else{gc.dataset.v='goals';
+  if(g){gc.hidden=false;gc.innerHTML=curFix(`<span class="gi">🎯</span><span><b>${esc(g.n)}</b><br><span>Nächstes Ziel</span></span>${g.reward?`<span class="rw">+${fe(g.reward)}</span>`:''}`)}else gc.hidden=true;}
   World.sync(G);tags();if(view&&!$('sheet').hidden&&!busyInput())renderSheet()}
 function busyInput(){const a=document.activeElement;return a&&a.tagName==='INPUT'&&$('sheet').contains(a)}
 
@@ -314,7 +322,7 @@ function open(v,p,keep){if(!keep)stack.length=0;else if(view)stack.push(view);vi
 function back(){view=stack.pop()||null;if(!view)return close();renderSheet(true)}
 function close(){view=null;stack.length=0;$('sheet').hidden=true;document.querySelectorAll('.db').forEach(b=>b.setAttribute('aria-pressed',false));World.select(null);World.highlight(null)}
 const curFix=h=>G&&G.currency&&G.currency!=='EUR'?String(h).replace(/€/g,K.CURS[G.currency]):h;
-function renderSheet(top){const el=$('sheet');if(!view){el.hidden=true;return}const R=VIEWS[view.v];if(!R){close();return}const r0=R(view.p);if(!r0){close();return}const r=Object.assign({},r0,{body:curFix(r0.body),sub:r0.sub&&curFix(r0.sub),title:curFix(r0.title)});
+function renderSheet(top){const el=$('sheet');if(!view){el.hidden=true;return}if(G&&['shop','office','plant','app'].includes(view.v))G.tutSeen=true;if(G&&view.v==='fin')G.tutFin=true;const R=VIEWS[view.v];if(!R){close();return}const r0=R(view.p);if(!r0){close();return}const r=Object.assign({},r0,{body:curFix(r0.body),sub:r0.sub&&curFix(r0.sub),title:curFix(r0.title)});
   const body=el.querySelector('.sh-body'),y=!top&&body?body.scrollTop:0;
   el.innerHTML=`<div class="sh-head">${stack.length?`<button class="x" data-a="back" aria-label="Zurück">←</button>`:''}<div class="t">${r.eyebrow?`<div class="eyebrow">${r.eyebrow}</div>`:''}<h2>${r.title}</h2>${r.sub?`<div class="sub" style="margin-top:3px">${r.sub}</div>`:''}</div><button class="x" data-a="close" aria-label="Schließen">×</button></div>
   ${r.tabs?`<div class="tabs" role="tablist">${r.tabs.map(([k,n])=>`<button class="tab" data-a="tab" data-v="${k}" aria-selected="${(view.tab||r.tabs[0][0])===k}">${n}</button>`).join('')}</div>`:''}<div class="sh-body">${r.body}</div>`;
@@ -476,7 +484,7 @@ function barsSvg(h){if(!h.length)return'<div class="sub">Noch keine Daten.</div>
 VIEWS.firm=()=>{const f=cur(),t=T()||'gen';const last=G.months[G.months.length-1],p=last?K.pl(last,f.id):null;
   let b=G.firms.length>1?`<div class="btns">${G.firms.map(x=>`<button class="btn" data-a="selFirm" data-id="${x.id}" style="${x.id===f.id?'background:var(--ink);color:#fff':''}">${K.BRANCHES[x.branch].icon} ${esc(x.name)}</button>`).join('')}</div>`:'';
   const tabs=[['gen','Überblick'],['res','Entwicklung']];if(f.branch==='cafe'){tabs.splice(1,0,['menu','Speisekarte']);tabs.splice(2,0,['agency','Werbeagentur'])}if(f.branch==='soft')tabs.splice(1,0,['studio','Team & Studio']);if(f.branch==='prod')tabs.splice(1,0,['sales','Vertrieb']);
-  if(t==='gen'){b+=kpis([[p?fe(p.rev+p.revInt):'–','Umsatz Vormonat'],[p?sgn(p.net):'–','Ergebnis',p?(p.net>=0?'pos':'neg'):''],[fn(K.staffOf(G,f)+K.adminOf(G,f)),'Mitarbeitende']])+
+  if(t==='gen'){b+=`<div class="row nameRow">${f===G.firms[0]?logoSvg(f.logo||0,f.color,32):''}<input type="text" id="renameIn" maxlength="26" value="${esc(f.name)}" aria-label="Firmenname"><button class="btn" data-a="renameFirm" data-id="${f.id}">Umbenennen</button></div>`;b+=kpis([[p?fe(p.rev+p.revInt):'–','Umsatz Vormonat'],[p?sgn(p.net):'–','Ergebnis',p?(p.net>=0?'pos':'neg'):''],[fn(K.staffOf(G,f)+K.adminOf(G,f)),'Mitarbeitende']])+
     kpis([[pct(f.aware),'Bekanntheit'],[pct(f.rep),'Ruf'],[pct(f.morale),'Stimmung',f.morale<0.5?'neg':'']]);
     b+=`<div class="card"><div class="row"><span class="lbl">Werbung</span><b class="serif" style="font-size:19px" id="mktV">${fe(f.mkt)} / Monat</b></div><input type="range" min="0" max="${Math.max(30000,Math.ceil(f.mkt/10000)*10000)}" step="250" value="${f.mkt}" data-in="mkt"><div class="sub">Mehr Werbung steigert die Bekanntheit. Die wirkt bei allen Geschäften dieser Firma.</div></div>
     <div class="card"><div class="row"><span class="lbl">Gehaltsniveau</span><b class="serif" style="font-size:19px" id="wageV">${pct(f.wage)}</b></div><input type="range" min="0.85" max="1.4" step="0.05" value="${f.wage}" data-in="wage"><div class="sub">Über Tarif hebt die Stimmung und damit die Leistung. Unter 45 % Stimmung kündigen Leute.</div></div>
@@ -532,7 +540,7 @@ VIEWS.app=({id})=>{const a=G.apps.find(x=>x.id===+id);if(!a)return null;const f=
   return{eyebrow:gen.icon+' '+gen.n+' · '+esc(f.name),title:esc(a.name),sub:starsH(Math.round(r*10)/2)+' · '+K.MODELS[a.model].n,tabs:[['work','Entwicklung'],['money','Geld'],['mkt','Marketing'],['rev','Bewertungen']],body:b}};
 // Produktion: Werk
 VIEWS.plant=({id})=>{let f=null,p=null;for(const x of G.firms)if(x.plants){const q=x.plants.find(y=>y.id===+id);if(q){f=x;p=q}}if(!p)return null;const pl=K.plot(G,p.plot),cap=Math.floor(pl.size/500);
-  let b='';
+  let b=`<div class="room">${isoRoom({kind:'hall',w:11,d:Math.max(5,2.6+Math.max(1,p.lines.length)*2.6),s:18,floor:'#c9ccd0',wall:'#e2e4e6',logo:f.color,seed:p.id,lines:p.build>0?[]:p.lines.map(l=>({col:{roest:'#8a5a3a',moebel:'#b08a5a',back:'#e9c48a'}[l.type]||'#c8643c',good:l.product==='bohnen'?'#6b4a2f':l.product==='gebaeck'?'#e9c48a':'#b08a5a',auto:l.auto,workers:l.workers}))})}</div>`+(p.build>0?'<div class="hint">🚧 Die Halle wird noch eingerichtet: fertig in '+p.build+' Wochen.</div>':p.lines.length?figRow(moodLines(f,'Fachkraft',Math.min(5,p.lines.reduce((a,l)=>a+l.workers,0)),[]),'fp'+p.id):'');
   for(const l of p.lines){const L=K.LINES[l.type],out=K.lineOut(G,f,l);
     b+=`<div class="card"><div class="ch"><span class="ico">${L.icon}</span><span class="t"><b>${L.n}${l.auto?' · automatisiert':''}</b><span>${fn(out)} ${K.GOODS[l.product].unit} pro Woche${l.broke?' · ⚠️ letzte Woche Ausfall':''}</span></span></div>
     ${Object.keys(L.cap).length>1?seg('lineProd',Object.keys(L.cap).map(g=>[g,K.GOODS[g].icon+' '+K.GOODS[g].n,'',K.GOODS[g].res&&!f.res[K.GOODS[g].res]]),l.product,`data-id="${l.id}"`):''}
@@ -679,7 +687,16 @@ function isoRoom(o){const W=o.w||10,D=o.d||8,S=o.s||22,c=0.866,sn=0.5,H=o.h||3.2
     add(1,box(0.3,0.4,0,W*0.5,1,1.05,'#7a5a3a')+box(0.3,0.4,1.05,W*0.5,1,0.08,'#d9d2c4'));
     for(let i=0;i<n;i++){const x=1.3+(i%3)*2.6,y=2.6+Math.floor(i/3)*2.2;
       add(x+y,box(x,y,0,1.1,1.1,0.7,'#f4f1ea')+box(x-0.45,y+0.3,0,0.35,0.5,0.45,'#8a5a3a')+box(x+1.2,y+0.3,0,0.35,0.5,0.45,'#8a5a3a')+(g<guests?person(x-0.5,y+0.35,0,SH[(g++)%SH.length],SK[g%5],HR[(g*3)%5],true):'')+(g<guests?person(x+1.15,y+0.35,0,SH[(g++)%SH.length],SK[g%5],HR[(g*5)%5],true):''))}
-    for(let i=0;i<staff;i++){const x=0.8+i*1.3,y=1.6;add(x+y+0.5,person(x,y,0,o.apron||'#9b6fb5',SK[(i*2)%5],HR[i%5],false))}}
+    // Küche hinten rechts: Herd mit Töpfen und Dampf, Köche davor; Service an den Tischen
+    add(W-1.5,box(W-3.4,0.3,0,3,0.9,0.95,'#5a6270')+box(W-3.4,0.3,0.95,3,0.9,0.06,'#c9ccd0')+[0,1,2].map(i=>box(W-3.1+i*0.95,0.45,1.01,0.5,0.5,0.32,['#8a8f96','#c8643c','#8a8f96'][i])).join('')+[0,2].map(i=>{const [sx,sy]=P(W-2.85+i*0.95,0.7,1.6);return`<path d="M${sx} ${sy} q4 -6 0 -12 q-4 -6 0 -12" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="2"/>`}).join(''));
+    const cooks=Math.min(2,Math.ceil(staff/3));for(let i=0;i<cooks;i++){const x=W-3+i*1.3,y=1.4;add(x+y+0.5,person(x,y,0,'#f4f1ea',SK[(i*2+1)%5],'#f4f1ea',false))}
+    for(let i=0;i<staff-cooks;i++){const t=i%Math.max(1,n),x=1.3+(t%3)*2.6+0.4,y=2.6+Math.floor(t/3)*2.2-0.75;add(x+y+0.4,person(x,y,0,o.apron||'#9b6fb5',SK[(i*2)%5],HR[i%5],false))}}
+  if(kind==='hall'){const lines=o.lines||[];
+    lines.forEach((l,i)=>{const y=1.4+i*2.6,len=W-3;
+      add(1.2+y,box(1.2,y,0,len,1,0.55,'#5a6270')+[...Array(Math.floor(len/0.9))].map((_,k)=>box(1.3+k*0.9,y+0.05,0.55,0.5,0.9,0.05,'#8a8f96')).join('')+box(1.4,y-0.2,0,1.3,1.4,1.6,l.col||'#c8643c')+box(len-0.6,y-0.2,0,1.2,1.4,1.2,'#3d4651')
+        +[0,1,2].map(k=>box(3+k*1.7,y+0.2,0.6,0.6,0.6,0.5,l.good||'#b08a5a')).join('')+(l.auto?box(W/2,y-0.6,0,0.5,0.5,2.2,'#f2c14e'):''));
+      for(let k=0;k<Math.min(4,l.workers||0);k++)add(1.2+y+1.4,person(2.6+k*1.8,y+1.2,0,'#f2c14e',SK[(i+k)%5],HR[(i*2+k)%5],false))});
+    for(let k=0;k<3;k++)add(W+D,box(W-2+k*0.0,D-1.4-k*1.3,0,1.3,1.1,0.3+0.5*(k%2),'#b08a5a')+box(W-2,D-1.4-k*1.3,0.3+0.5*(k%2),1.2,1,0.7,'#d8c7a3'))}
   if(kind==='hq'){const n=o.desks||6,used=o.people||0;
     add(D*0.5,box(W*0.35,D*0.35,0,2.6,1.2,1,'#f4f1ea')+box(W*0.35,D*0.35+1.2,0,1.2,0.8,1,'#f4f1ea')+(used?person(W*0.35+0.6,D*0.35+2,0,'#24272b','#efc3a4','#5b3a26',false):''));
     for(let k=0;k<n;k++){const x=1+(k%5)*1.7,y=D-2.2-Math.floor(k/5)*1.6;add(x+y,box(x,y,0,1.2,0.7,0.75,'#e9e4d8')+box(x+0.4,y,0.75,0.5,0.06,0.42,'#24272b')+(k<used?person(x+0.4,y+0.85,0,SH[(k+2)%SH.length],SK[k%5],HR[(k+1)%5],true):box(x+0.4,y+0.85,0,0.45,0.45,0.45,'#5a6270')))}}
@@ -865,7 +882,11 @@ VIEWS.goals=()=>{let b='<div class="sub">Für jedes erreichte Ziel gibt es eine 
 VIEWS.decide=()=>{if(!G.pending.length)return{title:'Keine offenen Entscheidungen',body:'<div class="sub">Alles erledigt. Du kannst die Woche abschließen.</div><button class="btn ink" data-a="endTurn">Monat abschließen</button>'};
   let b='';for(const e of G.pending){b+=`<div class="card"><div class="ch"><span class="ico">${e.icon||'❓'}</span><span class="t"><b>${esc(K.firm(G,e.fid).name)}</b></span></div><div class="quote" style="font-style:normal;font-size:17px">${esc(e.t)}</div><div class="list">${K.eventOpts(e).map((o,i)=>`<button class="li" data-a="decide" data-id="${e.id}" data-v="${i}"><span class="t"><b>${esc(o.n)}</b><span>${esc(o.d)}</span></span><span class="v">→</span></button>`).join('')}</div></div>`}
   return{eyebrow:K.monthName(G.month),title:G.pending.length>1?'Entscheidungen':'Entscheidung',body:b}};
-VIEWS.menu=()=>({title:'Menü',body:`<button class="btn wide" data-a="save">Speichern</button><button class="btn wide" data-a="help">So spielst du</button><button class="btn wide bad" data-a="newGame">Neues Spiel</button><div class="sub">Der Spielstand wird nach jeder Woche automatisch auf diesem Gerät gespeichert.</div>`});
+VIEWS.more=()=>({title:'Mehr',body:`<div class="list">${[['wealth','👤','Vermögen','Gehalt, Depot, Luxus, Verein'],['bank','🏦','Börse','Aktienmarkt, Eigenkapital, Übernahmen'],['airport','✈️','Reisen','In andere Städte fliegen'],['goals','🎯','Ziele','Meilensteine und Prämien'],['menu','⚙️','Spiel','Speichern, Spielstände, Hilfe']].map(([v,i,t,d])=>li(`data-a="open" data-v="${v}" data-keep="1"`,i,t,d,'→')).join('')}</div>`});
+VIEWS.menu=()=>({title:'Spiel',body:`<div class="sec"><h3>Spielstände</h3><div class="sub">Der aktuelle Stand wird nach jeder Woche automatisch gespeichert. Zusätzlich hast du drei Speicherplätze.</div>
+  ${[1,2,3].map(i=>{const x=slotInfo(i);return`<div class="card"><div class="row"><span><b>Platz ${i}</b><br><span class="sub">${x?esc(x.n)+' · '+x.d:'leer'}</span></span><span class="btns"><button class="btn" data-a="slotSave" data-v="${i}">Speichern</button>${x?`<button class="btn ink" data-a="slotLoad" data-v="${i}">Laden</button>`:''}</span></div></div>`}).join('')}
+  <div class="btns"><button class="btn" data-a="exportSave">⬇️ Als Datei sichern</button><label class="btn" style="cursor:pointer">⬆️ Datei laden<input type="file" accept="application/json,.json" id="importFile" hidden></label></div></div>
+  <button class="btn wide" data-a="help">So spielst du</button><button class="btn wide bad" data-a="newGame">Neues Spiel</button>`});
 VIEWS.help=()=>({title:'So spielst du',body:`<div class="card"><b>1. Planen</b><div class="sub">Baue Geschäfte (🏗️ Bauen), stell Personal ein, richte ein, setze Preise und Aktionen. Dabei vergeht keine Zeit.</div></div>
   <div class="card"><b>2. Monat abschließen</b><div class="sub">Rechts unten. Alle Geschäfte arbeiten eine Woche. Danach siehst du im Wochenbericht, was es gebracht hat, und über den Gebäuden steigt das Geld auf.</div></div>
   <div class="card"><b>3. Entscheiden</b><div class="sub">Manchmal passiert etwas: Bloggerinnen, Mieterhöhungen, Eilaufträge. Du entscheidest vor dem nächsten Abschluss.</div></div>
@@ -919,14 +940,15 @@ function showCase(){const m=$('modal');while(caseI<cases.length&&cases[caseI].ev
   m.innerHTML=`<div class="report panel case" role="dialog" aria-label="${esc(head)}"><div class="caseHead"><span class="ico">${c.inc?(c.inc.kind==='board'?'🏛️':'📋'):(G.pending.find(e=>e.id===c.ev)||{}).icon||'❓'}</span><span><b>${esc(head)}</b><br><span class="sub">${sub}</span></span><button class="x" data-a="caseClose" aria-label="Schließen">×</button></div>
     <div class="caseBody"><p>${text}</p><div class="caseAva">${avatar(ASSIST,110)}<span>Lena, Assistenz</span></div></div>${c.inc?`<div class="btns" style="justify-content:center">${btns}</div>`:btns}</div>`}
 // ---------- Abfrage vor dem Monatsabschluss ----------
-function askEnd(){let noask=false;try{noask=localStorage.getItem('gz.noask')==='1'}catch(e){}if(noask){doEnd();return}
+function askEnd(force){let noask=false;try{noask=localStorage.getItem('gz.noask')==='1'}catch(e){}if(noask&&!force){doEnd(1);return}
   const w=[];if(G.pending.length)w.push(G.pending.length+(G.pending.length>1?' Fälle sind offen und bekommen die Standardwahl.':' Fall ist offen und bekommt die Standardwahl.'));
   if(G.cash<0)w.push('Die Kasse ist im Minus. Drei Monate im Dispo führen zur Insolvenz.');
   for(const f of G.firms)if(f.branch==='cafe')for(const s of f.shops)if(s.stat&&s.stat.dem>s.stat.cap*1.15){w.push('In '+K.ZONES[K.plot(G,s.plot).zone].n+' fehlt Personal, Gäste gehen wieder.');break}
   const due=(G.dues||[]).filter(d=>d.m===G.month+1);for(const d of due)w.push(d.t+' wird nächsten Monat fällig: '+fe(d.amt)+'.');
   const m=$('modal');m.hidden=false;m.innerHTML=`<div class="report panel case" role="dialog" aria-label="Woche abschließen"><div class="caseHead"><span class="ico">🗓️</span><span><b>Fertig für diese Woche?</b><br><span class="sub">${K.monthName(G.month)}</span></span><button class="x" data-a="caseClose" aria-label="Schließen">×</button></div>
     <div class="caseBody"><p>Bist du diese Woche mit deinen Geschäften fertig?${w.length?'<br><br>'+w.map(x=>'• '+esc(x)).join('<br>'):''}</p><div class="caseAva">${avatar(ASSIST,110)}<span>Lena, Assistenz</span></div></div>
-    <div class="btns" style="justify-content:center"><button class="btn ink" data-a="confirmEnd" style="min-width:110px">Ja</button><button class="btn" data-a="caseClose" style="min-width:110px">Nein</button></div>
+    <div class="btns" style="justify-content:center"><button class="btn ink" data-a="confirmEnd" data-v="1" style="min-width:96px">1 Woche</button><button class="btn ink" data-a="confirmEnd" data-v="4">4 Wochen</button><button class="btn ink" data-a="confirmEnd" data-v="12">Bis etwas passiert</button><button class="btn" data-a="caseClose">Nein</button></div>
+    <div class="sub" style="text-align:center">Mehrere Wochen halten an, sobald eine Entscheidung, ein Vorfall oder ein Ziel kommt.</div>
     <label class="sub" style="display:flex;gap:8px;align-items:center;justify-content:center"><input type="checkbox" id="noask"> Nicht mehr fragen</label></div>`}
 // ---------- Vorstand und Zentrale ----------
 const skill=(n,v)=>`<div class="row skill"><span class="sub">${n}</span><span class="sbar"><i style="width:${v}%"></i></span><b>${Math.round(v)}</b></div>`;
@@ -979,8 +1001,37 @@ VIEWS.board=()=>{let b=`<div class="caseBody"><p>Die Mitglieder des Aufsichtsrat
   return{eyebrow:'Zentrale',title:'Vorstandssitzung',body:b}};
 // ---------- Monatsabschluss ----------
 let lastRep=null;function endTurn(){askEnd()}
-function doEnd(){$('modal').hidden=true;
-  close();endPlace();const r=K.endTurn(G);lastRep=r;paperTab='top';if(!r)return;save();World.sync(G);refresh();floatMoney(r);setTimeout(()=>report(r),650);chime(r.net>=0)}
+// ---------- Mehrere Wochen auf einmal ----------
+function mergeReps(list){const a=list[0],z=list[list.length-1];if(list.length===1)return z;
+  const cf={op:0,inv:0,fin:0};for(const r of list)for(const k in cf)cf[k]+=(r.cf||{})[k]||0;
+  const paper=[];for(const r of list)paper.push(...(r.paper||[]));
+  return Object.assign({},z,{weeks:list.length,from:a.date,rev:list.reduce((s,r)=>s+(r.rev||0),0),net:list.reduce((s,r)=>s+(r.net||0),0),cf,
+    events:list.flatMap(r=>r.events),goals:list.flatMap(r=>r.goals),incidents:list.flatMap(r=>r.incidents||[]),paper:paper.slice(-10),monthEnd:list.some(r=>r.monthEnd),items:z.items})}
+function doEnd(n){n=n||1;$('modal').hidden=true;close();endPlace();const reps=[];
+  for(let i=0;i<n;i++){const r=K.endTurn(G);if(!r)break;reps.push(r);if(G.over||G.pending.length||(r.incidents||[]).length||r.goals.length)break}
+  if(!reps.length)return;const r=mergeReps(reps);lastRep=r;paperTab='top';save();World.sync(G);refresh();floatMoney(reps[reps.length-1]);setTimeout(()=>report(r),650);chime(r.net>=0)}
+// ---------- Lena rät ----------
+function tipsFor(){const t=[];
+  if(G.cash<0)t.push('Die Kasse ist im Minus. Nimm unter Finanzen einen Kredit auf oder spare Kosten, sonst droht nach drei Monaten die Insolvenz.');
+  for(const f of G.firms){if(f.branch==='cafe')for(const s of f.shops){if(!s.stat||s.build)continue;const where=K.address(K.plot(G,s.plot)).split(',')[0];
+      if(s.stat.dem>s.stat.cap*1.15){t.push(where+': Es kommen mehr Gäste, als ihr bedienen könnt. Stell Personal ein.');break}
+      if(s.stat.cap>s.stat.dem*1.8&&s.staff>2){t.push(where+': Viel Leerlauf. Weniger Personal oder mehr Werbung würde helfen.');break}
+      if(s.rep<0.5){t.push(where+': Die Bewertungen sind schwach. Schau unter Bewertungen, was die Gäste stört.');break}}
+    if(f.morale<0.5)t.push(f.name+': Die Stimmung im Team ist schlecht. Höhere Gehälter oder ein Teamtag helfen.');
+    if(f.branch==='soft'&&G.apps.some(a=>a.owner===f.id&&a.state==='live'&&a.bugs>a.users/2000+40))t.push(f.name+': Die Bugs nehmen überhand. Stell den Fokus einer App auf „Bugs beheben“.')}
+  const last=G.months[G.months.length-1];if(last&&last.net>0&&G.cash>120000&&G.firms[0].branch==='cafe'&&G.firms[0].shops.length<3)t.push('Es läuft gut und die Kasse ist voll. Zeit für ein weiteres Restaurant?');
+  return t.slice(0,2)}
+// ---------- Einführung ----------
+const TUT=[{t:B=>B==='soft'?'Tippe auf „Bauen“ und miete ein Büro':B==='prod'?'Tippe auf „Bauen“ und miete eine Halle':'Tippe auf „Bauen“ und baue dein erstes Restaurant',d:'Grün markierte Flächen in der Stadt passen.',v:'build',done:G=>G.firms[0].shops&&G.firms[0].shops.length||G.firms[0].office||(G.firms[0].plants||[]).length},
+  {t:B=>B==='soft'?'Stell Entwickler ein und starte eine App':B==='prod'?'Kauf eine Produktionslinie':'Schau dir dein Restaurant an',d:'Unter „Geschäfte“ findest du alles, was dir gehört.',v:'list',done:G=>G.tutSeen},
+  {t:()=>'Schließe die erste Woche ab',d:'Rechts unten. Danach siehst du im Bericht, was passiert ist.',v:null,done:G=>(G.weeks||[]).length>0},
+  {t:()=>'Wirf einen Blick in die Finanzen',d:'Kasse, Gewinn und Verlust, Bilanz und Kredite.',v:'fin',done:G=>G.tutFin}];
+function tutStep(){if(!G||G.tut>=TUT.length)return null;while(G.tut<TUT.length&&TUT[G.tut].done(G))G.tut++;return G.tut<TUT.length?TUT[G.tut]:null}
+// ---------- Spielstände ----------
+const slotKey=i=>'gz.slot.'+i;
+function slotInfo(i){try{const s=localStorage.getItem(slotKey(i));if(!s)return null;const g=JSON.parse(s);return{n:g.firms[0].name,d:K.dateStr(g)}}catch(e){return null}}
+function exportSave(){const blob=new Blob([JSON.stringify(G)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='gruenderzeit-'+G.firms[0].name.replace(/[^\wäöüÄÖÜß-]+/g,'_')+'.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
+function importSave(file){const r=new FileReader();r.onload=()=>{try{const g=JSON.parse(r.result);if(!g||!g.firms||!g.plots)throw 0;K.migrate(g);G=g;close();afterLoad();toast('Spielstand geladen.')}catch(e){toast('Die Datei ist kein gültiger Spielstand.','bad')}};r.readAsText(file)}
 function floatMoney(r){const el=$('floats');el.innerHTML='';const byPlot={};
   for(const it of r.items){let pid=it.plot;if(it.kind==='app'||it.kind==='dev'){const f=K.firm(G,it.fid);pid=f&&f.office;if(!pid)continue}if(!pid)continue;byPlot[pid]=(byPlot[pid]||0)+it.profit}
   let k=0;for(const pid in byPlot){const p=K.plot(G,pid);if(p.city!==World.city)continue;const pr=World.project(pid,9);if(!pr||!pr.vis)continue;const v=byPlot[pid];
@@ -988,14 +1039,15 @@ function floatMoney(r){const el=$('floats');el.innerHTML='';const byPlot={};
   setTimeout(()=>{el.innerHTML=''},4500)}
 function report(r){const m=$('modal');m.hidden=false;if(G.currency&&G.currency!=='EUR')setTimeout(()=>{m.innerHTML=curFix(m.innerHTML);countUp($('bigNet'),r.net)},0);const wk=G.weeks||[],prev=wk.length>1?wk[wk.length-2]:null,mon=r.monthEnd?G.months[G.months.length-1]:null;
   const items=r.items.slice().sort((a,b)=>b.profit-a.profit);
-  m.innerHTML=`<div class="report panel" role="dialog" aria-label="Wochenbericht"><div><div class="eyebrow">Wochenbericht</div><h2>${r.date||K.monthName(r.month)}</h2></div>
-  <div class="resTop"><div><div class="eyebrow">Umsatz der Woche</div><div class="big2">${fe(r.rev)}</div>${dl(r.rev,prev?prev.rev:null)}</div>
-    <div><div class="eyebrow">Nettoeinkommen</div><div class="big2 ${r.net>=0?'pos':'neg'}" id="bigNet">${sgn(0)}</div>${dl(r.net,prev?prev.net:null)}</div></div>
+  m.innerHTML=`<div class="report panel" role="dialog" aria-label="Wochenbericht"><div><div class="eyebrow">${r.weeks>1?r.weeks+' Wochen · ab '+r.from:'Wochenbericht'}</div><h2>${r.date||K.monthName(r.month)}</h2></div>
+  <div class="resTop"><div><div class="eyebrow">${r.weeks>1?'Umsatz der '+r.weeks+' Wochen':'Umsatz der Woche'}</div><div class="big2">${fe(r.rev)}</div>${r.weeks>1?'':dl(r.rev,prev?prev.rev:null)}</div>
+    <div><div class="eyebrow">Nettoeinkommen</div><div class="big2 ${r.net>=0?'pos':'neg'}" id="bigNet">${sgn(0)}</div>${r.weeks>1?'':dl(r.net,prev?prev.net:null)}</div></div>
   ${cfTable(r.cf)}${mon?`<div class="hint">📘 Monatsabschluss ${K.monthName(mon.m)}: Umsatz ${fe(K.pl(mon).rev)}, Ergebnis <b class="${mon.net>=0?'pos':'neg'}">${sgn(mon.net)}</b>. Details unter Finanzen.</div>`:''}
   ${kpis([[fe(r.cash),'Kasse',r.cash<0?'neg':''],[fe(K.wealth(G).total),'Dein Vermögen'],[fn(r.staff),'Mitarbeitende']])}
   ${r.goals.map(g=>`<div class="goalWin"><span class="e">🏆</span><span><b>Ziel erreicht: ${esc(g.n)}</b><br><span class="sub">${g.reward?'+'+fe(g.reward)+' Förderprämie':'Großartig!'}</span></span></div>`).join('')}
   ${items.length?`<div class="sec"><h3>Deine Geschäfte</h3><div class="list">${items.map(it=>`<div class="li" style="cursor:default"><span class="ico">${it.icon}</span><span class="t"><b>${esc(it.name)}</b><span>${esc(it.kpi)}${it.delta!=null&&it.delta!==0?` <b class="${it.delta>0?'pos':'neg'}">${it.delta>0?'▲':'▼'} ${fn(Math.abs(it.delta))}</b>`:''}${it.stars?' · '+starsH(it.stars):''}${it.broke?' · ⚠️ Ausfall':''}</span></span><span class="v ${it.profit>=0?'pos':'neg'}">${it.kind==='dev'?'':sgn(it.profit)}</span></div>`).join('')}</div></div>`:'<div class="hint">Noch keine Geschäfte. Öffne „Bauen“ und leg los!</div>'}
   ${r.events.length?`<div class="sec"><h3>Was passiert ist</h3>${r.events.map(e=>`<div class="evt"><span class="e">${e.icon}</span><span class="${e.bad?'neg':''}">${esc(e.t)}</span></div>`).join('')}</div>`:''}
+  ${(()=>{const t=tipsFor();return t.length?`<div class="say"><p><b>Lena rät:</b><br>${t.map(esc).join('<br>')}</p><span class="sayAva">${avatar(ASSIST,58)}</span></div>`:''})()}
   ${quotes()}
   ${paperHtml(r)}
   ${(r.incidents||[]).length?`<div class="warnbox">${r.incidents.length>1?r.incidents.length+' Vorfälle':'Ein Vorfall'} zum Durchsehen.</div>`:''}
@@ -1014,6 +1066,7 @@ function gameOver(){const v=K.valuation(G);const m=$('modal');m.hidden=false;m.i
 
 // ---------- Aktionen ----------
 function run(res,quiet){if(!res)return res;if(res.msg&&(!quiet||!res.ok))toast(res.msg,res.ok?'':'bad');refresh();return res}
+document.addEventListener('change',e=>{if(e.target&&e.target.id==='importFile'&&e.target.files[0])importSave(e.target.files[0])});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||b.getAttribute('aria-disabled')==='true'||b.disabled)return;
   const a=b.dataset.a,d=+b.dataset.d||0,id=b.dataset.id,k=b.dataset.k,v=b.dataset.v;const f=G&&cur();
   switch(a){
@@ -1122,7 +1175,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
   case'caseClose':$('modal').hidden=true;cases=[];refresh();break;
   case'caseBoard':$('modal').hidden=true;cases=[];open('board');break;
   case'caseOpt':{const r=K.act.decide(G,+id,+v);save();if(r&&r.msg)toast(r.msg);caseI++;showCase();break}
-  case'confirmEnd':{const cb=$('noask');if(cb&&cb.checked){try{localStorage.setItem('gz.noask','1')}catch(e){}}doEnd();break}
+  case'confirmEnd':{const cb=$('noask');if(cb&&cb.checked){try{localStorage.setItem('gz.noask','1')}catch(e){}}doEnd(+v||1);break}
+  case'multiEnd':askEnd(true);break;
   case'deptN':run(K.act.dept(G,k,K.deptN(G,k)+d),1);break;
   case'deptWage':run(K.act.deptWage(G,G.deptWage+d*5000),1);break;
   case'deleg':run(K.act.deleg(G,k,v),1);break;
@@ -1135,7 +1189,11 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
   case'gStrike':view.p.strike=Math.max(0.5,Math.round(((view.p.strike||1)+d*0.5)*2)/2);renderSheet();break;
   case'grantAdd':{const p=view.p;const r=run(K.act.grant(G,k,p.type,p.n,p.strike));if(r&&r.ok){save();back()}break}
   case'divStep':run(K.act.board(G,{divPS:G.divPS+d*0.01}),1);break;
-  case'save':save();toast('Gespeichert.');break;case'help':open('help',null,true);break;
+  case'save':save();toast('Gespeichert.');break;
+  case'slotSave':{const i=+v;if(slotInfo(i)&&!confirm('Platz '+i+' überschreiben?'))break;try{localStorage.setItem(slotKey(i),JSON.stringify(G));toast('In Platz '+i+' gespeichert.')}catch(e){toast('Speichern fehlgeschlagen.','bad')}renderSheet();break}
+  case'slotLoad':{if(!confirm('Spielstand aus Platz '+v+' laden? Der aktuelle Stand bleibt im automatischen Speicher, bis du weiterspielst.'))break;try{const g=JSON.parse(localStorage.getItem(slotKey(+v)));K.migrate(g);G=g;close();afterLoad();toast('Geladen.')}catch(e){toast('Laden fehlgeschlagen.','bad')}break}
+  case'exportSave':exportSave();break;
+  case'renameFirm':{const el=$('renameIn');if(el)run(K.act.rename(G,id,el.value));save();renderSheet();break}case'help':open('help',null,true);break;
   case'newGame':if(confirm('Neues Spiel beginnen? Der aktuelle Spielstand wird überschrieben.')){store.del();G=null;close();['hud','topBtns','dock','goalCard'].forEach(x=>$(x).hidden=true);showMenu()}break;
   case'restart':store.del();G=null;$('modal').hidden=true;showMenu();break;
   }});
@@ -1172,8 +1230,9 @@ function tags(){const el=$('tags');if(!G){el.innerHTML='';return}const out=[];
       if(p.use==='cafe'){const s=f.shops.find(x=>x.plot===p.id);t=s&&s.stat?fn(s.stat.guests)+' Gäste':'neu'}
       if(p.use==='office')t=fn(G.apps.filter(a=>a.owner===f.id&&a.state==='live').reduce((s,a)=>s+a.users,0))+' Nutzer';
       if(p.use==='factory'){const pl=f.plants.find(x=>x.plot===p.id);t=pl&&pl.lines.length?pl.lines.length+(pl.lines.length>1?' Linien':' Linie'):'leer'}}
-    out.push(`<div class="tag" style="left:${pr.x}px;top:${pr.y}px"><i style="background:${col}"></i>${esc(t)}</div>`)}
-  el.innerHTML=out.join('')}
+    out.push({x:pr.x,y:pr.y,h:`<i style="background:${col}"></i>${esc(t)}`,w:t.length*6.4+28})}
+  out.sort((a,b)=>b.y-a.y);const placed=[];for(const o of out){for(let k=0;k<8;k++){const hit=placed.find(q=>Math.abs(q.x-o.x)<(q.w+o.w)/2+4&&Math.abs(q.y-o.y)<22);if(!hit)break;o.y=hit.y-24}placed.push(o)}
+  el.innerHTML=placed.map(o=>`<div class="tag" style="left:${o.x}px;top:${o.y}px">${o.h}</div>`).join('')}
 let lastTag=0;function loop(t){if(G&&t-lastTag>120){tags();lastTag=t}World.frame(t);requestAnimationFrame(loop)}
 addEventListener('visibilitychange',()=>{if(document.hidden)save()});addEventListener('pagehide',save);
 

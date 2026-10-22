@@ -11,7 +11,7 @@ const BRANCHES={
   cafe:{n:'Restaurant',long:'Gastronomie',icon:'🍽️',desc:'Lagen wählen, Restaurants einrichten, Speisekarte und Preise festlegen, Stammgäste gewinnen.',color:'#c8643c',mult:7},
   soft:{n:'Software',long:'Software & Apps',icon:'💻',desc:'Team aufbauen, Apps entwickeln und veröffentlichen, Nutzer gewinnen, Abos verkaufen.',color:'#2f6fd0',mult:10},
   prod:{n:'Produktion',long:'Produktion',icon:'🏭',desc:'Hallen und Linien kaufen, Schichten planen, Aufträge liefern, eine eigene Marke aufbauen.',color:'#3f9b62',mult:6}};
-const WAGE={barista:2450,manager:3900,jr:3600,sr:6200,des:4300,qa:3900,worker:2900,admin:3400};
+const WAGE={barista:2450,manager:3900,jr:3600,sr:6200,des:4300,qa:3900,worker:2500,admin:3400};
 const PRODUCTS={ // other = Zutaten je Portion ohne Eigenlieferung, beans = kg Röstkaffee, piece = Teig/Brötchen aus der Backstraße
   pasta:{n:'Pasta',icon:'🍝',other:2.6,ref:13.9,w:1.4,main:true},
   pizza:{n:'Pizza',icon:'🍕',other:1.6,piece:1,mkt:1.1,ref:12.5,w:1.5,main:true},
@@ -104,13 +104,14 @@ const COMP_APPS=[['Notio','prod',0.7,90000],['Listly','prod',0.58,40000],['FitBu
 const COMP_PROD={kiel:[['Nordholz Werke','#9a8f7a']],hamburg:[['Hanse Möbel','#7a8a9a'],['Speicherstadt Rösterei','#8a6a52']],berlin:[['Spree Manufaktur','#7a7a8a']]};
 const BUYERS={stuhl:['Möbelhaus Nord','Wohnwelt','Schulträger Emden','Hotelkette Seeblick'],tisch:['Wohnwelt','Möbelhaus Nord','Kantinenbau AG'],bohnen:['Bohnenwerk','Supermarkt Regional','Hotelkette Seeblick','Bürokaffee GmbH'],gebaeck:['Supermarkt Regional','Kantinenbau AG','Tankstellen-Shops']};
 const APP_NAMES=['Taskly','Fokus','Planwerk','Pulse','Kraftakt','Moneta','Zenith','Kompass','Nordlicht','Orbit','Brise','Spark','Atlas','Quokka','Lumen'];
+let BR='cafe';
 const GOALS=[ // der Reihe nach, mit Förderprämie
-  {k:'first',n:'Eröffne dein erstes Geschäft',d:'Eine Filiale, eine veröffentlichte App oder eine laufende Linie.',reward:3000,test:G=>G.firms.some(f=>f.branch==='cafe'?f.shops.length:f.branch==='soft'?G.apps.some(a=>a.owner===f.id&&a.state==='live'):f.plants.some(p=>p.lines.length))},
+  {k:'first',get n(){return BR==='soft'?'Bring deine erste App heraus':BR==='prod'?'Starte deine erste Produktionslinie':'Eröffne dein erstes Restaurant'},d:'Eine Filiale, eine veröffentlichte App oder eine laufende Linie.',reward:3000,test:G=>G.firms.some(f=>f.branch==='cafe'?f.shops.length:f.branch==='soft'?G.apps.some(a=>a.owner===f.id&&a.state==='live'):f.plants.some(p=>p.lines.length))},
   {k:'profit1',n:'Schließe einen Monat mit Gewinn ab',reward:2000,test:G=>last(G)&&last(G).net>0},
   {k:'p5k',n:'Erreiche 5.000 € Monatsgewinn',reward:5000,test:G=>last(G)&&last(G).net>=5000},
-  {k:'three',n:'Drei Filialen, drei Apps oder drei Linien',reward:8000,test:G=>G.firms.some(f=>f.branch==='cafe'?f.shops.length>=3:f.branch==='soft'?G.apps.filter(a=>a.owner===f.id&&a.state!=='off').length>=3:f.plants.reduce((s,p)=>s+p.lines.length,0)>=3)},
+  {k:'three',get n(){return BR==='soft'?'Betreibe drei Apps':BR==='prod'?'Betreibe drei Produktionslinien':'Betreibe drei Restaurants'},reward:8000,test:G=>G.firms.some(f=>f.branch==='cafe'?f.shops.length>=3:f.branch==='soft'?G.apps.filter(a=>a.owner===f.id&&a.state!=='off').length>=3:f.plants.reduce((s,p)=>s+p.lines.length,0)>=3)},
   {k:'s10',n:'Beschäftige 10 Menschen',reward:5000,test:G=>totalStaff(G)>=10},
-  {k:'stars',n:'4,5 Sterne für ein Geschäft',reward:6000,test:G=>G.firms.some(f=>(f.shops||[]).some(s=>stars(s.rep)>=4.5))||G.apps.some(a=>!a.owner.startsWith('c:')&&a.state==='live'&&rating(a)*5>=4.5)||G.firms.some(f=>f.branch==='prod'&&f.rep>=0.88)},
+  {k:'stars',get n(){return BR==='soft'?'4,5 Sterne für eine App':BR==='prod'?'Erstklassiger Ruf als Hersteller':'4,5 Sterne für ein Restaurant'},reward:6000,test:G=>G.firms.some(f=>(f.shops||[]).some(s=>stars(s.rep)>=4.5))||G.apps.some(a=>!a.owner.startsWith('c:')&&a.state==='live'&&rating(a)*5>=4.5)||G.firms.some(f=>f.branch==='prod'&&f.rep>=0.88)},
   {k:'city2',n:'Erschließe eine zweite Stadt',reward:15000,test:G=>Object.keys(G.cities).length>=2},
   {k:'hold',n:'Gründe eine zweite Firma',reward:10000,test:G=>G.firms.length>=2},
   {k:'p25k',n:'Erreiche 25.000 € Monatsgewinn',reward:20000,test:G=>last(G)&&last(G).net>=25000},
@@ -167,7 +168,8 @@ const unitName=p=>p.kind?KINDS[p.kind].n:p.zone==='gewerbe'?'Halle':'Gewerbeflä
 const plot=(G,id)=>G.plots.find(p=>p.id===id);
 function freePlots(G,city,use){return G.plots.filter(p=>p.city===city&&!p.owner&&usesOf(p).includes(use)).sort((a,b)=>b.traffic-a.traffic)}
 function addComp(G,o){const cp=Object.assign({id:uid(G),rep:0.6,price:1,aware:0.4,value:0},o);G.comps.push(cp);return cp}
-function compOpen(G,cp){const fr=freePlots(G,cp.city,'cafe').filter(p=>p.zone!=='buero'||rand(G)<0.4);if(!fr.length)return null;const p=fr[Math.min(fr.length-1,Math.floor(rand(G)*Math.min(5,fr.length)))];p.owner='c:'+cp.id;p.use='cafe';return p}
+function compOpen(G,cp){const mine=G.plots.filter(q=>q.city===cp.city&&q.use==='cafe'&&q.owner&&!q.owner.startsWith('c:'));const sc=p=>p.traffic*(1+0.6*mine.filter(q=>near(p,q)).length)*(0.7+0.6*rand(G));
+  const fr=freePlots(G,cp.city,'cafe').filter(p=>p.zone!=='buero'||rand(G)<0.4).sort((a,b)=>sc(b)-sc(a));if(!fr.length)return null;const p=fr[Math.min(fr.length-1,Math.floor(rand(G)*Math.min(3,fr.length)))];p.owner='c:'+cp.id;p.use='cafe';return p}
 function foundFirm(G,branch,name){
   const f={id:'f'+uid(G),name,branch,color:BRANCHES[branch].color,founded:G.month,morale:0.75,aware:0.05,rep:0.5,mkt:branch==='soft'?1500:800,wage:1.0,res:{},resCur:null};
   if(branch==='cafe'){f.shops=[];f.menu={};for(const k in PRODUCTS)f.menu[k]={on:['pasta','pizza','salat','limo','espresso','tiramisu'].includes(k),q:k==='limo'?1:2,price:PRODUCTS[k].ref}}
@@ -207,7 +209,7 @@ function menuStats(G,f,s){let sumA=0,sumW=0,sumQW=0,pf=0;const items=[];const up
 function recipeFit(G,f,s){const r=f.recipe;if(!r)return 0;const p=s?plot(G,s.plot):null,T=TASTE[p?p.city:'kiel'];const d=(Math.abs(r.wuerze-T.wuerze)+Math.abs(r.frische-T.frische)+Math.abs(r.portion-T.portion))/3;return clamp(0.08-0.32*d,-0.06,0.08)}
 function unitCost(G,f,k,s){const P=PRODUCTS[k],m=f.menu[k];return(P.other*(P.main&&f.recipe?0.8+0.4*f.recipe.portion:1)+(P.beans?P.beans*GOODS.bohnen.ref*G.idx.rohkaffee:0)+(P.piece?P.mkt:0))*QMULT[m.q]}
 function compAttr(cp){return Math.pow(cp.q,0.8)*0.8*clamp(Math.exp(-1.8*(cp.price-1)),0.3,1.5)*(0.35+0.65*cp.rep)}
-const ZCONV={city:0.048,wohn:0.066,buero:0.052,gewerbe:0.018}; // im Wohnviertel kommen mehr Passanten als Stammgäste
+const ZCONV={city:0.062,wohn:0.085,buero:0.066,gewerbe:0.023}; // im Wohnviertel kommen mehr Passanten als Stammgäste
 const near=(a,b)=>a.city===b.city&&Math.abs(a.r-b.r)<=1&&Math.abs(a.c-b.c)<=1;
 function comfortOf(s){return clamp(LEVELS[s.level].comfort+(FACADES[s.facade||'klassik'].comfort||0)+(s.ups.lounge?0.12:0)-(s.ups.togo?0.03:0),0,1)}
 function shopForecast(G,f,s){ // Nachfrage und Kapazität im Monat (auch für die Vorschau)
@@ -347,7 +349,7 @@ function reserved(f,g){return f.contracts.filter(c=>c.good===g).reduce((s,c)=>s+
 function goodsTotalAll(f){let s=0;for(const g in f.goods)s+=goodsTotal(f,g);return s}
 function takeOwn(f,g,qty){const gs=f.goods[g];let got=0,cost=0;for(let k=3;k>=1&&got<qty;k--){const b=gs[k];if(!b||b.q<=0)continue;const t=Math.min(b.q,qty-got),uc=b.cost/b.q;b.q-=t;b.cost-=uc*t;got+=t;cost+=uc*t}return{qty:got,cost}}
 function internalNeed(G,g){let n=0;for(const f of G.firms)if(f.branch==='cafe')for(const s of f.shops){const g0=s.stat?s.stat.guests:0;const ms=menuStats(G,f,s);for(const it of ms.items){const P=PRODUCTS[it.k];n+=g0*PER*it.share*(g==='bohnen'?(P.beans||0):(P.piece||0))}}return n}
-function wholesalePrice(G,f,g,grade){return GOODS[g].ref*0.7*(1+0.15*(grade-1))*(g==='bohnen'?G.idx.rohkaffee:1)}
+function wholesalePrice(G,f,g,grade){return GOODS[g].ref*0.86*(1+0.15*(grade-1))*(g==='bohnen'?G.idx.rohkaffee:1)}
 function sellWholesale(G,f,g,qty,quiet){const gs=f.goods[g];if(!gs)return{ok:false,msg:'Nichts auf Lager.'};let left=qty,sold=0,rev=0;
   for(let k=1;k<=3&&left>0;k++){const b=gs[k];if(!b||b.q<=0)continue;const t=Math.min(b.q,left),uc=b.cost/b.q;b.q-=t;b.cost-=uc*t;left-=t;sold+=t;rev+=t*wholesalePrice(G,f,g,k);L(G,f.id).cogs+=uc*t}
   earn(G,f.id,'rev',rev);if(!quiet)news(G,f.name+' verkauft '+fn(sold)+' '+GOODS[g].n+' an den Großhandel.','info');return{ok:true,rev,msg:'Verkauft: '+fn(sold)+' '+GOODS[g].n+' für '+fmtE(rev)}}
@@ -420,7 +422,11 @@ function endTurn(G){
     for(const r of ['rohkaffee','holz','mehl'])G.idx[r]=clamp(G.idx[r]*(1+(rand(G)-0.5)*0.07)+(1-G.idx[r])*0.12,0.6,1.7);
     for(const l of G.loans){const i=l.bal*Math.max(0.01,l.rate-0.005*ex(G,'cfo'))/12;pay(G,'H','int',i);const p=Math.min(l.bal,l.pay-i);G.cash-=p;G.led.cf.fin-=p;l.bal-=p}G.loans=G.loans.filter(l=>l.bal>0.5);
     if(G.hedge&&G.hedge.left>0)G.hedge.left--;
-    for(const cp of G.comps){if(cp.branch==='cafe'&&rand(G)<0.05)cp.q=clamp(cp.q+rr(G,-0.03,0.05),0.4,0.9);compValue(G,cp)}
+    for(const cp of G.comps){if(cp.branch==='cafe'){if(rand(G)<0.05)cp.q=clamp(cp.q+rr(G,-0.03,0.05),0.4,0.9);
+        // Reaktion auf starke eigene Restaurants in der Nachbarschaft: Preise runter, sonst langsam zurück
+        const theirs=G.plots.filter(p=>p.owner==='c:'+cp.id);let threat=0;for(const f of G.firms)for(const s of f.shops||[]){if(s.build>0||!s.stat)continue;const q=plot(G,s.plot);if(theirs.some(p=>near(p,q))&&s.rep>cp.rep)threat++}
+        const old=cp.price;cp.price=threat?Math.max(0.8,cp.price-0.03):Math.min(cp.base||cp.price,cp.price+0.01);if(!cp.base)cp.base=old;
+        if(threat&&old>=0.85&&cp.price<0.85)rep.events.push({icon:'🏷️',t:cp.name+' senkt die Preise, um gegen deine Restaurants zu bestehen.'})}compValue(G,cp)}
     for(const a of G.apps)if(a.owner.startsWith('c:')&&a.state==='live')a.users*=1+0.018*(a.quality-0.4)*(1-a.users/GENRES[a.genre].pot);
     if(rand(G)<0.08){const g=pick(G,Object.keys(GENRES)),cp=addComp(G,{branch:'soft',name:pick(G,APP_NAMES)+' '+pick(G,['Labs','Studio','Apps']),color:'#8a8f96',q:rr(G,0.5,0.75)});
       G.apps.push({id:uid(G),owner:'c:'+cp.id,name:pick(G,APP_NAMES),genre:g,scope:'M',state:'live',progress:1,work:1,quality:cp.q,bugs:15,users:5000,payers:0,model:'freemium',price:4.99,fresh:1,released:G.month})}}
@@ -497,6 +503,28 @@ const EVENTS={
     opts:[{n:'Festpreis sichern',d:'Schützt vor Preissprüngen.',run:(G,f,e)=>{G.hedge={raw:e.ref,idx:G.idx[e.ref]*0.92,left:6};return'Festpreis für 6 Monate gesichert.'}},{n:'Am Markt bleiben',d:'',run:()=>'Du kaufst weiter zum Tagespreis.'}],def:1},
   grant:{icon:'🏛️',when:(G,f)=>totalStaff(G)<60&&f.id===G.firms[0].id,make:()=>({t:'Das Land fördert Digitalisierung mit 10.000 €. Der Antrag kostet 500 € Beratung.'}),
     opts:[{n:'Antrag stellen',d:'70 % Chance.',run:(G,f)=>{pay(G,f.id,'other',500);if(rand(G)<0.7){G.cash+=10000;G.paidIn+=10000;G.led.cf.fin+=10000;return'Bewilligt! 10.000 € Zuschuss.'}return'Leider abgelehnt.'}},{n:'Keine Zeit',d:'',run:()=>'Vielleicht nächstes Jahr.'}],def:1},
+  buyout:{branch:'cafe',icon:'🤝',when:(G,f)=>f.shops.filter(s=>!s.build).length>=2&&G.comps.some(c=>c.branch==='cafe'),make:(G,f)=>{const s=pick(G,f.shops.filter(x=>!x.build)),cp=pick(G,G.comps.filter(c=>c.branch==='cafe')),v=Math.round(((s.stat?Math.max(0,s.stat.profit)*4*12*3:0)+LEVELS[s.level].cost+40000)/1000)*1000;
+      return{ref:s.id,cp:cp.id,amt:v,t:cp.name+' möchte dein Restaurant in '+shopName(G,s)+' übernehmen und bietet '+fmtE(v)+'.'}},
+    opts:[{n:'Verkaufen',d:'Geld sofort, das Restaurant geht an die Konkurrenz.',run:(G,f,e)=>{const s=f.shops.find(x=>x.id===e.ref),cp=G.comps.find(c=>c.id===e.cp);if(!s||!cp)return'Das Angebot ist verfallen.';const p=plot(G,s.plot);
+        const book=G.assets.filter(a=>a.ref==='shop:'+p.id).reduce((a,x)=>a+x.book,0);G.assets=G.assets.filter(a=>a.ref!=='shop:'+p.id);earn(G,f.id,null,e.amt,'inv');L(G,f.id).other+=book-e.amt;
+        f.shops=f.shops.filter(x=>x!==s);p.owner='c:'+cp.id;p.use='cafe';return'Verkauft für '+fmtE(e.amt)+'. '+cp.name+' übernimmt das Restaurant.'}},{n:'Ablehnen',d:'Das Restaurant bleibt deins.',run:()=>'Du lehnst ab.'}],def:1},
+  inspect:{branch:'cafe',icon:'🧪',when:(G,f)=>f.shops.some(s=>!s.build),make:(G,f)=>{const s=pick(G,f.shops.filter(x=>!x.build));return{ref:s.id,t:'Das Gesundheitsamt kündigt eine Hygienekontrolle in '+shopName(G,s)+' an.'}},
+    opts:[{n:'Grundreinigung vorher',d:'800 €, sicher bestanden.',run:(G,f)=>{pay(G,f.id,'other',800);return'Kontrolle ohne Beanstandung.'}},{n:'Es wird schon passen',d:'Kostet nichts. Riskant.',run:(G,f,e)=>{const s=f.shops.find(x=>x.id===e.ref);if(s&&rand(G)<0.35){pay(G,f.id,'other',2500);s.rep-=0.08;return'Mängel gefunden: 2.500 € Bußgeld, der Ruf leidet.'}return'Bestanden, Glück gehabt.'}}],def:1},
+  critic:{branch:'cafe',icon:'🍷',when:(G,f)=>f.shops.some(s=>!s.build&&s.level>=2),make:(G,f)=>{const s=pick(G,f.shops.filter(x=>!x.build&&x.level>=2));return{ref:s.id,t:'Ein bekannter Restaurantkritiker hat einen Tisch in '+shopName(G,s)+' reserviert.'}},
+    opts:[{n:'Chef kocht selbst, bestes Menü',d:'1.000 € Extrazutaten.',run:(G,f,e)=>{pay(G,f.id,'cogs',1000);const s=f.shops.find(x=>x.id===e.ref);if(s){const ok=s.rep+rand(G)*0.3>0.75;s.rep=clamp(s.rep+(ok?0.1:-0.02),0,1);f.aware=Math.min(1,f.aware+(ok?0.06:0));return ok?'Glänzende Kritik! Ruf und Bekanntheit steigen.':'Die Kritik ist höflich, aber kühl.'}return''}},
+      {n:'Ganz normal',d:'Was zählt, ist der Alltag.',run:(G,f,e)=>{const s=f.shops.find(x=>x.id===e.ref);if(s&&s.rep>0.8){s.rep=Math.min(1,s.rep+0.06);return'„Ehrliche, gute Küche.“ Schöne Kritik.'}if(s)s.rep-=0.05;return'Die Kritik fällt mäßig aus.'}}],def:1},
+  noise:{branch:'cafe',icon:'🔊',when:(G,f)=>f.shops.some(s=>!s.build&&(s.hours==='long'||s.ups.terrasse)),make:(G,f)=>{const s=pick(G,f.shops.filter(x=>!x.build&&(x.hours==='long'||x.ups.terrasse)));return{ref:s.id,t:'Nachbarn von '+shopName(G,s)+' beschweren sich über Lärm am späten Abend.'}},
+    opts:[{n:'Schallschutz einbauen',d:'3.000 €.',run:(G,f)=>{pay(G,f.id,'other',3000);return'Ruhe im Viertel.'}},{n:'Früher schließen',d:'Öffnungszeiten auf Standard.',run:(G,f,e)=>{const s=f.shops.find(x=>x.id===e.ref);if(s)s.hours='normal';return'Das Restaurant schließt jetzt um 22 Uhr.'}},{n:'Ignorieren',d:'Kann teuer werden.',run:(G,f)=>{if(rand(G)<0.4){pay(G,f.id,'other',1500);return'Das Ordnungsamt verhängt 1.500 € Bußgeld.'}return'Die Beschwerden verlaufen im Sand.'}}],def:2},
+  viral:{branch:'cafe',icon:'📱',when:(G,f)=>f.shops.some(s=>!s.build),make:(G,f)=>{const s=pick(G,f.shops.filter(x=>!x.build));return{ref:s.id,t:'Ein Video über ein Gericht aus '+shopName(G,s)+' geht im Netz viral. Sollen wir es aufgreifen?'}},
+    opts:[{n:'Aktionswoche mit dem Gericht',d:'1.200 € Werbung, viel mehr Gäste.',run:(G,f,e)=>{pay(G,f.id,'mkt',1200);const s=f.shops.find(x=>x.id===e.ref);if(s){s.la=Math.min(1,(s.la||0)+0.4);f.aware=Math.min(1,f.aware+0.05)}return'Die Schlange reicht um die Ecke!'}},{n:'Laufen lassen',d:'',run:(G,f,e)=>{const s=f.shops.find(x=>x.id===e.ref);if(s)s.la=Math.min(1,(s.la||0)+0.15);return'Ein paar Neugierige kommen vorbei.'}}],def:1},
+  outage:{branch:'soft',icon:'🔌',when:(G,f)=>G.apps.some(a=>a.owner===f.id&&a.state==='live'),make:(G,f)=>({t:'Der Cloud-Anbieter meldet eine Störung. Eure Apps sind teilweise nicht erreichbar.'}),
+    opts:[{n:'Notfall-Umzug auf zweiten Anbieter',d:'5.000 €.',run:(G,f)=>{pay(G,f.id,'other',5000);return'Nach zwei Stunden läuft wieder alles.'}},{n:'Abwarten',d:'Einige Nutzer springen ab.',run:(G,f)=>{for(const a of G.apps)if(a.owner===f.id)a.users*=0.96;return'Einen Tag Ausfall, 4 % der Nutzer sind weg.'}}],def:1},
+  supply:{branch:'prod',icon:'🚚',when:(G,f)=>f.plants.some(p=>p.lines.length),make:(G,f)=>({t:'Ein Zulieferer hat Lieferprobleme. Rohstoffe werden diese Woche knapp.'}),
+    opts:[{n:'Teuer nachkaufen',d:'3.500 € Aufschlag.',run:(G,f)=>{pay(G,f.id,'cogs',3500);return'Die Linien laufen weiter.'}},{n:'Produktion drosseln',d:'Eine Linie steht eine Woche.',run:(G,f)=>{const l=f.plants.flatMap(p=>p.lines)[0];if(l)G.ev.machine=l.id;return'Eine Linie läuft im Notbetrieb.'}}],def:1},
+  audit:{icon:'🧾',when:(G,f)=>G.months.length>6&&f.id===G.firms[0].id,make:()=>({t:'Das Finanzamt kündigt eine Betriebsprüfung an.'}),
+    opts:[{n:'Steuerberater einschalten',d:'4.000 €, alles sauber.',run:(G,f)=>{pay(G,'H','other',4000);return'Die Prüfung verläuft ohne Befund.'}},{n:'Selbst vorbereiten',d:'Spart Geld, vielleicht Nachzahlung.',run:(G,f)=>{if(rand(G)<0.4){const amt=Math.round(rr(G,3000,12000)/100)*100;pay(G,'H','other',amt);return'Nachzahlung: '+fmtE(amt)+'.'}return'Alles in Ordnung.'}}],def:0},
+  teamday:{icon:'🎳',when:(G,f)=>staffOf(G,f)>=8,make:(G,f)=>({t:'Das Team von '+f.name+' wünscht sich einen gemeinsamen Ausflug.'}),
+    opts:[{n:'Teamtag spendieren',d:'60 € pro Kopf, bessere Stimmung.',run:(G,f)=>{const n=staffOf(G,f);pay(G,f.id,'staff',n*60);f.moraleBoost=(f.moraleBoost||0)+0.1;return'Der Ausflug war ein voller Erfolg.'}},{n:'Nicht jetzt',d:'',run:(G,f)=>{f.morale=Math.max(0.1,f.morale-0.03);return'Etwas Enttäuschung im Team.'}}],def:1},
   press:{icon:'📰',when:(G,f)=>G.months.length>3,make:(G,f)=>({t:'Ein Wirtschaftsmagazin will ein Porträt über '+f.name+' bringen.'}),
     opts:[{n:'Interview geben',d:'Mehr Bekanntheit.',run:(G,f)=>{f.aware=Math.min(1,f.aware+0.06);return'Schöner Artikel, die Bekanntheit steigt.'}},{n:'Absagen',d:'',run:()=>'Kein Artikel.'}],def:0}};
 function shopName(G,s){const p=plot(G,s.plot);return ZONES[p.zone].n+', '+cityName(p.city)}
@@ -582,7 +610,7 @@ function migrate(G){
   for(const k in G.execs){const e=G.execs[k];if(e===true){const p=person(G);G.execs[k]=Object.assign(p,{since:G.month,salary:marketPay(G,k),deleg:{},grants:[]})}else if(!e)delete G.execs[k]}
   for(const k in G.depts)if(G.depts[k]===true)G.depts[k]=dneed(G);
   if(!G.macro)G.macro={rate:0.025,gdp:0.012,infl:0.02};if(!G.dues)G.dues=[];if(G.divPS===undefined)G.divPS=0;if(!G.deptWage)G.deptWage=60000;
-  if(!G.currency)G.currency='EUR';CUR=CURS[G.currency]||'€';if(!G.dm)G.dm=1;for(const f of G.firms)if(f.branch==='cafe'){if(f.uniform===undefined)f.uniform=true;if(!f.recipe)f.recipe={wuerze:0.5,frische:0.5,portion:0.5}}
+  BR=G.firms[0]?G.firms[0].branch:'cafe';if(!G.currency)G.currency='EUR';CUR=CURS[G.currency]||'€';if(!G.dm)G.dm=1;for(const f of G.firms)if(f.branch==='cafe'){if(f.uniform===undefined)f.uniform=true;if(!f.recipe)f.recipe={wuerze:0.5,frische:0.5,portion:0.5}}
   for(const cp of G.comps)if(!cp.qrev)cp.qrev=[];if(G.me.club){const C=CLUBS.find(x=>x.id===G.me.club.id);if(C)G.me.club.n=C.n}for(const st of G.stocks||[]){const d=STOCKS.find(x=>x[0]===st.tk);if(d)st.n=d[1]}for(const l of G.me.lux)if(l.k==='wein')l.n=LUX.wein.n;mgrMigrate(G);for(const f of G.firms)if(f.branch==='cafe'&&!(f.menu&&f.menu.pasta)){f.menu={};for(const k in PRODUCTS)f.menu[k]={on:['pasta','pizza','salat','limo','espresso','tiramisu'].includes(k),q:k==='limo'?1:2,price:PRODUCTS[k].ref};for(const s of f.shops)s.special=null}}
 function econ(G){return 1+clamp(G.macro?G.macro.gdp:0.012,-0.04,0.05)*2-0.024}
 // monatlich: Gehälter, Loyalität, Vesting, Rücktritte
@@ -802,7 +830,7 @@ function mgrMonth(G,rep){const done=[];
     if(m.salary<mgrPay(m)*0.88&&rand(G)<pW(0.12)){s.manager=null;rep.events.push({icon:'🚪',bad:true,t:shopName(G,s)+': Filialleitung '+m.name+' kündigt, das Gehalt lag zu weit unter Marktniveau.'})}}
   if(done.length)rep.events.push({icon:'🧑‍💼',t:'Deine Filialleitungen haben entschieden: '+done.slice(0,6).join(' · ')+(done.length>6?' · …':'')})}
 // Zwischenfälle in Filialen mit Delegation entscheidet die Leitung selbst
-const MGR_PICK={blogger:(m,s)=>s.rep>0.72?1:0,rent:m=>m.mkt>65?1:0,fest:(m,s,G,f)=>{const fc=shopForecast(G,f,s);return fc.cap>fc.dem*1.2?0:1},youtube:m=>m.mkt>60&&m.eth>50?0:1};
+const MGR_PICK={inspect:m=>m.eth>55?0:1,critic:m=>m.prod>65?0:1,noise:m=>m.ppl>60?0:1,viral:m=>m.mkt>50?0:1,blogger:(m,s)=>s.rep>0.72?1:0,rent:m=>m.mkt>65?1:0,fest:(m,s,G,f)=>{const fc=shopForecast(G,f,s);return fc.cap>fc.dem*1.2?0:1},youtube:m=>m.mkt>60&&m.eth>50?0:1};
 function mgrIncidents(G,rep){for(const e of [...G.pending]){if(!MGR_PICK[e.k]||!e.ref)continue;const f=firm(G,e.fid),s=f&&(f.shops||[]).find(x=>x.id===e.ref);if(!s||!s.manager||!(s.manager.deleg||{}).inc)continue;
   const o=MGR_PICK[e.k](s.manager,s,G,f),r=decide(G,e.id,o);if(rep)rep.events.push({icon:'🧑‍💼',t:s.manager.name+' ('+shopName(G,s)+') hat entschieden: '+EVENTS[e.k].opts[o].n+'. '+(r.msg||'')})}}
 function newShop(G,pid,o){return Object.assign({id:uid(G),plot:pid,level:1,staff:2,manager:false,hours:'normal',ups:{},act:{},special:null,rep:0.55,la:0.15,train:0,stat:null,reviews:[],opened:G.month},o||{})}
@@ -904,6 +932,7 @@ A.fireMgr=(G,sid)=>{const [f,s]=shopOf(G,sid);if(!s||!s.manager)return{ok:false}
 A.shopPrice=(G,sid,k,v)=>{const [f,s]=shopOf(G,sid);if(!s)return{ok:false};s.px=s.px||{};s.px[k]=Math.round(clamp(v,0.5,60)*10)/10;return{ok:true}};
 A.uniform=(G,fid,on)=>{const f=firm(G,fid);f.uniform=!!on;if(on)for(const s of f.shops||[])s.px={};return{ok:true}};
 A.recipe=(G,fid,r)=>{const f=firm(G,fid);if(!can(G,2000))return noMoney(2000);pay(G,f.id,'rd',2000);f.recipe={wuerze:clamp(r.wuerze,0,1),frische:clamp(r.frische,0,1),portion:clamp(r.portion,0,1)};return{ok:true,msg:'Neues Hausrezept eingeführt (Testküche 2.000 €).'}};
+A.rename=(G,fid,name)=>{const f=firm(G,fid);name=String(name||'').trim().slice(0,26);if(!f||!name)return{ok:false};f.name=name;return{ok:true,msg:'Die Firma heißt jetzt '+name+'.'}};
 A.founderDev=(G,on)=>{G.founderDev=!!on;return{ok:true}};
 A.buyProp=(G,pid)=>{const p=plot(G,pid);if(!p||p.prop)return{ok:false};if(p.owner==='H')return{ok:false};if(!G.cities[p.city])return{ok:false,msg:'Diese Stadt ist noch nicht erschlossen.'};
   const v=propValue(G,p),c=v*1.05;if(!can(G,c))return noMoney(c);pay(G,'H','other',v*0.05);buyAsset(G,'H','Immobilie '+ZONES[p.zone].n+' '+cityName(p.city),v,1e9,'prop:'+p.id);p.prop='H';p.leaseR=1;p.buyP=Math.round(c);p.buyM=G.month;
