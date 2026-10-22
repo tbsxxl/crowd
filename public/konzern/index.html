@@ -170,6 +170,9 @@ table.cf td{padding:5px 0;font-size:13.5px}table.cf td:last-child{text-align:rig
 .cands{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.cand{min-width:min(280px,82%);scroll-snap-align:center;display:flex;flex-direction:column;gap:6px}.cand .ava,.execCard .ava,.execHead .ava{flex:none;align-self:center}
 @media (max-width:440px){.execHead{flex-direction:column;align-items:center}.mast{font-size:26px}}
 /* Start, Wizard, Produktkarten */
+.icn{display:block;color:var(--ink)}.ib .icn,.db .icn{opacity:.88}.db[aria-pressed="true"] .icn{opacity:1}.goalCard .gi .icn{color:#b07a1c}
+.topBtns .ib{background:var(--card)}
+@media (max-width:760px){.topBtns .ib{box-shadow:0 1px 3px rgba(36,39,43,.12)}}
 .ffBtn{flex:none}@media (max-width:760px){.ffBtn{min-width:40px;flex:0 0 44px}.ffBtn small{display:none}.endBtn b{font-size:16px}}
 .sh-body>*{flex-shrink:0}
 .menuCard{margin:auto 0}.menuCard .seg{flex-wrap:wrap}
@@ -250,21 +253,21 @@ table.league td{padding:3px 4px;font-size:12.5px}table.league td:nth-child(2){wi
   <div class="k opt opt2"><span>Team</span><b id="hStaff">1</b></div>
 </div>
 <div class="topBtns" id="topBtns" hidden>
-  <button class="ib panel" data-a="open" data-v="wealth" aria-label="Vermögen">👤<small>Vermögen</small></button>
-  <button class="ib panel" data-a="open" data-v="bank" aria-label="Börse">🏦<small>Börse</small></button>
-  <button class="ib panel" data-a="open" data-v="airport" aria-label="Flughafen">✈️<small>Reisen</small></button>
-  <button class="ib panel" data-a="open" data-v="fin" aria-label="Finanzen">📊<small>Finanzen</small></button>
-  <button class="ib panel" data-a="open" data-v="group" aria-label="Konzern">🏛️<small>Konzern</small></button>
-  <button class="ib panel" data-a="open" data-v="goals" aria-label="Ziele">🎯<small>Ziele</small></button>
-  <button class="ib panel" data-a="open" data-v="menu" aria-label="Menü">☰<small>Menü</small></button>
-  <button class="ib panel mobOnly" data-a="open" data-v="more" aria-label="Mehr">☰<small>Mehr</small></button>
+  <button class="ib panel" data-a="open" data-v="wealth" aria-label="Vermögen"><i data-ic="wealth"></i><small>Vermögen</small></button>
+  <button class="ib panel" data-a="open" data-v="bank" aria-label="Börse"><i data-ic="bank"></i><small>Börse</small></button>
+  <button class="ib panel" data-a="open" data-v="airport" aria-label="Flughafen"><i data-ic="travel"></i><small>Reisen</small></button>
+  <button class="ib panel" data-a="open" data-v="fin" aria-label="Finanzen"><i data-ic="fin"></i><small>Finanzen</small></button>
+  <button class="ib panel" data-a="open" data-v="group" aria-label="Konzern"><i data-ic="group"></i><small>Konzern</small></button>
+  <button class="ib panel" data-a="open" data-v="goals" aria-label="Ziele"><i data-ic="goals"></i><small>Ziele</small></button>
+  <button class="ib panel" data-a="open" data-v="menu" aria-label="Menü"><i data-ic="menu"></i><small>Spiel</small></button>
+  <button class="ib panel mobOnly" data-a="open" data-v="more" aria-label="Mehr"><i data-ic="more"></i><small>Mehr</small></button>
 </div>
 <button class="goalCard panel" id="goalCard" data-a="open" data-v="goals" hidden></button>
 <nav class="dock panel" id="dock" hidden>
-  <button class="db" data-a="open" data-v="build" aria-label="Bauen">🏗️<small>Bauen</small></button>
-  <button class="db" data-a="open" data-v="list" aria-label="Geschäfte">📋<small>Geschäfte</small></button>
-  <button class="db" data-a="open" data-v="firm" aria-label="Firma">🏢<small>Firma</small></button>
-  <button class="db ffBtn" data-a="multiEnd" aria-label="Mehrere Wochen">⏩<small>Wochen</small></button>
+  <button class="db" data-a="open" data-v="build" aria-label="Bauen"><i data-ic="build"></i><small>Bauen</small></button>
+  <button class="db" data-a="open" data-v="list" aria-label="Geschäfte"><i data-ic="list"></i><small>Geschäfte</small></button>
+  <button class="db" data-a="open" data-v="firm" aria-label="Firma"><i data-ic="firm"></i><small>Firma</small></button>
+  <button class="db ffBtn" data-a="multiEnd" aria-label="Mehrere Wochen"><i data-ic="ff"></i><small>Wochen</small></button>
   <button class="endBtn" data-a="endTurn" id="endBtn"><span><b>Woche abschließen</b><small id="endSub">Januar 2027 abrechnen</small></span><span class="arr">→</span></button>
 </nav>
 <aside class="sheet panel" id="sheet" hidden></aside>
@@ -278,8 +281,8 @@ window.addEventListener('error',function(e){var m=document.getElementById('bootM
   if(m&&!document.getElementById('menu').hidden)m.textContent=t;else{var d=document.getElementById('toast');if(d){d.textContent=t;d.hidden=false}}},true);
 </script>
 <script src="../vendor/three-r128-bloom.js"></script>
-<script src="sim.js"></script>
-<script src="world.js"></script>
+<script src="sim.js?v=20261022b"></script>
+<script src="world.js?v=20261022b"></script>
 <script>
 (function(){
 'use strict';
@@ -300,7 +303,7 @@ function showMenu(){const saved=store.get();const m=$('menu');m.hidden=false;
 function start(){keepInputs();setTimeout(()=>{if(G){G.tut=0;refresh()}},0);const name=(newOpt.fname||'Mein Start-up').trim().slice(0,26);G=K.newGame({branch:newBranch,name,finance:newFin,seed:(Date.now()%1e9)|0,diff:newOpt.diff,comps:newOpt.comps,cur:newOpt.cur,capital:newOpt.cap,color:newOpt.color||K.BRANCHES[newBranch].color,logo:newOpt.logo,portrait:newOpt.portrait,ceo:(newOpt.ceo||'').trim().slice(0,26)||'Du'});afterLoad();
   setTimeout(()=>open('build'),300)}
 const logoXml=(i,c)=>logoSvg(i,c,128).replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" ');
-function afterLoad(){if(G.tut===undefined)G.tut=(G.weeks||[]).length>3?99:0;try{World.setLogo(logoXml(G.firms[0].logo||0,G.firms[0].color))}catch(e){}$('menu').hidden=true;['hud','topBtns','dock'].forEach(id=>$(id).hidden=false);World.setCity(G,G.cityCur);World.sync(G,true);refresh();save()}
+function afterLoad(){document.querySelectorAll('i[data-ic]').forEach(e=>{e.outerHTML=ic(e.dataset.ic,22)});if(G.tut===undefined)G.tut=(G.weeks||[]).length>3?99:0;try{World.setLogo(logoXml(G.firms[0].logo||0,G.firms[0].color))}catch(e){}$('menu').hidden=true;['hud','topBtns','dock'].forEach(id=>$(id).hidden=false);World.setCity(G,G.cityCur);World.sync(G,true);refresh();save()}
 function save(){if(G)store.set(G)}
 
 // ---------- Kopf ----------
@@ -309,9 +312,9 @@ function refresh(){if(!G)return;const last=(G.weeks||[])[(G.weeks||[]).length-1]
   const n=$('hNet');n.textContent=last?sgn(last.net):'–';n.className=last?(last.net>=0?'pos':'neg'):'';$('hStaff').textContent=fn(K.totalStaff(G));$('hWealth').textContent=fe(K.wealth(G).total);
   $('brandSub').innerHTML=logoSvg(G.firms[0].logo||0,G.firms[0].color,18)+' '+esc(cur().name)+' · '+K.stage(G).n;
   $('endSub').textContent=G.pending.length?G.pending.length+(G.pending.length>1?' Entscheidungen offen':' Entscheidung offen'):'Woche ab '+K.dateStr(G).replace(/ \d{4}$/,'');$('endBtn').dataset.wait=G.pending.length>0;
-  const ts=tutStep(),gc0=$('goalCard');if(ts){gc0.hidden=false;gc0.dataset.v=ts.v||'goals';gc0.innerHTML=`<span class="gi">👋</span><span><b>${esc(ts.t(G.firms[0].branch))}</b><br><span>${esc(ts.d)} · Schritt ${G.tut+1} von ${TUT.length}</span></span>`;if(!ts.v)gc0.dataset.v='goals';}
+  const ts=tutStep(),gc0=$('goalCard');if(ts){gc0.hidden=false;gc0.dataset.v=ts.v||'goals';gc0.innerHTML=`<span class="gi">${ic('hand',22)}</span><span><b>${esc(ts.t(G.firms[0].branch))}</b><br><span>${esc(ts.d)} · Schritt ${G.tut+1} von ${TUT.length}</span></span>`;if(!ts.v)gc0.dataset.v='goals';}
   const g=ts?null:K.GOALS.find(x=>!G.goals[x.k]);const gc=$('goalCard');if(ts){}else{gc.dataset.v='goals';
-  if(g){gc.hidden=false;gc.innerHTML=curFix(`<span class="gi">🎯</span><span><b>${esc(g.n)}</b><br><span>Nächstes Ziel</span></span>${g.reward?`<span class="rw">+${fe(g.reward)}</span>`:''}`)}else gc.hidden=true;}
+  if(g){gc.hidden=false;gc.innerHTML=curFix(`<span class="gi">${ic('target',22)}</span><span><b>${esc(g.n)}</b><br><span>Nächstes Ziel</span></span>${g.reward?`<span class="rw">+${fe(g.reward)}</span>`:''}`)}else gc.hidden=true;}
   World.sync(G);tags();if(view&&!$('sheet').hidden&&!busyInput())renderSheet()}
 function busyInput(){const a=document.activeElement;return a&&a.tagName==='INPUT'&&$('sheet').contains(a)}
 
@@ -343,6 +346,8 @@ const spark=(v,w,h,col)=>{if(!v||v.length<2)return'';const mn=Math.min(...v),mx=
 const donut=(parts,size)=>{const tot=parts.reduce((s,p)=>s+Math.max(0,p.v),0)||1,r=size/2-10,c=2*Math.PI*r;let off=0;
   return`<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true"><g transform="rotate(-90 ${size/2} ${size/2})">${parts.map(p=>{const l=Math.max(0,p.v)/tot*c;const el=`<circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${p.c}" stroke-width="18" stroke-dasharray="${l} ${c-l}" stroke-dashoffset="${-off}"/>`;off+=l;return el}).join('')}</g></svg>`};
 const legend=parts=>`<div class="list" style="gap:4px;flex:1">${parts.map(p=>`<div class="row"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${p.c};margin-right:6px"></i>${p.n}</span><b style="font-variant-numeric:tabular-nums">${p.t||fe(p.v)}</b></div>`).join('')}</div>`;
+const ICONS={'build':'<path d="M4 20h16M7 20V8l10-4v16M7 8h13M10 12h4M10 16h4"/>','list':'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4v2h6V4M8.5 11h7M8.5 15h5"/>','firm':'<path d="M4 20h16M6 20V6h8v14M14 10h4v10"/><path d="M9 9h2M9 12h2M9 15h2"/>','ff':'<path d="M4 6l7 6-7 6zM12 6l7 6-7 6z"/>','fin':'<path d="M4 20h16M7 17v-5M12 17V7M17 17v-8"/>','group':'<path d="M3 9l9-5 9 5M5 9v9M9.5 9v9M14.5 9v9M19 9v9M3 20h18"/>','more':'<path d="M4 7h16M4 12h16M4 17h16"/>','wealth':'<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/>','bank':'<path d="M4 20h16M6 17h12M7 17V10M12 17V10M17 17V10M4 10l8-5 8 5z"/>','travel':'<path d="M3 13l18-6-5 13-4-5-5 2z"/><path d="M12 15l-1 4"/>','goals':'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.8"/>','menu':'<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>','hand':'<path d="M8 13V6.5a1.5 1.5 0 013 0V12M11 11V5a1.5 1.5 0 013 0v6M14 11V6.5a1.5 1.5 0 013 0V14c0 4-2.5 6.5-6 6.5-3 0-4.5-1.5-6-4l-1.5-2.5a1.4 1.4 0 012.3-1.6L8 13"/>','target':'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 12l7-7M16 5h3v3"/>'};
+const ic=(k,sz)=>`<svg class="icn" viewBox="0 0 24 24" width="${sz||24}" height="${sz||24}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k]}</svg>`;
 const VIEWS={};
 // Bauen
 VIEWS.build=()=>{let b='<div class="hint">Wähle, was du bauen willst. Danach leuchten passende freie Flächen in der Stadt grün auf: Ladenlokale, Büroetagen oder Hallen.</div>';
@@ -882,7 +887,7 @@ VIEWS.goals=()=>{let b='<div class="sub">Für jedes erreichte Ziel gibt es eine 
 VIEWS.decide=()=>{if(!G.pending.length)return{title:'Keine offenen Entscheidungen',body:'<div class="sub">Alles erledigt. Du kannst die Woche abschließen.</div><button class="btn ink" data-a="endTurn">Monat abschließen</button>'};
   let b='';for(const e of G.pending){b+=`<div class="card"><div class="ch"><span class="ico">${e.icon||'❓'}</span><span class="t"><b>${esc(K.firm(G,e.fid).name)}</b></span></div><div class="quote" style="font-style:normal;font-size:17px">${esc(e.t)}</div><div class="list">${K.eventOpts(e).map((o,i)=>`<button class="li" data-a="decide" data-id="${e.id}" data-v="${i}"><span class="t"><b>${esc(o.n)}</b><span>${esc(o.d)}</span></span><span class="v">→</span></button>`).join('')}</div></div>`}
   return{eyebrow:K.monthName(G.month),title:G.pending.length>1?'Entscheidungen':'Entscheidung',body:b}};
-VIEWS.more=()=>({title:'Mehr',body:`<div class="list">${[['wealth','👤','Vermögen','Gehalt, Depot, Luxus, Verein'],['bank','🏦','Börse','Aktienmarkt, Eigenkapital, Übernahmen'],['airport','✈️','Reisen','In andere Städte fliegen'],['goals','🎯','Ziele','Meilensteine und Prämien'],['menu','⚙️','Spiel','Speichern, Spielstände, Hilfe']].map(([v,i,t,d])=>li(`data-a="open" data-v="${v}" data-keep="1"`,i,t,d,'→')).join('')}</div>`});
+VIEWS.more=()=>({title:'Mehr',body:`<div class="list">${[['wealth','wealth','Vermögen','Gehalt, Depot, Luxus, Verein'],['bank','bank','Börse','Aktienmarkt, Eigenkapital, Übernahmen'],['airport','travel','Reisen','In andere Städte fliegen'],['goals','goals','Ziele','Meilensteine und Prämien'],['menu','menu','Spiel','Speichern, Spielstände, Hilfe']].map(([v,i,t,d])=>li(`data-a="open" data-v="${v}" data-keep="1"`,ic(i,20),t,d,'→')).join('')}</div>`});
 VIEWS.menu=()=>({title:'Spiel',body:`<div class="sec"><h3>Spielstände</h3><div class="sub">Der aktuelle Stand wird nach jeder Woche automatisch gespeichert. Zusätzlich hast du drei Speicherplätze.</div>
   ${[1,2,3].map(i=>{const x=slotInfo(i);return`<div class="card"><div class="row"><span><b>Platz ${i}</b><br><span class="sub">${x?esc(x.n)+' · '+x.d:'leer'}</span></span><span class="btns"><button class="btn" data-a="slotSave" data-v="${i}">Speichern</button>${x?`<button class="btn ink" data-a="slotLoad" data-v="${i}">Laden</button>`:''}</span></div></div>`}).join('')}
   <div class="btns"><button class="btn" data-a="exportSave">⬇️ Als Datei sichern</button><label class="btn" style="cursor:pointer">⬆️ Datei laden<input type="file" accept="application/json,.json" id="importFile" hidden></label></div></div>

@@ -114,7 +114,24 @@ function special(code,id,r,c,g){seed=(r*17+c*5+id.length*11)|0||3;
       B(7,1.4,7,'#e8e5de',0,0.3,0,g);for(let i=0;i<4;i++){const t=add(prism(3.4,1.2,1.4),'#f4f1ea',-2.2+(i%2)*4.4,1.7,-2.2+Math.floor(i/2)*4.4,g)}
       cyl(0.55,0.95,15,'#d9dcdf',0,0.3,0,g,12);add(new THREE.SphereGeometry(2.1,16,12),new THREE.MeshStandardMaterial({color:'#c9ced4',metalness:0.5,roughness:0.3}),0,16.6,0,g);
       cyl(1,1,0.5,'#8a8f96',0,18.4,0,g,12);cyl(0.25,0.36,3,'#e05a3a',0,18.9,0,g,8);cyl(0.14,0.25,2.2,'#f4f1ea',0,21.9,0,g,6)}}}
-function buildSpecials(G){const map=window.K&&K.CITY_MAP&&K.CITY_MAP[cityId];if(!map)return;
+// Lücken zwischen Feldern desselben Blocks füllen: Platz, Park oder Wasser. Autos meiden diese Flächen.
+const gaps=[];
+const PLAZA={kiel:'#cdb8a4',hamburg:'#c9cdd0',berlin:'#d3cdbf'};
+function fillGaps(G){gaps.length=0;const map=K.CITY_MAP[cityId],bl=K.CITY_BLOCKS&&K.CITY_BLOCKS[cityId];if(!map||!bl)return;
+  const g=new THREE.Group();g.userData.cell='gaps';plotGroup.add(g);
+  const kind=(a,b)=>a==='A'&&b==='A'?'A':a==='P'&&b==='P'?'P':'Z';
+  const col=k=>k==='A'?'#5c9cbf':k==='P'?(MAP_CITY[cityId]||MAP_CITY.kiel).park:PLAZA[cityId]||'#d0c8bc';
+  const put=(x,z,w,d,k)=>{const m=B(w,k==='A'?0.1:0.16,d,col(k),x,k==='A'?-0.02:0,z,g);gaps.push({x0:x-w/2,x1:x+w/2,z0:z-d/2,z1:z+d/2,k});
+    if(k==='Z'&&w*d>14){for(let i=0;i<2;i++){const tx=x+(i?1:-1)*w*0.25,tz=z+(i?-1:1)*d*0.25;cyl(0.1,0.14,0.9,'#6b4a2f',tx,0.16,tz,g,5);add(new THREE.IcosahedronGeometry(0.7,0),'#6fae5a',tx,1.6,tz,g)}B(1.2,0.35,0.4,'#7a5a3a',x,0.16,z,g)}
+    if(k==='P'){cyl(0.12,0.16,1,'#6b4a2f',x,0.16,z,g,5);add(new THREE.IcosahedronGeometry(0.9,0),'#5e9e4e',x,1.8,z,g)}};
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const id=bl[r][c];
+    if(c<COLS-1&&bl[r][c+1]===id)put((px(c)+px(c+1))/2,pz(r),S+0.2,P,kind(map[r][c],map[r][c+1]));
+    if(r<ROWS-1&&bl[r+1][c]===id)put(px(c),(pz(r)+pz(r+1))/2,P,S+0.2,kind(map[r][c],map[r+1][c]));
+    if(c<COLS-1&&r<ROWS-1&&bl[r][c+1]===id&&bl[r+1][c]===id&&bl[r+1][c+1]===id)put((px(c)+px(c+1))/2,(pz(r)+pz(r+1))/2,S+0.2,S+0.2,kind(map[r][c],map[r+1][c+1]));
+    if(r===0&&map[r][c]==='A'){const z1=pz(0)-P/2,z0=-DD/2-MARGIN;put(px(c),(z0+z1)/2,P,z1-z0+0.1,'A');g.children[g.children.length-1].position.y=0.06}}
+  g.traverse(o=>{if(o.isMesh)o.receiveShadow=true})}
+const inGap=(x,z,water)=>{for(const q of gaps)if(x>q.x0&&x<q.x1&&z>q.z0&&z<q.z1&&(!water||q.k==='A'))return true;return false};
+function buildSpecials(G){const map=window.K&&K.CITY_MAP&&K.CITY_MAP[cityId];if(!map)return;if(!G.plots.some(p=>p.city===cityId&&'PAL'.includes(map[p.r][p.c])))fillGaps(G);else gaps.length=0;
   for(let r=0;r<map.length;r++)for(let c=0;c<map[r].length;c++){const code=map[r][c];if(!'PAL'.includes(code))continue;if(G.plots.some(p=>p.city===cityId&&p.r===r&&p.c===c))continue;
     const g=new THREE.Group();g.userData.cell='x'+r+'-'+c;g.position.set(px(c),0,pz(r));plotGroup.add(g);special(code,cityId,r,c,g);g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}})}}
 function buildLand(id){if(topMat)topMat.color.set((MAP_CITY[id]||MAP_CITY.kiel).top);if(!landGroup)return;while(landGroup.children.length){const c=landGroup.children.pop();c.traverse(o=>{if(o.geometry)o.geometry.dispose()})}landAnim.length=0;
@@ -323,9 +340,9 @@ function moveOnGrid(o,dt,lane){ // läuft entlang einer Straße und biegt an Kre
   const a=o.t*(o.horiz?WW:DD)-(o.horiz?WW:DD)/2;return o.horiz?[a,streetZ(o.line)+lane]:[streetX(o.line)+lane,a]}
 function animate(dt){
   for(let i=0;i<WMAX;i++){if(i>=wCount){O.position.set(0,-50,0);O.scale.setScalar(0.001);O.updateMatrix();wInst.setMatrixAt(i,O.matrix);continue}
-    const w=wData[i];const [x,z]=moveOnGrid(w,dt*0.05,w.side);O.position.set(x,0.12+Math.abs(Math.sin(performance.now()/180+i))*0.05,z);O.scale.setScalar(1);O.rotation.set(0,0,0);O.updateMatrix();wInst.setMatrixAt(i,O.matrix)}
+    const w=wData[i];const [x,z]=moveOnGrid(w,dt*0.05,w.side);if(inGap(x,z,true)){O.position.set(0,-50,0);O.scale.setScalar(0.001);O.updateMatrix();wInst.setMatrixAt(i,O.matrix);continue}O.position.set(x,0.12+Math.abs(Math.sin(performance.now()/180+i))*0.05,z);O.scale.setScalar(1);O.rotation.set(0,0,0);O.updateMatrix();wInst.setMatrixAt(i,O.matrix)}
   wInst.instanceMatrix.needsUpdate=true;
-  for(let i=0;i<cData.length;i++){const c=cData[i];const [x,z]=moveOnGrid(c,dt*0.07,(c.dir>0?0.55:-0.55));O.position.set(x,0,z);O.rotation.set(0,c.horiz?0:Math.PI/2,0);O.scale.setScalar(1);O.updateMatrix();cInst.setMatrixAt(i,O.matrix)}
+  for(let i=0;i<cData.length;i++){const c=cData[i];const [x,z]=moveOnGrid(c,dt*0.07,(c.dir>0?0.55:-0.55));O.position.set(x,0,z);O.rotation.set(0,c.horiz?0:Math.PI/2,0);O.scale.setScalar(inGap(x,z,false)?0.001:1);O.updateMatrix();cInst.setMatrixAt(i,O.matrix)}
   cInst.instanceMatrix.needsUpdate=true}
 
 // ---------- Auswahl und Interaktion ----------
