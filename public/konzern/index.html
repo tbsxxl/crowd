@@ -170,6 +170,8 @@ table.cf td{padding:5px 0;font-size:13.5px}table.cf td:last-child{text-align:rig
 .cands{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.cand{min-width:min(280px,82%);scroll-snap-align:center;display:flex;flex-direction:column;gap:6px}.cand .ava,.execCard .ava,.execHead .ava{flex:none;align-self:center}
 @media (max-width:440px){.execHead{flex-direction:column;align-items:center}.mast{font-size:26px}}
 /* Start, Wizard, Produktkarten */
+.floor{display:grid;gap:5px;background:#e8d8bd;border-radius:12px;padding:8px;margin:8px 0}.fcell{all:unset;cursor:pointer;aspect-ratio:1;border-radius:7px;background:rgba(255,255,255,.45);border:1px dashed rgba(0,0,0,.12);display:grid;place-items:center;font-size:24px}.fcell.on{background:#fff;border-style:solid}
+.palette{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px}.pal{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:2px;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:8px}.pal[aria-pressed="true"]{border-color:var(--ink);background:var(--soft)}.pal span{font-size:22px}.pal b{font-size:12px}.pal small{font-size:10.5px;color:var(--muted)}
 .crew .t .bar{margin-top:4px}.crewBtns{display:flex;flex-direction:column;gap:4px;flex:none}.crewBtns .btn.sm{padding:5px 9px;font-size:11.5px}
 .segchip{font-style:normal;display:inline-block;font-size:11px;background:var(--soft);border-radius:999px;padding:1px 7px;margin:2px 3px 0 0}.chanRow{align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
 .tag.civ{background:#24272b;color:#fff;border-color:#24272b;font-weight:600}
@@ -477,6 +479,14 @@ function crewHtml(f,s){const cr=(s.crew||[]).slice().sort((a,b)=>b.skill-a.skill
     <div class="list">${cr.map(c=>`<div class="li crew" style="cursor:default"><span class="ico">${avatar({g:c.g,look:c.look,suit:'#9b6fb5'},40)}</span><span class="t"><b>${esc(c.n)}${c.skill>=0.85?' ⭐':''}</b><span>Können ${Math.round(c.skill*100)} · ${fe(base*K.crewPay(c))}/Monat · seit ${K.monthName(c.since)}${c.tr?' · 📚 in Schulung':''}</span>${bar(c.skill,c.skill>=0.7?'good':'')}</span>
       <span class="crewBtns"><button class="btn sm" data-a="crewTrain" data-id="${s.id}" data-k="${c.id}" ${c.tr?'aria-disabled="true"':''}>Schulen 1.200 €</button><button class="btn sm bad" data-a="crewFire" data-id="${s.id}" data-k="${c.id}">Entlassen</button></span></div>`).join('')}</div>
     <button class="btn" data-a="crewPro" data-id="${s.id}">⭐ Fachkraft über Agentur · 4.000 €</button></div>`}
+// Einrichtungs-Editor: Möbel wählen, Feld antippen
+let furnPick='t4';
+function layoutHtml(f,s,p){const l=K.fitLayout(s.layout,p),st=K.layoutStats({layout:l},p),seatCap=Math.round(st.seats*K.TURN*7.5),dem=s.stat?s.stat.dem:0;
+  return`<div class="sec"><h3>Einrichtung</h3><div class="sub">Wähle unten ein Möbelstück und tippe ein Feld an. Sitzplätze begrenzen, wie viele Gäste du bewirten kannst, Deko macht es gemütlicher. Zu eng gestellt wirkt ungemütlich. Abbauen bringt 30 % zurück.</div>
+    <div class="floor" style="grid-template-columns:repeat(${[6,5,4].find(c=>l.length%c===0)||6},1fr)">${l.map((k,i)=>`<button class="fcell ${k?'on':''}" data-a="furnSet" data-id="${s.id}" data-v="${i}" aria-label="Feld ${i+1}">${k?K.FURN[k].icon:''}</button>`).join('')}</div>
+    ${kpis([[fn(st.seats),'Sitzplätze'],[fn(seatCap),'Gäste/Woche möglich',dem>seatCap?'neg':''],[(st.atmo>=0?'+':'')+Math.round(st.atmo*100)+' %','Atmosphäre',st.atmo<0?'neg':'pos']])}
+    ${dem>seatCap?'<div class="sub neg">Es wollen mehr Gäste kommen, als Plätze da sind.</div>':''}${st.dens>3.2?'<div class="sub neg">Sehr eng gestellt, das drückt die Stimmung.</div>':''}
+    <div class="palette">${Object.entries(K.FURN).map(([k,F])=>`<button class="pal" data-a="furnPick" data-k="${k}" aria-pressed="${furnPick===k}"><span>${F.icon}</span><b>${F.n}</b><small>${F.seats?F.seats+' Plätze':'Deko'}${F.atmo?' · '+(F.atmo>0?'+':'')+Math.round(F.atmo*100)+' %':''} · ${fe(F.cost)}</small></button>`).join('')}<button class="pal" data-a="furnPick" data-k="" aria-pressed="${furnPick===''}"><span>🧹</span><b>Abbauen</b><small>30 % zurück</small></button></div></div>`}
 function mgrCard(s){const m=s.manager;
   if(!m)return`<div class="card"><div class="row"><span><span class="lbl">Filialleitung</span><br><span class="sub">Mehr Kapazität, besserer Service, Stammgäste. Sie kann Personal, Angebot, Marketing und Zwischenfälle selbst übernehmen.</span></span></div><button class="btn ink" data-a="open" data-v="mgrHire" data-id="${s.id}" data-keep="1">Filialleitung einstellen</button></div>`;
   const mp=K.mgrPay(m);return`<div class="sec"><h3>Filialleitung</h3><div class="card"><div class="execHead"><div style="text-align:center">${avatar(MGRLOOK(m),110)}<div class="eyebrow" style="margin-top:6px">Leitung seit</div><b>${K.monthName(m.since)}</b></div>
@@ -490,7 +500,7 @@ VIEWS.mgrHire=({id})=>{const [f,s]=K.shopOf(G,+id);if(!s)return null;if(s.manage
   list.forEach((c,i)=>{const o=view.p.offer[i]||c.demand;b+=`<div class="card cand">${avatar(MGRLOOK(c),96)}<b class="serif" style="font-size:22px">${esc(c.name)}</b><div class="eyebrow">Manager-Kenntnisse</div>${skill('Menschen',c.ppl)}${skill('Produkt',c.prod)}${skill('Marketing',c.mkt)}${skill('Ethik',c.eth)}
     <div class="eyebrow">Gehaltsvorstellung</div><b>${fe(c.demand)}</b><div class="eyebrow">Angebot</div><div class="row">${step('mgrOffer',fe(o),`data-v="${i}"`)}<span class="sub">${o>=c.demand?'+':''}${Math.round((o/c.demand-1)*100)} %</span></div><button class="btn ink" data-a="hireMgr" data-id="${s.id}" data-v="${i}">Angebot machen</button></div>`});
   b+='</div>'+(list.length?'':'<div class="sub">Nächsten Monat gibt es neue Bewerbungen.</div>');return{eyebrow:esc(K.address(K.plot(G,s.plot))),title:'Filialleitung einstellen',body:b}};
-function shopRoom(f,s,fc,st){const tables=Math.min(9,2+s.level*2+(s.ups.terrasse?1:0)),occ=s.build>0||!st?0:Math.min(1,st.guests/Math.max(1,st.cap)),guests=Math.round(tables*2*occ);
+function shopRoom(f,s,fc,st){const tables=Math.min(9,s.layout?Math.max(2,s.layout.filter(k=>k&&K.FURN[k].seats).length):2+s.level*2+(s.ups.terrasse?1:0)),occ=s.build>0||!st?0:Math.min(1,st.guests/Math.max(1,st.cap)),guests=Math.round(tables*2*occ);
   const room=isoRoom({kind:'restaurant',w:9,d:8,s:20,tables,guests,staff:s.build>0?0:Math.min(6,s.staff),apron:f.color,floor:s.level>=3?'#d9c3a5':'#e8d8bd',wall:s.level>=2?'#f1e3d3':'#f4f1ea',seed:s.id*7+1});
   if(s.build>0)return`<div class="room">${room}</div>`;
   const extra=[];if(fc.dem>fc.cap*1.1)extra[0]={t:'Wir schaffen das nicht allein, wir brauchen Verstärkung!',b:'👥',mood:'bad'};else if(fc.dem<fc.cap*0.5)extra[0]={t:'Heute ist kaum was los. Vielleicht mehr Werbung?',b:'💤'};
@@ -512,6 +522,7 @@ VIEWS.shop=({id})=>{const [f,s]=K.shopOf(G,+id);if(!s)return null;const p=K.plot
     <div class="sec"><h3>Öffnungszeiten</h3>${seg('shopHours',Object.entries(K.HOURS).map(([k,h])=>[k,h.n,k==='short'?'−30 % Gäste':k==='long'?'+15 % Gäste':'Standard']),s.hours,`data-id="${s.id}"`)}<div class="sub">Längere Öffnung bringt mehr Gäste und Kapazität, kostet aber auch mehr Lohn.</div></div>
     <div class="card"><div class="row"><span><span class="lbl">Personalschulung</span><br><span class="sub">Service +5 % je Schulung (${s.train||0} von 3). Einmalig 1.500 €.</span></span><button class="btn" data-a="shopTrain" data-id="${s.id}" ${s.train>=3?'aria-disabled="true"':''}>Buchen</button></div></div>${crewHtml(f,s)}`}
   if(t==='up'){const nx=s.level<3?K.LEVELS[s.level+1]:null;
+    b+=layoutHtml(f,s,p);
     b+=`<div class="card"><div class="ch"><span class="ico">🪑</span><span class="t"><b>Einrichtung: ${K.LEVELS[s.level].n}</b><span>Gemütlichkeit ${pct(K.LEVELS[s.level].comfort)}${nx?' → '+nx.n+': '+pct(nx.comfort):''}</span></span></div>${nx?`<button class="btn ink" data-a="shopLevel" data-id="${s.id}">Umbauen zu „${nx.n}“ · ${fe(nx.cost)}</button>`:''}</div><div class="grid2">`;
     for(const [k,U] of Object.entries(K.CAFE_UPS)){const lock=U.zones&&!U.zones.includes(p.zone)?'nicht an diesem Ort':U.minLevel&&s.level<U.minLevel?'ab „'+K.LEVELS[U.minLevel].n+'“':null;
       b+=upCard('shopUp',`data-id="${s.id}" data-k="${k}"`,U.icon,U.n,U.d,fe(U.cost)+(U.mon?' + '+fe(U.mon)+'/M':''),s.ups[k],lock)}b+='</div>'}
@@ -1293,6 +1304,7 @@ document.addEventListener('click',e=>{if(suppressClick&&e.isTrusted){suppressCli
   case'listSort':view.p.sort=v;renderSheet();break;
   case'chan':run(K.act.chan(G,cur().id,k));break;
   case'foodMode':run(K.act.food(G,cur().id,{mode:v}));break;case'foodBuy':run(K.act.food(G,cur().id,{buy:+v}));break;
+  case'furnPick':furnPick=k;renderSheet();break;case'furnSet':run(K.act.furn(G,+id,+v,furnPick),1);break;
   case'tipStaff':{const r=K.act.shop(G,+id,{staff:+v});b.textContent=r.ok?'Erledigt':'Geht nicht';b.disabled=true;save();refresh();if(!r.ok&&r.msg)toast(r.msg,'bad');break}
   case'tradeSl':{const sl=document.querySelector(`input[data-in="stk"][data-k="${k}"]`);if(sl)run(K.act.trade(G,k,+sl.value));break}
   case'stake':{const sl=document.querySelector(`input[data-in="stake"][data-id="${id}"]`);if(sl)run(K.act.stake(G,+id,+sl.value/100));break}

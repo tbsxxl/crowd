@@ -286,9 +286,17 @@ const crewPay=c=>0.85+0.35*c.skill; // Lohnfaktor je nach Können
 function crewWeek(G,f,s,rep){for(const c of s.crew)c.skill=Math.min(1,c.skill+0.003*(1-c.skill)+(c.tr?0.02:0)),c.tr=Math.max(0,(c.tr||0)-1);
   // Gute Leute werden abgeworben, wenn die Stimmung schlecht ist
   const risk=Math.max(0,0.55-f.morale)*0.06;for(const c of [...s.crew])if(s.crew.length>1&&rand(G)<pW(risk*(0.5+c.skill))){s.crew=s.crew.filter(x=>x!==c);s.staff=s.crew.length;rep.events.push({icon:'👋',bad:true,t:c.n+' hat in '+address(plot(G,s.plot)).split(',')[0]+' gekündigt.'})}}
-function comfortOf(s){return clamp(LEVELS[s.level].comfort+(FACADES[s.facade||'klassik'].comfort||0)+(s.ups.lounge?0.12:0)-(s.ups.togo?0.03:0),0,1)}
+// ---------- Einrichtung: Raster je Restaurant, Sitzplätze begrenzen die Gäste, Deko hebt die Atmosphäre ----------
+const FURN={t2:{n:'Zweiertisch',icon:'🪑',seats:2,atmo:0,cost:600},t4:{n:'Vierertisch',icon:'🍽️',seats:4,atmo:0,cost:1100},bank:{n:'Lange Tafel',icon:'🪵',seats:6,atmo:-0.015,cost:1600},
+  sofa:{n:'Sofaecke',icon:'🛋️',seats:3,atmo:0.035,cost:1900},bar:{n:'Bartresen',icon:'🍸',seats:3,atmo:0.025,cost:2600},plant:{n:'Pflanze',icon:'🪴',seats:0,atmo:0.02,cost:250},art:{n:'Kunst und Licht',icon:'🖼️',seats:0,atmo:0.035,cost:1200}};
+const TURN=4.5;
+function fitLayout(l,p){const n=layoutCells(p);if(!l)return defaultLayout(p);const out=l.slice(0,n);while(out.length<n)out.push(null);return out} // Gäste je Sitzplatz und Tag
+const layoutCells=p=>clamp(Math.round(p.size/8),10,24);
+function defaultLayout(p){const n=layoutCells(p),want=p.size/5,out=Array(n).fill(null);let seats=0,i=0;while(seats<want&&i<n){out[i++]='t4';seats+=4}if(i<n)out[n-1]='plant';if(i<n-1)out[n-2]='plant';return out}
+function layoutStats(s,p){const l=s.layout||[];let seats=0,atmo=0;for(const k of l)if(k){seats+=FURN[k].seats;atmo+=FURN[k].atmo}const dens=seats/Math.max(1,l.length);if(dens>3.2)atmo-=(dens-3.2)*0.08;return{seats,atmo:clamp(atmo,-0.15,0.2),cells:l.length,dens}}
+function comfortOf(s){return clamp(LEVELS[s.level].comfort+(s.lay?s.lay.atmo:0)+(FACADES[s.facade||'klassik'].comfort||0)+(s.ups.lounge?0.12:0)-(s.ups.togo?0.03:0),0,1)}
 function shopForecast(G,f,s){ // Nachfrage und Kapazität im Monat (auch für die Vorschau)
-  const p=plot(G,s.plot),ms=menuStats(G,f,s),comfort=comfortOf(s);
+  const p=plot(G,s.plot);if(!s.layout||s.layout.length!==layoutCells(p))s.layout=fitLayout(s.layout,p);s.lay=layoutStats(s,p);const ms=menuStats(G,f,s),comfort=comfortOf(s);
   const A=Math.pow(ms.score,0.8)*comfort*(0.4+0.6*s.rep);
   let comp=0;for(const q of G.plots)if(q!==p&&q.use==='cafe'&&near(p,q)){if(q.owner&&q.owner.startsWith('c:')){const cp=G.comps.find(c=>'c:'+c.id===q.owner);if(cp)comp+=compAttr(cp)}else if(q.owner===f.id)comp+=A*0.5}
   const H=HOURS[s.hours];let m=H.dem;const u=s.ups,a=s.act,CT=CITY_TRAITS[p.city]||CITY_TRAITS.kiel;if(summer(G))m*=CT.summer;if(s.hours==='long')m*=CT.night;
@@ -299,7 +307,7 @@ function shopForecast(G,f,s){ // Nachfrage und Kapazität im Monat (auch für di
   m*=segFit;
   const dem=p.traffic*DAYS*ZCONV[p.zone]*(0.5+0.5*la)*m*econ(G)*(G.dm||1)*(FACADES[s.facade||'klassik'].walk||1)*A/(A+comp*0.9+0.35);
   let cap=s.staff*GPS*DAYS*productivity(f)*(0.75+0.5*crewSkill(s))*H.cap*(1+0.15*mq(s,'ppl'))*(has(f,'schnell')?1.25:1)*(u.togo?1.2:1)*(u.terrasse&&summer(G)?1.2:1);
-  cap=Math.min(cap*fx(G,'cap'),p.size*0.9*DAYS*H.cap*(u.terrasse&&summer(G)?1.2:1));
+  cap=Math.min(cap*fx(G,'cap'),p.size*0.9*DAYS*H.cap*(u.terrasse&&summer(G)?1.2:1),s.lay.seats*TURN*DAYS*H.cap*(u.togo?1.2:1)*(u.terrasse&&summer(G)?1.2:1));
   return{dem,cap,ms,comfort,A,comp}}
 // ---------- Lager und Lieferkette: Zutatenpreise schwanken, wer vorrätig kauft, spart, riskiert aber Verderb ----------
 // 1 Einheit = Zutaten für 1 € zum Normalpreis. Lieferung auf Abruf kostet 4 % Aufschlag, Fehlmengen im Lagerbetrieb 30 %.
@@ -1035,6 +1043,11 @@ A.rerollCards=G=>{if(!G.draft||!(G.draft.rerolls>0))return{ok:false,msg:'Keine N
 A.food=(G,fid,o)=>{const f=firm(G,fid);if(!f)return{ok:false};if(o.mode){f.foodMode=o.mode;return{ok:true,msg:o.mode==='stock'?'Lagerbetrieb: du kaufst selbst ein.':'Lieferung auf Abruf.'}}
   if(o.weeks!==undefined){f.foodWeeks=clamp(o.weeks,0,8);return{ok:true}}
   if(o.buy){const u=Math.round(o.buy),c=u*G.idx.food*(1-bulkDisc(u));if(G.cash<c)return noMoney(c);f.foodMode='stock';buyFood(G,f,u);return{ok:true,msg:fn(u)+' Einheiten eingelagert für '+fmtE(c)+'.'}}return{ok:false}};
+A.furn=(G,sid,i,k)=>{const [f,s]=shopOf(G,sid);if(!s)return{ok:false};const p=plot(G,s.plot);s.layout=fitLayout(s.layout,p);if(i<0||i>=s.layout.length)return{ok:false};const old=s.layout[i];if(old===(k||null))return{ok:true};
+  const cost=k?FURN[k].cost:0,refund=old?Math.round(FURN[old].cost*0.3):0;if(cost-refund>0&&!can(G,cost-refund))return noMoney(cost-refund);
+  if(cost){G.cash-=cost;G.led.cf.inv-=cost;G.assets.push({id:uid(G),fid:f.id,name:FURN[k].n,cost,life:60,book:cost,ref:'furn:'+s.id})}
+  if(refund){earn(G,f.id,'other',0);G.cash+=refund;G.led.cf.inv+=refund;const a=G.assets.find(x=>x.ref==='furn:'+s.id&&x.name===FURN[old].n);if(a){const loss=a.book-refund;L(G,f.id).dep+=loss;a.book=0;G.assets=G.assets.filter(x=>x.book>0.01)}else L(G,f.id).other-=refund}
+  s.layout[i]=k||null;s.lay=layoutStats(s,p);return{ok:true}};
 A.chan=(G,fid,k)=>{const f=firm(G,fid);if(!f||!CHANNELS[k])return{ok:false};f.chan=f.chan||{};f.chan[k]=!f.chan[k];return{ok:true,msg:CHANNELS[k].n+(f.chan[k]?' gebucht.':' gekündigt.')}};
 A.stake=(G,cid,to)=>{const cp=G.comps.find(c=>c.id===cid);if(!cp)return{ok:false};to=Math.round(clamp(+to||0,0,STAKE_MAX)*100)/100;const a=cp.stake||0;if(to<=a+1e-9)return{ok:false,msg:'Wähle einen höheren Anteil.'};
   const c=stakeCost(G,cp,to);if(G.cash<c)return{ok:false,msg:'Die Anteile kosten '+fmtE(c)+'.'};G.cash-=c;G.led.cf.inv-=c;
@@ -1107,6 +1120,6 @@ function curLedger(G){return{m:G.month,f:G.led.f,H:G.led.H,cf:G.led.cf}}
 
 const K={MONTHS,BRANCHES,WAGE,PRODUCTS,QMULT,QUAL,QN,LEVELS,CAFE_UPS,CAFE_ACTIONS,HOURS,GENRES,SCOPES,FOCUS,MODELS,CAMPAIGNS,OFFICE_UPS,RAW,GOODS,LINES,SHIFTS,GMULT,GQUAL,SUPPLIERS,PLANT_UPS,RESEARCH,CITIES,ZONES,COLS,ROWS,STAGES,DEPTS,GOALS,
   newGame,endTurn,act:A,plot,firm,staffOf,adminOf,totalStaff,hqStaff,stage,menuStats,shopForecast,forecastShop,shopCost,officeCost,softTeam,desks,rating,goodsTotal,lineOut,lineNeed,rawPrice,wholesalePrice,storageCap,reserved,effGrade,
-  balance,valuation,CIVIC,bulkDisc,crewSkill,crewPay,SEGS,CHANNELS,segMix,stakeCost,MODS,PERKS,fx,scoreMult,runScore,pickMods,STAKE_MAX,firmValue,compValue,takeoverPrice,loanOffer,ipoCheck,pl,curLedger,dateStr,dayOf,W,WEEKS,BUILD,underBuild,monthName,yearOf,cityName,dispo,fmtE,fmtN:fn,freePlots,stars,eventOpts,productivity,summer,shopOf,lineOf,sumF,wageOf,propValue,propIncome,leaseOcc,rentOf,CITY_CAMPS,EXECS,SECTORS,LUX,CLUBS,wealth,genMarket,CITY_MAP,CITY_BLOCKS,CITY_TRAITS,DIFF,CURS,TASTE,FACADES,unitCost,recipeFit,setCur:c=>{CUR=CURS[c]||'€'},MGR_DELEG,mgrCands,mgrPay,flights,dist,AIRPORTS,address,compShop,squadStr,TEAMS,CLUB_STAD,pSal,ex,dcov,dneed,deptN,marketPay,cands,grantValue,migrate,econ,BOARD_Q,UNITS,KINDS,usesOf,unitName,YIELD};
+  balance,valuation,CIVIC,FURN,TURN,layoutStats,fitLayout,bulkDisc,crewSkill,crewPay,SEGS,CHANNELS,segMix,stakeCost,MODS,PERKS,fx,scoreMult,runScore,pickMods,STAKE_MAX,firmValue,compValue,takeoverPrice,loanOffer,ipoCheck,pl,curLedger,dateStr,dayOf,W,WEEKS,BUILD,underBuild,monthName,yearOf,cityName,dispo,fmtE,fmtN:fn,freePlots,stars,eventOpts,productivity,summer,shopOf,lineOf,sumF,wageOf,propValue,propIncome,leaseOcc,rentOf,CITY_CAMPS,EXECS,SECTORS,LUX,CLUBS,wealth,genMarket,CITY_MAP,CITY_BLOCKS,CITY_TRAITS,DIFF,CURS,TASTE,FACADES,unitCost,recipeFit,setCur:c=>{CUR=CURS[c]||'€'},MGR_DELEG,mgrCands,mgrPay,flights,dist,AIRPORTS,address,compShop,squadStr,TEAMS,CLUB_STAD,pSal,ex,dcov,dneed,deptN,marketPay,cands,grantValue,migrate,econ,BOARD_Q,UNITS,KINDS,usesOf,unitName,YIELD};
 if(typeof module!=='undefined'&&module.exports)module.exports=K;else root.K=K;
 })(typeof window!=='undefined'?window:globalThis);
