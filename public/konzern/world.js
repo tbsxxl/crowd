@@ -41,7 +41,9 @@ function strataTex(len){return canvasTex(Math.round(len*8),128,(g,w,h)=>{
 // Hausfarben je Stadt: Emden Backstein, Hamburg Backstein und Weiß, Berlin Putz in Pastell
 const CITY_STYLE={kiel:{house:['#a6472f','#b8553a','#8e3b2a','#c46a4a','#f2ece0','#9a4430'],roof:['#5a3b30','#3d4651','#6b3a2c'],office:['#c9a58f','#e8e5de','#b8553a']},
   hamburg:{house:['#9a4a35','#f4f1ea','#e8e2d6','#b05a40','#dfe6ec'],roof:['#3d4651','#5f8f7a','#6f7f9a'],office:['#dfe6ec','#e8e5de','#9a4a35']},
-  berlin:{house:['#f0b8a1','#9fc4e2','#f3d68f','#e9a3ac','#bad9c3','#f6efe3'],roof:['#d8644b','#c95540','#6f7f9a'],office:['#dfe6ec','#e8e5de','#d3dbe2']}};
+  berlin:{house:['#f0b8a1','#9fc4e2','#f3d68f','#e9a3ac','#bad9c3','#f6efe3'],roof:['#d8644b','#c95540','#6f7f9a'],office:['#dfe6ec','#e8e5de','#d3dbe2']},
+  wien:{house:['#f3e2a9','#f1ece0','#e8d7b5','#f4e9c8','#e3c98f'],roof:['#5f9e8a','#8a4f3a','#6f7f9a'],office:['#f1ece0','#e8e5de','#f3e2a9']},
+  amsterdam:{house:['#6b3a2c','#8e3b2a','#3d3530','#a6472f','#f2ece0','#5a4a3a'],roof:['#24272b','#3d4651','#5a3b30'],office:['#dfe6ec','#8e3b2a','#e8e5de']}};
 // ---------- Wahrzeichen: ein Uferstreifen hinter der Stadt, je Stadt eigene, frei nachempfundene Modelle ----------
 const LD=26,LZ=-DD/2-MARGIN-LD/2; // Tiefe und Mitte des Streifens
 let landGroup=null;const landAnim=[];
@@ -89,6 +91,22 @@ const LANDMARKS={
     // Kirchturm mit grünem Helm
     B(4,14,4,'#9a4a35',8,0,LZ+9,g);B(4.4,0.8,4.4,'#e8e3d6',8,14,LZ+9,g);cyl(1.4,1.9,3,'#5f9e8a',8,14.8,LZ+9,g,8);cyl(0.5,1.2,2.4,'#5f9e8a',8,17.8,LZ+9,g,8);add(new THREE.ConeGeometry(0.5,3.2,8),'#5f9e8a',8,21.8,LZ+9,g);
     trees(g,12,30,74,LZ+7,LZ+12);for(let i=0;i<3;i++)crane(g,52+i*8,LZ-10,i%2?'#cc3b33':'#2f6fd0');container(g,-50,LZ+0.5,16)}},
+  wien:{n:'Wien',ground:'#d3dbc2',build(g){ // Riesenrad im Park, Schloss mit Garten, Donau
+    water(g,LZ+3,LZ+9,'#6d9bb8');boat(g,-30,LZ+5.5,'#f4f1ea',8,true);
+    // Schloss: lange gelbe Fassade mit grünem Dach
+    B(30,5,5,'#efd58a',-34,0,LZ-6,g);add(prism(30.4,1.6,5.2),'#5f9e8a',-34,5,LZ-6,g);for(let i=0;i<12;i++)B(1,1.6,0.05,'#f4f1ea',-47+i*2.4,1.4,LZ-3.47,g);B(5,6.6,5.4,'#efd58a',-34,0,LZ-6,g);
+    for(let i=0;i<5;i++)B(5,0.08,2.2,'#7fb36a',-44+i*5.2,0,LZ-0.5,g);trees(g,10,-50,-16,LZ-11,LZ-9);
+    // Riesenrad, dreht sich
+    const wh=new THREE.Group();wh.position.set(22,9.5,LZ-4);g.add(wh);const rim=new THREE.Mesh(new THREE.TorusGeometry(7,0.18,6,40),M('#b8443a'));wh.add(rim);
+    for(let i=0;i<10;i++){const a=i/10*Math.PI*2,sp=B(0.12,7,0.12,'#b8443a',0,0,0,wh);sp.geometry.translate(0,-3.5,0);sp.position.set(0,0,0);sp.rotation.z=a;const cab=B(1,1.2,1,['#cc3b33','#f2c14e','#2f6fd0','#f4f1ea'][i%4],Math.cos(a)*7,Math.sin(a)*7-0.6,0,wh);cab.userData.cab=a}
+    for(const dz of [-1,1]){const lg=B(0.3,10.5,0.3,'#8a3a30',22,0,LZ-4+dz*0.9,g);lg.rotation.x=dz*0.08}
+    landAnim.push(t=>{wh.rotation.z=t/9000;for(const c of wh.children)if(c.userData.cab!==undefined)c.rotation.z=-wh.rotation.z});
+    trees(g,14,8,40,LZ-12,LZ+1);trees(g,8,40,74,LZ-12,LZ+12)}},
+  amsterdam:{n:'Amsterdam',ground:'#cdd7bd',build(g){ // Gracht mit Hausbooten und Giebelhäusern, Mühle, Fahrräder
+    water(g,LZ-2,LZ+3,'#5f8fa8');for(let i=0;i<5;i++){const hb=boat(g,-60+i*14,LZ+1.6,['#2f6b5a','#3d4651','#8e3b2a','#f2c14e','#2f6fd0'][i],7,true);B(4,1.4,1.6,'#f4f1ea',0,0.5,0,hb)}
+    const cols=['#3d3530','#6b3a2c','#8e3b2a','#f2ece0','#5a4a3a','#a6472f','#2f3b45'];
+    for(let row=0;row<2;row++)for(let i=0;i<22;i++){const x=-72+i*6.6,z=row?LZ+8:LZ-8,h=5+((i*7+row*3)%4)*1.1;gableHouse(g,x,z,3.2,h,cols[(i+row*3)%cols.length],(i+row)%3===0)}
+    windmill(g,56,LZ+11);for(let i=0;i<14;i++){const x=-60+i*8.5;B(1.4,0.6,0.08,'#24272b',x,0.5,LZ+4.3,g);for(const dx of [-0.55,0.55])cyl(0.32,0.32,0.06,'#24272b',x+dx,0.32,LZ+4.3,g,10).rotation.x=Math.PI/2}}},
   berlin:{n:'Berlin',ground:'#d2d6c4',build(g){ // Spree mit Ausflugsschiff, Fernsehturm, Stadttor mit Säulen, Parlament mit Glaskuppel
     B(BW,0.08,5,'#93c27a',0,0,LZ+1.5,g);trees(g,24,-74,74,LZ-0.5,LZ+4);
     // Dom mit Kuppeln an der Spree
@@ -102,7 +120,7 @@ const LANDMARKS={
     const dome=add(new THREE.SphereGeometry(3.4,16,10,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:'#cfe3ec',metalness:0.4,roughness:0.15,transparent:true,opacity:0.85}),-28,6,LZ-8,g);
     trees(g,16,26,74,LZ-12,LZ-3);trees(g,6,-12,4,LZ+7,LZ+12);trees(g,10,-74,-42,LZ-12,LZ+12)}}};
 // ---------- Besondere Felder im Stadtraster: Wahrzeichen, Parks, Wasser ----------
-const MAP_CITY={kiel:{top:'#9c938b',ground:'#e4ddd0',park:'#8fbf73'},hamburg:{top:'#8e959b',ground:'#dfe0dc',park:'#7fb37a'},berlin:{top:'#a0a29f',ground:'#e6e2d8',park:'#93c27a'}};
+const MAP_CITY={wien:{top:'#a39d94',ground:'#e9e3d6',park:'#94c27c'},amsterdam:{top:'#9a958e',ground:'#e3ddd2',park:'#86bb70'},kiel:{top:'#9c938b',ground:'#e4ddd0',park:'#8fbf73'},hamburg:{top:'#8e959b',ground:'#dfe0dc',park:'#7fb37a'},berlin:{top:'#a0a29f',ground:'#e6e2d8',park:'#93c27a'}};
 let topMat=null,roadGroup=null;
 function ribbon(pts,w,y,col){const pos=[],idx=[];for(let i=0;i<pts.length;i++){const a=pts[Math.max(0,i-1)],b=pts[Math.min(pts.length-1,i+1)],dx=b[0]-a[0],dz=b[1]-a[1],l=Math.hypot(dx,dz)||1,nx=-dz/l*w/2,nz=dx/l*w/2;
     pos.push(pts[i][0]+nx,y,pts[i][1]+nz,pts[i][0]-nx,y,pts[i][1]-nz);if(i)idx.push(2*i-2,2*i-1,2*i,2*i-1,2*i+1,2*i)}
@@ -164,6 +182,13 @@ function special(code,id,r,c,g){seed=(r*17+c*5+id.length*11)|0||3;
       B(9,5,5.6,'#cdbb94',0,0.3,-0.6,g);add(prism(9.2,2.2,5.8),'#5f9e8a',0,5.3,-0.6,g);for(let k=0;k<2;k++)for(let i=0;i<6;i++)B(0.7,1.3,0.05,'#3d4651',-3.6+i*1.45,1.2+k*2,2.22,g);
       B(2.2,10,2.2,'#cdbb94',0,0.3,-0.6,g);cyl(0.6,1.2,2.6,'#5f9e8a',0,10.3,-0.6,g,8);add(new THREE.ConeGeometry(0.4,2.6,8),'#5f9e8a',0,14.2,-0.6,g);
       for(let i=0;i<5;i++)B(0.5,0.6,0.5,'#d4a72c',-3.6+i*1.8,5.3,2,g)}
+    if(id==='wien'){ // Dom mit hohem Südturm und gemustertem Dach
+      B(8.6,5.4,4.6,'#d6cdb8',0,0.3,0.4,g);const rf=add(prism(8.8,4.2,4.8),'#c9a227',0,5.7,0.4,g);for(let i=0;i<5;i++)B(1.5,0.06,0.06,'#2f6b5a',-3+i*1.5,7.4,2.62,g);
+      B(2.6,7,2.6,'#d6cdb8',-2.8,0.3,-2.6,g);add(new THREE.ConeGeometry(1.7,9,4),'#cfc5ae',-2.8,11.8,-2.6,g).rotation.y=Math.PI/4;add(new THREE.ConeGeometry(0.3,1.2,6),'#c9a227',-2.8,16.9,-2.6,g);
+      for(let i=0;i<4;i++)B(0.6,2.6,0.1,'#3d4651',-2.4+i*1.6,1.6,2.72,g)}
+    if(id==='amsterdam'){ // Museum aus Backstein mit zwei Türmen
+      B(9,5,5,'#9a4430',0,0.3,-0.4,g);add(prism(9.2,2.2,5.2),'#3d4651',0,5.3,-0.4,g);for(const x of [-3.4,3.4]){B(2.2,8.5,2.2,'#9a4430',x,0.3,-0.4,g);add(new THREE.ConeGeometry(1.4,3,4),'#3d4651',x,10.3,-0.4,g).rotation.y=Math.PI/4;add(new THREE.SphereGeometry(0.3,8,6),'#c9a227',x,12,-0.4,g)}
+      for(let k=0;k<2;k++)for(let i=0;i<5;i++)B(0.8,1.2,0.05,'#f4f1ea',-3.2+i*1.6,1+k*2,2.12,g);B(2.4,2.2,0.1,'#24272b',0,0.3,2.14,g)}
     if(id==='berlin'){ // Fernsehturm mit Pavillon
       B(7,1.4,7,'#e8e5de',0,0.3,0,g);for(let i=0;i<4;i++){const t=add(prism(3.4,1.2,1.4),'#f4f1ea',-2.2+(i%2)*4.4,1.7,-2.2+Math.floor(i/2)*4.4,g)}
       cyl(0.55,0.95,15,'#d9dcdf',0,0.3,0,g,12);add(new THREE.SphereGeometry(2.1,16,12),new THREE.MeshStandardMaterial({color:'#c9ced4',metalness:0.5,roughness:0.3}),0,16.6,0,g);
@@ -172,7 +197,9 @@ function special(code,id,r,c,g){seed=(r*17+c*5+id.length*11)|0||3;
 // Wasser läuft entlang eines Straßenzugs: h=1 waagerecht auf streetZ(i), sonst senkrecht auf streetX(i), von a bis b (Rasterkoordinaten).
 // Querstraßen führen über Brücken, Straßen am Ende eines Kanals enden am Ufer.
 const RIVERS={
-  berlin:[{h:1,i:3,a:-BW/2,b:BW/2}]}; // Spree quer durch die Mitte
+  berlin:[{h:1,i:3,a:-BW/2,b:BW/2}], // Spree quer durch die Mitte
+  wien:[{h:0,i:7,a:-BD/2,b:BD/2}], // Donaukanal
+  amsterdam:[{h:1,i:2,a:-BW/2,b:BW/2},{h:1,i:5,a:-BW/2,b:BW/2}]}; // Grachten
 // Am Fluss rücken die Häuserreihen auseinander; zum Rand hin läuft die Verschiebung aus, damit der Block seine Form behält.
 const RK=4.2,RW=S+2*RK*0.8+0.8;
 function rFade(r,al){const e=al<r.a?r.a-al:al>r.b?al-r.b:0;return Math.max(0,1-e/7)}
@@ -219,7 +246,7 @@ function dam(pts,wb,wt,h,mat){const pos=[],idx=[],n=pts.length,side=(i,o)=>{cons
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setIndex(idx);geo.computeVertexNormals();const m=new THREE.Mesh(geo,mat);m.castShadow=m.receiveShadow=true;return m}
 // Lücken zwischen Feldern desselben Blocks füllen: Platz, Park oder Wasser. Autos meiden diese Flächen.
 const gaps=[];
-const PLAZA={kiel:'#cdb8a4',hamburg:'#c9cdd0',berlin:'#d3cdbf'};
+const PLAZA={kiel:'#cdb8a4',hamburg:'#c9cdd0',berlin:'#d3cdbf',wien:'#d8cdb6',amsterdam:'#c9bba8'};
 function fillGaps(G){gaps.length=0;const map=K.CITY_MAP[cityId],bl=K.CITY_BLOCKS&&K.CITY_BLOCKS[cityId];if(!map||!bl)return;
   const g=new THREE.Group();g.userData.cell='gaps';plotGroup.add(g);
   const kind=(a,b)=>a==='A'&&b==='A'?'A':a==='P'&&b==='P'?'P':'Z';
