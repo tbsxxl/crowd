@@ -170,6 +170,8 @@ table.cf td{padding:5px 0;font-size:13.5px}table.cf td:last-child{text-align:rig
 .cands{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.cand{min-width:min(280px,82%);scroll-snap-align:center;display:flex;flex-direction:column;gap:6px}.cand .ava,.execCard .ava,.execHead .ava{flex:none;align-self:center}
 @media (max-width:440px){.execHead{flex-direction:column;align-items:center}.mast{font-size:26px}}
 /* Start, Wizard, Produktkarten */
+.crew .t .bar{margin-top:4px}.crewBtns{display:flex;flex-direction:column;gap:4px;flex:none}.crewBtns .btn.sm{padding:5px 9px;font-size:11.5px}
+.segchip{font-style:normal;display:inline-block;font-size:11px;background:var(--soft);border-radius:999px;padding:1px 7px;margin:2px 3px 0 0}.chanRow{align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
 .tag.civ{background:#24272b;color:#fff;border-color:#24272b;font-weight:600}
 .mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}.modc{display:flex;flex-direction:column;gap:3px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px}.modc .e{font-size:22px}.modc span{font-size:12px;color:var(--muted)}.modc small{font-family:var(--f-mono);font-size:11px;color:#7a5c10}
 .cards3{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}.pcard2{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:6px;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:14px;text-align:left;transition:transform .15s}.pcard2:hover{transform:translateY(-3px);border-color:var(--ink)}.pcard2 .e{font-size:34px}.pcard2 b{font-size:15px}.pcard2 span{font-size:12.5px;color:var(--muted);line-height:1.35}.pcard2 small{margin-top:auto;font-family:var(--f-mono);font-size:11px;color:#2f6fd0}.pcard2.pact{border-color:#d9a441;background:linear-gradient(#fffaf0,#fff)}.pcard2.pact small{color:#b07a1c}
@@ -301,8 +303,8 @@ window.addEventListener('error',function(e){var m=document.getElementById('bootM
   if(m&&!document.getElementById('menu').hidden)m.textContent=t;else{var d=document.getElementById('toast');if(d){d.textContent=t;d.hidden=false}}},true);
 </script>
 <script src="../vendor/three-r128-bloom.js"></script>
-<script src="sim.js?v=20261024d"></script>
-<script src="world.js?v=20261024d"></script>
+<script src="sim.js?v=20261025a"></script>
+<script src="world.js?v=20261025a"></script>
 <script>
 (function(){
 'use strict';
@@ -357,6 +359,7 @@ const T=()=>view.tab;
 const step=(a,val,attrs)=>`<span class="step"><button data-a="${a}" data-d="-1" ${attrs||''} aria-label="weniger">−</button><output>${val}</output><button data-a="${a}" data-d="1" ${attrs||''} aria-label="mehr">+</button></span>`;
 const seg=(a,opts,cv,attrs)=>`<div class="seg">${opts.map(([v,l,sub,dis])=>`<button data-a="${a}" data-v="${v}" ${attrs||''} aria-pressed="${String(v)===String(cv)}" ${dis?'disabled':''}>${l}${sub?`<small>${sub}</small>`:''}</button>`).join('')}</div>`;
 const tog=(a,on,attrs)=>`<button class="tog" data-a="${a}" ${attrs||''} aria-pressed="${!!on}" aria-label="umschalten"></button>`;
+const SEGCOL={stud:'#2f6fd0',beruf:'#24272b',fam:'#e07a2a',tour:'#1fa9c4',sen:'#9b6fb5'};
 const bar=(v,cls)=>`<div class="bar ${cls||''}"><i style="width:${Math.max(0,Math.min(100,v*100)).toFixed(1)}%"></i></div>`;
 const starsH=s=>`<span class="stars" aria-label="${String(s).replace('.',',')} von 5 Sternen">★★★★★<i style="width:${Math.max(0,Math.min(5,s))/5*100}%">★★★★★</i></span>`;
 const kpis=list=>`<div class="kpis">${list.map(([v,l,c])=>`<div class="kpi"><b class="${c||''}${String(v).length>9?' sm':''}">${v}</b><span>${l}</span></div>`).join('')}</div>`;
@@ -468,6 +471,12 @@ function marketHtml(){let b='<div class="sub">Wie viel der Laufkundschaft an Res
   return b}
 // Café-Filiale
 const MGRLOOK=m=>Object.assign({},m,{suit:'#9b6fb5',shirt:'#24272b'});
+// Team einzeln: Können, Lohn, Schulung, Entlassung
+function crewHtml(f,s){const cr=(s.crew||[]).slice().sort((a,b)=>b.skill-a.skill),base=K.wageOf(G,'barista',f)*K.HOURS[s.hours].wage,avg=K.crewSkill(s);
+  return`<div class="sec"><h3>Team · Ø Können ${Math.round(avg*100)}</h3><div class="sub">Können steigert Kapazität und Service. Es wächst mit der Erfahrung, Schulungen beschleunigen das. Gute Leute verdienen mehr und gehen zuerst, wenn die Stimmung kippt.</div>
+    <div class="list">${cr.map(c=>`<div class="li crew" style="cursor:default"><span class="ico">${avatar({g:c.g,look:c.look,suit:'#9b6fb5'},40)}</span><span class="t"><b>${esc(c.n)}${c.skill>=0.85?' ⭐':''}</b><span>Können ${Math.round(c.skill*100)} · ${fe(base*K.crewPay(c))}/Monat · seit ${K.monthName(c.since)}${c.tr?' · 📚 in Schulung':''}</span>${bar(c.skill,c.skill>=0.7?'good':'')}</span>
+      <span class="crewBtns"><button class="btn sm" data-a="crewTrain" data-id="${s.id}" data-k="${c.id}" ${c.tr?'aria-disabled="true"':''}>Schulen 1.200 €</button><button class="btn sm bad" data-a="crewFire" data-id="${s.id}" data-k="${c.id}">Entlassen</button></span></div>`).join('')}</div>
+    <button class="btn" data-a="crewPro" data-id="${s.id}">⭐ Fachkraft über Agentur · 4.000 €</button></div>`}
 function mgrCard(s){const m=s.manager;
   if(!m)return`<div class="card"><div class="row"><span><span class="lbl">Filialleitung</span><br><span class="sub">Mehr Kapazität, besserer Service, Stammgäste. Sie kann Personal, Angebot, Marketing und Zwischenfälle selbst übernehmen.</span></span></div><button class="btn ink" data-a="open" data-v="mgrHire" data-id="${s.id}" data-keep="1">Filialleitung einstellen</button></div>`;
   const mp=K.mgrPay(m);return`<div class="sec"><h3>Filialleitung</h3><div class="card"><div class="execHead"><div style="text-align:center">${avatar(MGRLOOK(m),110)}<div class="eyebrow" style="margin-top:6px">Leitung seit</div><b>${K.monthName(m.since)}</b></div>
@@ -501,12 +510,16 @@ VIEWS.shop=({id})=>{const [f,s]=K.shopOf(G,+id);if(!s)return null;const p=K.plot
   if(t==='team'){b+=`<div class="card"><div class="row"><span><span class="lbl">Küche und Service</span><br><span class="sub">${fe(K.wageOf(G,'barista',f)*K.HOURS[s.hours].wage)} im Monat je Kraft</span></span>${step('shopStaff',s.staff,`data-id="${s.id}"`)}</div></div>
     ${mgrCard(s)}
     <div class="sec"><h3>Öffnungszeiten</h3>${seg('shopHours',Object.entries(K.HOURS).map(([k,h])=>[k,h.n,k==='short'?'−30 % Gäste':k==='long'?'+15 % Gäste':'Standard']),s.hours,`data-id="${s.id}"`)}<div class="sub">Längere Öffnung bringt mehr Gäste und Kapazität, kostet aber auch mehr Lohn.</div></div>
-    <div class="card"><div class="row"><span><span class="lbl">Personalschulung</span><br><span class="sub">Service +5 % je Schulung (${s.train||0} von 3). Einmalig 1.500 €.</span></span><button class="btn" data-a="shopTrain" data-id="${s.id}" ${s.train>=3?'aria-disabled="true"':''}>Buchen</button></div></div>`}
+    <div class="card"><div class="row"><span><span class="lbl">Personalschulung</span><br><span class="sub">Service +5 % je Schulung (${s.train||0} von 3). Einmalig 1.500 €.</span></span><button class="btn" data-a="shopTrain" data-id="${s.id}" ${s.train>=3?'aria-disabled="true"':''}>Buchen</button></div></div>${crewHtml(f,s)}`}
   if(t==='up'){const nx=s.level<3?K.LEVELS[s.level+1]:null;
     b+=`<div class="card"><div class="ch"><span class="ico">🪑</span><span class="t"><b>Einrichtung: ${K.LEVELS[s.level].n}</b><span>Gemütlichkeit ${pct(K.LEVELS[s.level].comfort)}${nx?' → '+nx.n+': '+pct(nx.comfort):''}</span></span></div>${nx?`<button class="btn ink" data-a="shopLevel" data-id="${s.id}">Umbauen zu „${nx.n}“ · ${fe(nx.cost)}</button>`:''}</div><div class="grid2">`;
     for(const [k,U] of Object.entries(K.CAFE_UPS)){const lock=U.zones&&!U.zones.includes(p.zone)?'nicht an diesem Ort':U.minLevel&&s.level<U.minLevel?'ab „'+K.LEVELS[U.minLevel].n+'“':null;
       b+=upCard('shopUp',`data-id="${s.id}" data-k="${k}"`,U.icon,U.n,U.d,fe(U.cost)+(U.mon?' + '+fe(U.mon)+'/M':''),s.ups[k],lock)}b+='</div>'}
-  if(t==='act'){const sh=shareNear(f,s,p);b+=`<div class="sec"><h3>Marktanteile im Viertel</h3><div class="row" style="align-items:center">${donut(sh,140)}${legend(sh.map(x=>({...x,t:pct(x.v)})))}</div></div>`;
+  if(t==='act'){const mix=K.segMix(G,p),u=s.ups,wish={fam:u.kids?'':'Kinderecke',beruf:u.wlan||s.act.happy?'':'Business-Lunch oder Mittagsmenü',tour:u.terrasse?'':'Terrasse',sen:u.lounge?'':'Bar-Lounge',stud:u.togo||s.hours==='long'?'':'Abholfenster oder lange Öffnungszeiten'};
+    const parts=Object.entries(mix).sort((a,b)=>b[1]-a[1]).map(([g,v])=>({v,c:SEGCOL[g],n:K.SEGS[g].icon+' '+K.SEGS[g].n,t:pct(v)}));
+    b+=`<div class="sec"><h3>Wer hier unterwegs ist</h3><div class="row" style="align-items:center">${donut(parts,130)}${legend(parts)}</div>
+      ${Object.entries(mix).filter(([g,v])=>v>=0.15).sort((a,b)=>b[1]-a[1]).map(([g])=>`<div class="sub"><b>${K.SEGS[g].icon} ${K.SEGS[g].n}:</b> ${K.SEGS[g].d}${wish[g]?` <b class="neg">Fehlt hier: ${wish[g]}.</b>`:' <b class="pos">Wunsch erfüllt.</b>'}</div>`).join('')}</div>`;
+    const sh=shareNear(f,s,p);b+=`<div class="sec"><h3>Marktanteile im Viertel</h3><div class="row" style="align-items:center">${donut(sh,140)}${legend(sh.map(x=>({...x,t:pct(x.v)})))}</div></div>`;
     b+='<div class="sec"><h3>Aktionen</h3><div class="sub">Laufen jede Woche, bis du sie abschaltest. Stadtweite Plakate und Radio gibt es in der Werbeagentur (Firma).</div></div>';
     for(const [k,A] of Object.entries(K.CAFE_ACTIONS))b+=`<div class="card"><div class="row"><span class="ch"><span class="ico">${A.icon}</span><span class="t"><b>${A.n}</b><span>${A.d}${A.cost?' '+fe(A.cost)+' im Monat.':''}</span></span></span>${tog('shopAct',s.act[k],`data-id="${s.id}" data-k="${k}"`)}</div></div>`;
     b+=`<div class="sec"><h3>Tagesgericht</h3><div class="sub">Ein Produkt wird besonders beworben: +30 % Nachfrage danach.</div><div class="btns">${Object.entries(K.PRODUCTS).filter(([k,P])=>f.menu[k].on&&(!P.res||f.res[P.res])).map(([k,P])=>`<button class="btn" data-a="shopSpecial" data-id="${s.id}" data-k="${k}" style="${s.special===k?'background:var(--ink);color:#fff':''}">${P.icon} ${P.n}</button>`).join('')}</div>
@@ -535,17 +548,28 @@ function barsSvg(h){if(!h.length)return'<div class="sub">Noch keine Daten.</div>
 // Firma
 VIEWS.firm=()=>{const f=cur(),t=T()||'gen';const last=G.months[G.months.length-1],p=last?K.pl(last,f.id):null;
   let b=G.firms.length>1?`<div class="btns">${G.firms.map(x=>`<button class="btn" data-a="selFirm" data-id="${x.id}" style="${x.id===f.id?'background:var(--ink);color:#fff':''}">${K.BRANCHES[x.branch].icon} ${esc(x.name)}</button>`).join('')}</div>`:'';
-  const tabs=[['gen','Überblick'],['res','Entwicklung']];if(f.branch==='cafe'){tabs.splice(1,0,['menu','Speisekarte']);tabs.splice(2,0,['agency','Werbeagentur'])}if(f.branch==='soft')tabs.splice(1,0,['studio','Team & Studio']);if(f.branch==='prod')tabs.splice(1,0,['sales','Vertrieb']);
+  const tabs=[['gen','Überblick'],['res','Entwicklung']];if(f.branch==='cafe'){tabs.splice(1,0,['menu','Speisekarte']);tabs.splice(2,0,['agency','Werbung']);tabs.splice(3,0,['food','Einkauf'])}if(f.branch==='soft')tabs.splice(1,0,['studio','Team & Studio']);if(f.branch==='prod')tabs.splice(1,0,['sales','Vertrieb']);
   if(t==='gen'){b+=`<div class="row nameRow">${f===G.firms[0]?logoSvg(f.logo||0,f.color,32):''}<input type="text" id="renameIn" maxlength="26" value="${esc(f.name)}" aria-label="Firmenname"><button class="btn" data-a="renameFirm" data-id="${f.id}">Umbenennen</button></div>`;b+=kpis([[p?fe(p.rev+p.revInt):'–','Umsatz Vormonat'],[p?sgn(p.net):'–','Ergebnis',p?(p.net>=0?'pos':'neg'):''],[fn(K.staffOf(G,f)+K.adminOf(G,f)),'Mitarbeitende']])+
     kpis([[pct(f.aware),'Bekanntheit'],[pct(f.rep),'Ruf'],[pct(f.morale),'Stimmung',f.morale<0.5?'neg':'']]);
     b+=`<div class="card"><div class="row"><span class="lbl">Werbung</span><b class="serif" style="font-size:19px" id="mktV">${fe(f.mkt)} / Monat</b></div><input type="range" min="0" max="${Math.max(30000,Math.ceil(f.mkt/10000)*10000)}" step="250" value="${f.mkt}" data-in="mkt"><div class="sub">Mehr Werbung steigert die Bekanntheit. Die wirkt bei allen Geschäften dieser Firma.</div></div>
     <div class="card"><div class="row"><span class="lbl">Gehaltsniveau</span><b class="serif" style="font-size:19px" id="wageV">${pct(f.wage)}</b></div><input type="range" min="0.85" max="1.4" step="0.05" value="${f.wage}" data-in="wage"><div class="sub">Über Tarif hebt die Stimmung und damit die Leistung. Unter 45 % Stimmung kündigen Leute.</div></div>
     ${K.adminOf(G,f)?`<div class="sub">Dazu ${K.adminOf(G,f)} Stelle(n) in der Verwaltung (je 15 Mitarbeitende eine). Controlling in der Zentrale spart das.</div>`:''}`}
   if(t==='menu'&&f.branch==='cafe'){b+=say('Das ist die Produktabteilung. Hier legst du die Speisekarte, Qualität und Preise für alle Restaurants fest.',{g:'m',look:4711,hair:'#c0c3c7',suit:'#2f3439',skin:'#b9784f'})+'<div class="sec"><h3>Verkäufe aller Restaurants</h3>'+catChart(firmHist(f))+'</div>'+prodCards(f,null)+recipeCard(f)+'<div class="sub">Mehr Gerichte: unter „Entwicklung“.</div>'}
-  if(t==='agency'){b+='<div class="sub">Kampagnen machen deine Marke in einer ganzen Stadt bekannt. Die Bekanntheit holt Laufkundschaft in jede Filiale dort.</div>';
+  if(t==='food'){const idx=G.idx.food||1,h=G.foodHist||[],st=f.foodMode==='stock',wn=f.foodWeekNeed||0,wk=f.foodWeeks===undefined?2:f.foodWeeks;
+    b+=`<div class="card"><div class="row"><span><span class="eyebrow">Zutatenpreis heute</span><br><b style="font-size:30px" class="serif ${idx>1.05?'neg':idx<0.95?'pos':''}">${Math.round(idx*100)} %</b> <span class="sub">vom Normalpreis</span></span>${spark(h,130,44,idx>1?'#cc3b33':'#2f8a55')}</div>
+      <div class="sub">${idx<0.92?'Günstig! Jetzt lohnt sich ein Vorrat.':idx>1.08?'Teuer. Lieber aus dem Lager leben und abwarten.':'Normales Preisniveau.'}</div></div>
+    ${seg('foodMode',[['jit','Auf Abruf','+4 % Aufschlag, kein Risiko'],['stock','Eigenes Lager','günstiger, aber Verderb']],st?'stock':'jit')}
+    ${st?`<div class="card">${kpis([[fn(f.food||0),'Einheiten im Lager'],[fe((f.food||0)*(f.foodAvg||1)),'Lagerwert'],[wn?(f.food/wn).toFixed(1).replace('.',',')+' Wo.':'–','Reichweite']])}
+      <div class="row" style="margin-top:8px"><span><span class="lbl">Automatisch nachkaufen bis</span><br><span class="sub">Verbrauch ${fn(wn)} Einheiten pro Woche · 2,5 % verderben wöchentlich</span></span>${step('foodWeeks',wk+' Wo.',`data-id="${f.id}"`)}</div>
+      <div class="eyebrow" style="margin-top:8px">Jetzt zukaufen (Mengenrabatt bis 12 %)</div><div class="btns">${[2,4,8].map(w=>{const u=Math.max(1000,Math.round(wn*w/100)*100);return`<button class="btn" data-a="foodBuy" data-v="${u}">${w} Wochen · ${fe(u*idx*(1-K.bulkDisc(u)))}</button>`}).join('')}</div>
+      <div class="sub">Geht das Lager leer, wird zu 130 % nachgekauft und die Bewertungen leiden.</div></div>`:'<div class="sub">Der Großhändler liefert jede Woche genau die Menge, die du brauchst, zum Tagespreis plus 4 %.</div>'}`}
+  if(t==='agency'){const sa=f.segAw||{},ch=f.chan||{};
+    b+=`<div class="sec"><h3>Werbekanäle</h3><div class="sub">Jeder Kanal erreicht andere Zielgruppen. Je mehr Restaurants du hast, desto dünner verteilt sich die Wirkung, die Kosten bleiben gleich.</div>${Object.entries(K.CHANNELS).map(([k,C])=>`<div class="row chanRow"><span class="ch"><span class="ico">${C.icon}</span><span class="t"><b>${C.n} · ${fe(C.cost)}/Monat</b><span>${Object.entries(C.reach).sort((a,b)=>b[1]-a[1]).map(([g,v])=>`<em class="segchip" style="opacity:${0.45+v*0.55}">${K.SEGS[g].icon} ${K.SEGS[g].n}</em>`).join('')}</span></span></span>${tog('chan',ch[k],`data-k="${k}"`)}</div>`).join('')}</div>
+    <div class="sec"><h3>Bekanntheit je Zielgruppe</h3>${Object.entries(K.SEGS).map(([g,S])=>{const v=Math.min(1,f.aware+(sa[g]||0));return`<div class="row"><span>${S.icon} ${S.n}</span><b>${pct(v)}</b></div>${bar(v,'good')}`}).join('')}<div class="sub">Grundbekanntheit ${pct(f.aware)} aus dem allgemeinen Werbebudget, der Rest aus den Kanälen.</div></div>`;
+    b+='<div class="sec"><h3>Kampagnen je Stadt</h3><div class="sub">Kampagnen machen deine Marke in einer ganzen Stadt bekannt. Die Bekanntheit holt Laufkundschaft in jede Filiale dort.</div>';
     for(const c of K.CITIES){if(!G.cities[c.id])continue;const aw=Math.max(f.aware,(f.cityAw||{})[c.id]||0);const camps=(f.camps||{})[c.id]||{};
       b+=`<div class="card"><div class="row"><span class="lbl">Markenbekanntheit in ${c.n}</span><b class="serif" style="font-size:22px">${Math.round(aw*100)}</b></div>${bar(aw,'good')}
-      ${Object.entries(K.CITY_CAMPS).map(([k,C])=>`<div class="row"><span class="ch"><span class="ico">${C.icon}</span><span class="t"><b>${C.n}</b><span>${C.d} ${fe(C.cost)}/Monat.</span></span></span>${tog('cityCamp',camps[k],`data-id="${c.id}" data-k="${k}"`)}</div>`).join('')}</div>`}}
+      ${Object.entries(K.CITY_CAMPS).map(([k,C])=>`<div class="row"><span class="ch"><span class="ico">${C.icon}</span><span class="t"><b>${C.n}</b><span>${C.d} ${fe(C.cost)}/Monat.</span></span></span>${tog('cityCamp',camps[k],`data-id="${c.id}" data-k="${k}"`)}</div>`).join('')}</div>`}b+='</div>'}
   if(t==='studio'&&f.branch==='soft')return VIEWS.office({id:f.id,embed:true,tabs,b});
   if(t==='sales'&&f.branch==='prod')return VIEWS.sales({id:f.id,embed:true,tabs,b});
   if(t==='res'){const R=K.RESEARCH[f.branch];b+=`<div class="sub">Immer eine Entwicklung gleichzeitig. Fertig nach der angegebenen Zahl von Monaten (vier Wochen je Monat)${G.depts.rd?' (Forschungsabteilung: doppelt so schnell)':''}.</div>`;
@@ -1198,6 +1222,7 @@ document.addEventListener('click',e=>{if(suppressClick&&e.isTrusted){suppressCli
   case'place':startPlace(k,id);break;case'cancelPlace':endPlace();break;
   case'build':{let r;if(k==='cafe')r=K.act.openShop(G,id,b.dataset.p);if(k==='office')r=K.act.rentOffice(G,id,b.dataset.p);if(k==='factory')r=K.act.rentPlant(G,id,b.dataset.p);if(k==='hq')r=K.act.buildHQ(G,b.dataset.p);
     run(r);if(r&&r.ok){endPlace();if(k==='cafe')open('shop',{id:r.id});else if(k==='factory')open('plant',{id:r.id});else if(k==='office')open('office',{id});else close();save()}break}
+  case'foodWeeks':{const f2=K.firm(G,id);run(K.act.food(G,id,{weeks:(f2.foodWeeks===undefined?2:f2.foodWeeks)+d}),1);break}
   case'shopStaff':{const [,s]=K.shopOf(G,+id);run(K.act.shop(G,+id,{staff:s.staff+d}),1);break}
   case'mgrSal':{const [,s]=K.shopOf(G,+id);run(K.act.mgrSalary(G,+id,s.manager.salary+d*2500),1);break}
   case'figSay':{const el=$(k);if(el)el.querySelector('p').textContent=v;break}
@@ -1214,6 +1239,7 @@ document.addEventListener('click',e=>{if(suppressClick&&e.isTrusted){suppressCli
   case'mgrOffer':{const i=+v,[,s]=K.shopOf(G,view.p.id),c=K.mgrCands(G,s.id)[i];view.p.offer=view.p.offer||{};view.p.offer[i]=Math.max(20000,(view.p.offer[i]||c.demand)+d*2500);renderSheet();break}
   case'hireMgr':{const i=+v,c=K.mgrCands(G,+id)[i],o=(view.p.offer||{})[i]||c.demand;const r=run(K.act.hireMgr(G,+id,i,o));view.p.offer={};save();if(r&&r.ok)back();else renderSheet();break}
   case'shopHours':run(K.act.shop(G,+id,{hours:v}),1);break;
+  case'crewTrain':run(K.act.shop(G,+id,{trainOne:+k}));break;case'crewFire':if(confirm('Wirklich entlassen? Es gibt ein Monatsgehalt Abfindung.'))run(K.act.shop(G,+id,{fireOne:+k}));break;case'crewPro':run(K.act.shop(G,+id,{hirePro:true}));break;
   case'shopTrain':run(K.act.shop(G,+id,{train:true}));break;
   case'shopLevel':run(K.act.shop(G,+id,{level:true}));break;
   case'shopUp':run(K.act.shop(G,+id,{up:k}));break;
@@ -1265,6 +1291,8 @@ document.addEventListener('click',e=>{if(suppressClick&&e.isTrusted){suppressCli
   case'sector':view.p.sec=k;renderSheet();break;
   case'trade':run(K.act.trade(G,k,+v));break;
   case'listSort':view.p.sort=v;renderSheet();break;
+  case'chan':run(K.act.chan(G,cur().id,k));break;
+  case'foodMode':run(K.act.food(G,cur().id,{mode:v}));break;case'foodBuy':run(K.act.food(G,cur().id,{buy:+v}));break;
   case'tipStaff':{const r=K.act.shop(G,+id,{staff:+v});b.textContent=r.ok?'Erledigt':'Geht nicht';b.disabled=true;save();refresh();if(!r.ok&&r.msg)toast(r.msg,'bad');break}
   case'tradeSl':{const sl=document.querySelector(`input[data-in="stk"][data-k="${k}"]`);if(sl)run(K.act.trade(G,k,+sl.value));break}
   case'stake':{const sl=document.querySelector(`input[data-in="stake"][data-id="${id}"]`);if(sl)run(K.act.stake(G,+id,+sl.value/100));break}
