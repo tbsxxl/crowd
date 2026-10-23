@@ -170,6 +170,7 @@ table.cf td{padding:5px 0;font-size:13.5px}table.cf td:last-child{text-align:rig
 .cands{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.cand{min-width:min(280px,82%);scroll-snap-align:center;display:flex;flex-direction:column;gap:6px}.cand .ava,.execCard .ava,.execHead .ava{flex:none;align-self:center}
 @media (max-width:440px){.execHead{flex-direction:column;align-items:center}.mast{font-size:26px}}
 /* Start, Wizard, Produktkarten */
+.tag.civ{background:#24272b;color:#fff;border-color:#24272b;font-weight:600}
 .mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}.modc{display:flex;flex-direction:column;gap:3px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px}.modc .e{font-size:22px}.modc span{font-size:12px;color:var(--muted)}.modc small{font-family:var(--f-mono);font-size:11px;color:#7a5c10}
 .cards3{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}.pcard2{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:6px;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:14px;text-align:left;transition:transform .15s}.pcard2:hover{transform:translateY(-3px);border-color:var(--ink)}.pcard2 .e{font-size:34px}.pcard2 b{font-size:15px}.pcard2 span{font-size:12.5px;color:var(--muted);line-height:1.35}.pcard2 small{margin-top:auto;font-family:var(--f-mono);font-size:11px;color:#2f6fd0}.pcard2.pact{border-color:#d9a441;background:linear-gradient(#fffaf0,#fff)}.pcard2.pact small{color:#b07a1c}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.chip{font-size:12px;background:var(--soft);border-radius:999px;padding:4px 10px}.chip.pact{background:rgba(212,167,44,.18)}
@@ -300,8 +301,8 @@ window.addEventListener('error',function(e){var m=document.getElementById('bootM
   if(m&&!document.getElementById('menu').hidden)m.textContent=t;else{var d=document.getElementById('toast');if(d){d.textContent=t;d.hidden=false}}},true);
 </script>
 <script src="../vendor/three-r128-bloom.js"></script>
-<script src="sim.js?v=20261024a"></script>
-<script src="world.js?v=20261024a"></script>
+<script src="sim.js?v=20261024b"></script>
+<script src="world.js?v=20261024b"></script>
 <script>
 (function(){
 'use strict';
@@ -957,6 +958,9 @@ const CATICO={produkt:'☕',preis:'💶',atmo:'🛋️',service:'🙂'};
 function reviewCards(list){return`<div class="revs">${list.map((r,i)=>`<div class="card rev"><div class="row">${starsH(r.s)}<span class="revAva"><i>${CATICO[r.k]||'💬'}</i>${avatar({g:r.g||(i%2?'f':'m'),look:r.look||((r.t||'').length*97+i)},52)}</span></div><div class="quote" style="font-size:14px">${esc(r.t)}</div></div>`).join('')}</div>`}
 function catStars(cat){return`<span style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">${cat.map(([n,v])=>`<span class="row" style="gap:8px"><span class="sub">${n}</span>${starsH(K.stars(v))}<b>${String(K.stars(v)).replace('.',',')}</b></span>`).join('')}</span>`}
 // Ziele
+VIEWS.paper=()=>{const r=G.report||lastRep;let b=r?paperHtml(r):'<div class="sub">Die erste Ausgabe erscheint nach der ersten Woche.</div>';
+  b+=`<div class="sec"><h3>Meldungen</h3><div class="list">${G.news.slice(0,25).map(n=>`<div class="li" style="cursor:default"><span class="ico">${{good:'✅',bad:'⚠️',ms:'🏆',fin:'💶'}[n.k]||'🗞️'}</span><span class="t"><b>${esc(n.t)}</b><span>${K.monthName(n.m)}</span></span></div>`).join('')}</div></div>`;
+  return{eyebrow:'Verlag',title:'Wirtschaftskurier',sub:'Zeitung und Meldungen',body:b}};
 VIEWS.goals=()=>{let b=`<div class="card"><div class="row"><span class="eyebrow">Durchgang ${G.daily?'· Tägliche Herausforderung':''}</span><b class="serif" style="font-size:20px">${fe(K.runScore(G))}</b></div>
     <div class="sub">${G.runYears?'Noch '+fn(Math.max(0,G.runYears*12-G.month))+' Monate':'Endlos'} · Punkte = Vermögen ${multTxt(G.mods||[])} · nächste Kartenwahl in ${3-G.month%3} Monat${3-G.month%3>1?'en':''}</div>
     ${(G.mods||[]).length?`<div class="chips">${G.mods.map(m=>`<span class="chip">${K.MODS[m].icon} ${K.MODS[m].n}</span>`).join('')}</div>`:''}
@@ -1286,7 +1290,7 @@ document.addEventListener('click',e=>{if(suppressClick&&e.isTrusted){suppressCli
   case'exec':run(K.act.exec(G,k));break;
   case'endTurn':endTurn();break;
   case'closeReport':$('modal').hidden=true;if(G.over)gameOver();else startCases(lastRep);break;
-  case'paperTab':{paperTab=k;const el=$('paper');if(el&&lastRep)el.outerHTML=paperHtml(lastRep);break}
+  case'paperTab':{paperTab=k;const el=$('paper'),rr=lastRep||G.report;if(el&&rr)el.outerHTML=paperHtml(rr);break}
   case'caseNext':caseI++;showCase();break;
   case'caseClose':$('modal').hidden=true;cases=[];refresh();break;
   case'caseBoard':$('modal').hidden=true;cases=[];open('board');break;
@@ -1339,7 +1343,11 @@ cv.addEventListener('pointerup',e=>{pts.delete(e.pointerId);if(pts.size<2)pinch=
 cv.addEventListener('pointercancel',e=>{pts.delete(e.pointerId);drag=null;pinch=null});
 cv.addEventListener('wheel',e=>{e.preventDefault();World.view.zoom*=Math.exp(-e.deltaY*0.0012);World.applyView()},{passive:false});
 addEventListener('resize',()=>{mobile=matchMedia('(max-width:760px)').matches;World.resize()});
-function tapPlot(pid){if(!pid){if(!place)close();return}const p=K.plot(G,pid);World.select(pid);
+// Öffentliche Gebäude öffnen die passende Ansicht
+function tapCivic(k){if(place){toast('Hier kann man nicht bauen.','bad');return}
+  if(k==='boerse')open('bank',{tab:'market'});else if(k==='bank')open('fin',{tab:'money'});else if(k==='makler')open('group',{tab:'re'});else if(k==='zeitung')open('paper');
+  else if(k==='flughafen')open('airport');else if(k==='stadion'){if(G.me.club)open('club');else open('wealth',{tab:'club'})}}
+function tapPlot(pid){if(!pid){if(!place)close();return}if(String(pid).startsWith('civic:')){World.select(pid);tapCivic(pid.slice(6));return}const p=K.plot(G,pid);World.select(pid);
   if(place){if(!eligible(place.kind).includes(pid)){toast('Hier geht das nicht. Wähle eine grün markierte Fläche.','bad');return}open('plot',{id:pid});return}
   if(p.owner==='H'){open('group',{tab:'hq'});return}
   if(p.owner&&!p.owner.startsWith('c:')){const f=K.firm(G,p.owner);G.cur=f.id;refresh();
@@ -1353,9 +1361,10 @@ function tags(){const el=$('tags');if(!G){el.innerHTML='';return}const out=[];
       if(p.use==='factory'){const pl=f.plants.find(x=>x.plot===p.id);t=pl&&pl.lines.length?pl.lines.length+(pl.lines.length>1?' Linien':' Linie'):'leer'}}
     const pri=p.owner==='H'?1e9:p.use==='cafe'?(K.firm(G,p.owner).shops.find(x=>x.plot===p.id)||{stat:{guests:0}}).stat?.guests||0:5e8;
     out.push({x:pr.x,y:pr.y,id:p.id,pri,h:`<i style="background:${col}"></i>${esc(t)}`,w:t.length*6.4+28})}
+  if(World.civics)for(const c of World.civics()){const pr=World.project(c.id,'pin');if(!pr||!pr.vis)continue;out.push({x:pr.x,y:pr.y,id:c.id,pri:-1,h:`${c.icon} ${esc(c.n)}`,w:c.n.length*6.4+30,cls:'civ'})}
   // Überlappende Schilder werden nicht gestapelt: das wichtigere bleibt, das andere zeigt nur seinen Pin
   out.sort((a,b)=>b.pri-a.pri);const placed=[];for(const o of out){if(!placed.some(q=>Math.abs(q.x-o.x)<(q.w+o.w)/2+2&&Math.abs(q.y-o.y)<22))placed.push(o)}
-  el.innerHTML=placed.map(o=>`<div class="tag" data-pid="${o.id}" style="left:${o.x}px;top:${o.y}px">${o.h}</div>`).join('')}
+  el.innerHTML=placed.map(o=>`<div class="tag ${o.cls||''}" data-pid="${o.id}" style="left:${o.x}px;top:${o.y}px">${o.h}</div>`).join('')}
 $('tags').addEventListener('pointerdown',e=>{const t=e.target.closest('.tag');if(t&&G){e.preventDefault();tapPlot(t.dataset.pid)}});
 let lastTag=0;function loop(t){if(G&&t-lastTag>120){tags();lastTag=t}World.frame(t);requestAnimationFrame(loop)}
 addEventListener('visibilitychange',()=>{if(document.hidden)save()});addEventListener('pagehide',save);

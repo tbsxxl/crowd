@@ -87,14 +87,16 @@ const ZONES={
   gewerbe:{n:'Gewerbegebiet',traffic:[300,800],rent:[1500,2600],size:[1500,3000],uses:['factory']}};
 // Stadtpläne: w Wohnviertel, c Innenstadt, b Büroviertel, g Gewerbe, P Park, A Wasser, L Wahrzeichen
 // Stadtpläne 10×8. Die alten 6×5-Pläne stecken unverändert ab Zeile 1, Spalte 2 darin (für ältere Spielstände).
-const CITY_MAP={kiel:['wwPwwcwwPw','wwcLccwPww','wcccccwwcw','wcwcbcwwcw','PwwwbwPwww','gggggwwwwP','gggwwcwwww','ggwwPwwggg'],
-  hamburg:['gggbbccwww','ggggbccwww','gggbcLAwPw','bbgbccAwww','ccwcbPwwcw','wPwwwwwgww','wwcwwPwwgg','wwwwwwwggg'],
-  berlin:['wwbbccbbww','wbPPbbcwww','wcPPcLcwcw','wbwbccbwbw','PwwwbbwwwP','ggggwwgggg','wwwPwwwwcw','ggwwwwwwgg']};
+const CITY_MAP={kiel:['wwPwwZwwPw','wwcLccwPww','wMccccwwKw','wcwcbcwwNw','PwwwbwPwww','gggggwwwwP','gggwwcwwww','ggwwSwwgFg'],
+  hamburg:['gggbbcZwww','ggggbccwww','gggbcLAwPw','bbgbccAwww','KNwcbPwwMw','wSwwwwwgww','wwcwwPwwgg','wwwwwwwggF'],
+  berlin:['wwbbKNbbww','wbPPbbcwww','wcPPcLcwZw','wbwbccbwbw','PwwwbbwwwP','ggggwwgggg','wwwSwwwwMw','ggwwwwwwgF']};
 // Blöcke: gleiche Zeichen in Nachbarfeldern bilden einen großen Block (Fußgängerzone, Park oder Wasser statt Straße)
 const OLD_BLOCKS={kiel:['abccde','afccgg','hfijgk','hlimnk','ooopqq'],hamburg:['aabccd','aefghd','aefihk','lmnopp','qqrrrs'],berlin:['aabbcd','aaefgd','hijjkl','hmnnoo','ppqqrr']};
 const GRID_OFF=[1,2];
 const CITY_BLOCKS={};for(const id in OLD_BLOCKS){let n=0;CITY_BLOCKS[id]=[...Array(8)].map((_,r)=>[...Array(10)].map((_,c)=>{const o=OLD_BLOCKS[id][r-GRID_OFF[0]];const ch=o&&o[c-GRID_OFF[1]];return ch||String.fromCharCode(0x100+n++)}).join(''))}
 const CODE={w:'wohn',c:'city',b:'buero',g:'gewerbe'};
+// Öffentliche Gebäude: alles, was man außerhalb der eigenen Firma tun kann, hat einen Ort in der Stadt
+const CIVIC={K:{k:'boerse',n:'Börse',icon:'📈'},N:{k:'bank',n:'Hausbank',icon:'🏦'},S:{k:'stadion',n:'Stadion',icon:'🏟️'},F:{k:'flughafen',n:'Flughafen',icon:'✈️'},Z:{k:'zeitung',n:'Wirtschaftskurier',icon:'📰'},M:{k:'makler',n:'Immobilienmakler',icon:'🏠'}};
 const ZONE_MAP=CITY_MAP.kiel.map(r=>[...r].map(ch=>CODE[ch]||'wohn'));
 // Eigenheiten der Städte: Saison, Preisbewusstsein, Nachtleben, Terrassen
 const CITY_TRAITS={kiel:{d:'Hafenstadt mit Altstadt: günstige Mieten, weniger Laufkundschaft, im Sommer kommen viele Touristen.',summer:1.25,price:1,night:0.9,terr:1.2},
@@ -673,6 +675,7 @@ function ex(G,k){const e=G.execs&&G.execs[k];if(!e||G.hqBuild>0)return 0;if(e===
 function grantValue(G,gr,unvestedOnly){const left=unvestedOnly?gr.n*(1-(gr.vested||0)/4):gr.n,px=G.sharePrice||0;return gr.type==='rsu'?left*px:left*Math.max(0,px-gr.strike)}
 // ältere Spielstände ergänzen
 function migrate(G){
+  G.plots=G.plots.filter(p=>!(CIVIC[(CITY_MAP[p.city]||[])[p.r]?.[p.c]]&&!p.owner&&!p.prop));
   if(G.grid!==2&&G.plots){for(const p of G.plots){p.r+=GRID_OFF[0];p.c+=GRID_OFF[1]}const rs0=G.rs;for(const c of CITIES)genCity(G,c);G.rs=rs0;G.grid=2}
   if(!G.me)G.me={cash:10000,salary:36000,stocks:{},lux:[],club:null};if(!G.me.loc)G.me.loc=G.cityCur||'kiel';if(!G.me.wh)G.me.wh=[];if(G.me.look===undefined)G.me.look=(G.rs>>>3)%100000;
   if(G.me.club&&!G.me.club.players)initClub(G,CLUBS.find(x=>x.id===G.me.club.id),G.me.club);if(!G.execs)G.execs={};if(!G.re)G.re=1;if(!G.stocks)genMarket(G);
@@ -1056,6 +1059,6 @@ function curLedger(G){return{m:G.month,f:G.led.f,H:G.led.H,cf:G.led.cf}}
 
 const K={MONTHS,BRANCHES,WAGE,PRODUCTS,QMULT,QUAL,QN,LEVELS,CAFE_UPS,CAFE_ACTIONS,HOURS,GENRES,SCOPES,FOCUS,MODELS,CAMPAIGNS,OFFICE_UPS,RAW,GOODS,LINES,SHIFTS,GMULT,GQUAL,SUPPLIERS,PLANT_UPS,RESEARCH,CITIES,ZONES,COLS,ROWS,STAGES,DEPTS,GOALS,
   newGame,endTurn,act:A,plot,firm,staffOf,adminOf,totalStaff,hqStaff,stage,menuStats,shopForecast,forecastShop,shopCost,officeCost,softTeam,desks,rating,goodsTotal,lineOut,lineNeed,rawPrice,wholesalePrice,storageCap,reserved,effGrade,
-  balance,valuation,stakeCost,MODS,PERKS,fx,scoreMult,runScore,pickMods,STAKE_MAX,firmValue,compValue,takeoverPrice,loanOffer,ipoCheck,pl,curLedger,dateStr,dayOf,W,WEEKS,BUILD,underBuild,monthName,yearOf,cityName,dispo,fmtE,fmtN:fn,freePlots,stars,eventOpts,productivity,summer,shopOf,lineOf,sumF,wageOf,propValue,propIncome,leaseOcc,rentOf,CITY_CAMPS,EXECS,SECTORS,LUX,CLUBS,wealth,genMarket,CITY_MAP,CITY_BLOCKS,CITY_TRAITS,DIFF,CURS,TASTE,FACADES,unitCost,recipeFit,setCur:c=>{CUR=CURS[c]||'€'},MGR_DELEG,mgrCands,mgrPay,flights,dist,AIRPORTS,address,compShop,squadStr,TEAMS,CLUB_STAD,pSal,ex,dcov,dneed,deptN,marketPay,cands,grantValue,migrate,econ,BOARD_Q,UNITS,KINDS,usesOf,unitName,YIELD};
+  balance,valuation,CIVIC,stakeCost,MODS,PERKS,fx,scoreMult,runScore,pickMods,STAKE_MAX,firmValue,compValue,takeoverPrice,loanOffer,ipoCheck,pl,curLedger,dateStr,dayOf,W,WEEKS,BUILD,underBuild,monthName,yearOf,cityName,dispo,fmtE,fmtN:fn,freePlots,stars,eventOpts,productivity,summer,shopOf,lineOf,sumF,wageOf,propValue,propIncome,leaseOcc,rentOf,CITY_CAMPS,EXECS,SECTORS,LUX,CLUBS,wealth,genMarket,CITY_MAP,CITY_BLOCKS,CITY_TRAITS,DIFF,CURS,TASTE,FACADES,unitCost,recipeFit,setCur:c=>{CUR=CURS[c]||'€'},MGR_DELEG,mgrCands,mgrPay,flights,dist,AIRPORTS,address,compShop,squadStr,TEAMS,CLUB_STAD,pSal,ex,dcov,dneed,deptN,marketPay,cands,grantValue,migrate,econ,BOARD_Q,UNITS,KINDS,usesOf,unitName,YIELD};
 if(typeof module!=='undefined'&&module.exports)module.exports=K;else root.K=K;
 })(typeof window!=='undefined'?window:globalThis);
