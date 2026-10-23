@@ -87,13 +87,15 @@ const ZONES={
   gewerbe:{n:'Gewerbegebiet',traffic:[300,800],rent:[1500,2600],size:[1500,3000],uses:['factory']}};
 // Stadtpläne: w Wohnviertel, c Innenstadt, b Büroviertel, g Gewerbe, P Park, A Wasser, L Wahrzeichen
 // Stadtpläne 10×8. Die alten 6×5-Pläne stecken unverändert ab Zeile 1, Spalte 2 darin (für ältere Spielstände).
-const CITY_MAP={kiel:['wwPwwZwwPw','wwcLccwPww','wMccccwwKw','wcwcbcwwNw','PwwwbwPwww','gggggwwwwP','gggwwcwwww','ggwwSwwgFg'],
-  hamburg:['gggbbcZwww','ggggbccwww','gggbcLAwPw','bbgbccAwww','KNwcbPwwMw','wSwwwwwgww','wwcwwPwwgg','wwwwwwwggF'],
-  berlin:['wwbbKNbbww','wbPPbbcwww','wcPPcLcwZw','wbwbccbwbw','PwwwbbwwwP','ggggwwgggg','wwwSwwwwMw','ggwwwwwwgF']};
+const CITY_MAP={kiel:['wwPwwZwwPw','wwcLccwPww','wMccccwwKw','wcwcbcwwNw','PwwwbwPwww','gggggwwwwP','gggSScwwFF','ggwSSwwgFF'],
+  hamburg:['gggbbcZwww','ggggbccwww','gggbcLAwPw','bbgbccAwww','KNwcbPwwMw','wwwwwwwgww','SScwwPwwFF','SSwwwwwgFF'],
+  berlin:['wwbbKNbbww','wbPPbbcwww','wcPPcLcwZw','wbwbccbwbw','PwwwbbwwwP','ggggwwgggg','FFSSwwwwMw','FFSSwwwwgg']};
 // Blöcke: gleiche Zeichen in Nachbarfeldern bilden einen großen Block (Fußgängerzone, Park oder Wasser statt Straße)
 const OLD_BLOCKS={kiel:['abccde','afccgg','hfijgk','hlimnk','ooopqq'],hamburg:['aabccd','aefghd','aefihk','lmnopp','qqrrrs'],berlin:['aabbcd','aaefgd','hijjkl','hmnnoo','ppqqrr']};
 const GRID_OFF=[1,2];
 const CITY_BLOCKS={};for(const id in OLD_BLOCKS){let n=0;CITY_BLOCKS[id]=[...Array(8)].map((_,r)=>[...Array(10)].map((_,c)=>{const o=OLD_BLOCKS[id][r-GRID_OFF[0]];const ch=o&&o[c-GRID_OFF[1]];return ch||String.fromCharCode(0x100+n++)}).join(''))}
+// Stadion und Flughafen belegen 2×2 Felder ohne Straßen dazwischen
+for(const id in CITY_BLOCKS)CITY_BLOCKS[id]=CITY_BLOCKS[id].map((row,r)=>[...row].map((ch,c)=>CITY_MAP[id][r][c]==='S'?'\u0300':CITY_MAP[id][r][c]==='F'?'\u0301':ch).join(''));
 const CODE={w:'wohn',c:'city',b:'buero',g:'gewerbe'};
 // Öffentliche Gebäude: alles, was man außerhalb der eigenen Firma tun kann, hat einen Ort in der Stadt
 const CIVIC={K:{k:'boerse',n:'Börse',icon:'📈'},N:{k:'bank',n:'Hausbank',icon:'🏦'},S:{k:'stadion',n:'Stadion',icon:'🏟️'},F:{k:'flughafen',n:'Flughafen',icon:'✈️'},Z:{k:'zeitung',n:'Wirtschaftskurier',icon:'📰'},M:{k:'makler',n:'Immobilienmakler',icon:'🏠'}};

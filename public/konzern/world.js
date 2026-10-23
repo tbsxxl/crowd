@@ -116,27 +116,35 @@ function buildRoads(){if(!roadGroup)return;while(roadGroup.children.length){cons
 // Schild als Fläche mit Schrift
 function sign(g,text,w,h,x,y,z,bg,fg,ry){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),label(text,bg||'#24272b',fg||'#ffffff'));m.position.set(x,y,z);if(ry)m.rotation.y=ry;g.add(m);return m}
 // Öffentliche Gebäude: Börse, Bank, Stadion, Flughafen, Zeitung, Makler. Höhe für Auswahl und Schild wird zurückgegeben.
-function civic(k,g){const st='#e9e2d0',dk='#3d4651';B(P,0.3,P,'#d9d2c4',0,0,0,g);
+function civic(k,g){const st='#e9e2d0',dk='#3d4651',L=k==='stadion'||k==='flughafen'?2*P+S:P;B(L,0.3,L,k==='flughafen'?'#a9c78f':'#d9d2c4',0,0,0,g);
   if(k==='boerse'){B(8.6,0.4,6.4,'#cfc6b2',0,0.3,-0.6,g);B(8,0.4,5.8,'#d8cfbb',0,0.7,-0.6,g);B(7.4,4.4,5,st,0,1.1,-0.9,g);
     for(let i=0;i<6;i++)cyl(0.32,0.36,4.2,'#f4f1ea',-3.1+i*1.24,1.1,1.85,g,10);B(7.8,0.6,0.8,'#f4f1ea',0,5.3,1.85,g);add(prism(7.8,1.6,1),'#ece6d6',0,5.9,1.85,g);
     sign(g,'BÖRSE',4.2,0.55,0,5.6,2.27,'#24272b','#f2c14e');B(1.4,0.5,0.8,'#6b5a2a',-3.2,0.3,3.6,g);B(1,0.8,0.6,'#b07a1c',-3.2,0.8,3.6,g);add(new THREE.ConeGeometry(0.12,0.6,6),'#b07a1c',-2.75,1.75,3.6,g).rotation.z=-0.9;return 7.5}
-  if(k==='bank'){B(6.8,1.6,6.4,'#3d4651',0,0.3,-0.6,g);const gl=new THREE.MeshStandardMaterial({color:'#9fc0d6',roughness:0.15,metalness:0.5});B(5.6,10,5.2,gl,0,1.9,-0.6,g);
-    for(let i=1;i<10;i++)B(5.7,0.12,5.3,'#e8eef2',0,1.9+i,-0.6,g);B(6,0.6,5.6,'#3d4651',0,11.9,-0.6,g);sign(g,'HAUSBANK',4.4,0.6,0,1.1,2.62,'#2f6fd0','#ffffff');return 12.5}
+  if(k==='bank'){B(6.8,1.6,6.4,'#3d4651',0,0.3,-0.6,g);const gl=new THREE.MeshStandardMaterial({color:'#9fc0d6',roughness:0.15,metalness:0.5});B(5.6,8,5.2,gl,0,1.9,-0.6,g);
+    for(let i=1;i<8;i++)B(5.7,0.12,5.3,'#e8eef2',0,1.9+i,-0.6,g);B(6,0.6,5.6,'#3d4651',0,9.9,-0.6,g);sign(g,'HAUSBANK',4.4,0.6,0,1.1,2.62,'#2f6fd0','#ffffff');return 10.5}
   if(k==='zeitung'){B(8.4,5.2,5.6,'#9a4a35',0,0.3,-0.8,g);add(prism(8.6,1.8,5.8),'#3d4651',0,5.5,-0.8,g);for(let k2=0;k2<2;k2++)for(let i=0;i<5;i++)B(0.9,1.1,0.06,'#f4f1ea',-3.2+i*1.6,1.6+k2*1.8,2.02,g);
     sign(g,'WIRTSCHAFTSKURIER',6.4,0.7,0,4.75,2.05,'#f4f1ea','#24272b');for(let i=0;i<3;i++){const rl=cyl(0.5,0.5,1.6,'#f4f1ea',2.4+i*0,0.3,3.3-i*0,g,12);rl.rotation.z=Math.PI/2;rl.position.set(-2.5+i*2.4,0.8,3.6)}return 7.6}
   if(k==='makler'){B(7.6,6.6,5.6,'#e4d2bd',0,0.3,-0.8,g);for(let k2=0;k2<3;k2++)for(let i=0;i<4;i++)B(1.1,1,0.06,'#3d4651',-2.5+i*1.65,1.4+k2*1.8,2.02,g);
     B(2.4,2.2,0.15,'#3f9b62',0,4.6,2.1,g);add(prism(2.6,1,0.2),'#2f8a55',0,5.7,2.1,g);sign(g,'IMMOBILIEN',4.6,0.6,0,0.85,2.05,'#3f9b62','#ffffff');return 7.2}
-  if(k==='stadion'){const ring=new THREE.Mesh(new THREE.CylinderGeometry(4.9,4.6,2.4,28,1,true),new THREE.MeshStandardMaterial({color:'#c94c3c',side:THREE.DoubleSide,flatShading:true}));ring.scale.z=0.82;ring.position.y=1.5;g.add(ring);
-    const inner=new THREE.Mesh(new THREE.CylinderGeometry(4.2,3.4,2.2,28,1,true),new THREE.MeshStandardMaterial({color:'#e9e2d0',side:THREE.DoubleSide,flatShading:true}));inner.scale.z=0.8;inner.position.y=1.5;g.add(inner);
-    B(5.4,0.12,3.2,'#4f9a4a',0,0.35,0,g);B(0.08,0.14,3.2,'#ffffff',0,0.36,0,g);for(const x of [-2.6,2.6])B(0.08,0.14,1.4,'#ffffff',x*0.92,0.36,0,g);
-    for(const [x,z] of [[-4.6,-3.6],[4.6,-3.6],[-4.6,3.6],[4.6,3.6]]){cyl(0.12,0.16,5.5,'#5a6270',x,0.3,z,g,6);B(1,0.5,0.25,'#f4f1ea',x,5.8,z,g)}return 6.5}
-  if(k==='flughafen'){const rw=B(9.6,0.06,2.2,'#4a4f55',0,0.3,-2.6,g);rw.rotation.y=0.12;for(let i=0;i<6;i++){const d=B(0.9,0.08,0.18,'#f4f1ea',-3.8+i*1.5,0.32,-2.6+Math.tan(0.12)*(3.8-i*1.5),g);d.rotation.y=0.12}
-    B(6,2.2,2.4,'#e8eef2',-1.2,0.3,2.4,g);B(6.2,0.3,2.6,'#2f6fd0',-1.2,2.5,2.4,g);cyl(0.5,0.6,5,'#e9e4d8',3.6,0.3,2.6,g,8);cyl(1,0.8,1,'#9fc0d6',3.6,5.3,2.6,g,8);
-    const pl=new THREE.Group();pl.position.set(0.6,0.6,0.2);pl.rotation.y=0.12;g.add(pl);const fu=cyl(0.38,0.38,4.2,'#f4f1ea',0,0,0,pl,10);fu.rotation.z=Math.PI/2;fu.position.set(0,0.6,0);B(1,0.08,4.2,'#d9dde1',0,0.55,0,pl);B(0.6,0.06,1.8,'#d9dde1',-1.9,0.75,0,pl);B(0.6,1,0.08,'#cc3b33',-1.9,0.8,0,pl);
-    sign(g,'FLUGHAFEN',4,0.55,-1.2,1.5,3.62,'#2f6fd0','#ffffff');return 6.5}
+  if(k==='stadion'){ // 2×2 Felder: ovale Arena mit Rängen, Dach und Flutlicht
+    const ov=(rt,rb,h,y,col)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,40,1,true),new THREE.MeshStandardMaterial({color:col,side:THREE.DoubleSide,flatShading:true}));m.scale.z=0.72;m.position.y=y;m.castShadow=m.receiveShadow=true;g.add(m);return m};
+    ov(10.4,10.8,5,2.8,'#b8443a');ov(9.6,7.6,4.4,2.8,'#e9e2d0');for(let k2=1;k2<4;k2++)ov(9.6-k2*0.5,9.6-k2*0.5+0.05,0.12,1.2+k2*1.1,'#c9c2b2');
+    const roof=new THREE.Mesh(new THREE.RingGeometry(7.4,10.6,40),new THREE.MeshStandardMaterial({color:'#f4f1ea',side:THREE.DoubleSide}));roof.rotation.x=-Math.PI/2;roof.scale.y=0.72;roof.position.y=5.35;g.add(roof);
+    B(12,0.12,7.2,'#4f9a4a',0,0.35,0,g);for(let i=0;i<6;i+=2)B(2,0.13,7.2,'#5aa856',-5+i*2,0.36,0,g);B(0.1,0.15,7.2,'#ffffff',0,0.37,0,g);for(const x of [-6,6])B(0.1,0.15,7.2,'#ffffff',x,0.37,0,g);
+    for(const [x,z] of [[-10.4,-7.6],[10.4,-7.6],[-10.4,7.6],[10.4,7.6]]){cyl(0.22,0.3,9.5,'#5a6270',x,0.3,z,g,6);B(2,1,0.4,'#f4f1ea',x,9.8,z,g)}return 11}
+  if(k==='flughafen'){ // 2×2 Felder: Start- und Landebahn, Terminal, Tower, Flugzeuge
+    B(22.6,0.06,4.2,'#4a4f55',0,0.3,-7.4,g);for(let i=0;i<9;i++)B(1.4,0.08,0.24,'#f4f1ea',-9.6+i*2.4,0.33,-7.4,g);for(const x of [-10.6,10.6])for(let i=0;i<4;i++)B(0.24,0.08,0.6,'#f4f1ea',x,0.33,-8.8+i*0.95,g);
+    B(3,0.05,8,'#6a6f75',-6,0.3,-1.8,g);B(16,0.05,3.4,'#6a6f75',1,0.3,1.4,g);
+    const gl=new THREE.MeshStandardMaterial({color:'#9fc0d6',roughness:0.15,metalness:0.4});B(16,3.2,4.4,gl,1,0.3,6.2,g);B(16.6,0.5,5,'#e8eef2',1,3.5,6.2,g);
+    for(let i=0;i<3;i++)B(0.8,0.8,2.6,'#d9dde1',-4+i*5,1.3,3,g);
+    cyl(0.7,0.9,9,'#e9e4d8',-8.8,0.3,6,g,8);cyl(1.6,1.2,1.6,'#9fc0d6',-8.8,9.3,6,g,10);cyl(1.7,1.7,0.3,'#3d4651',-8.8,10.9,6,g,10);
+    const plane=(x,z,ry,sc)=>{const pl=new THREE.Group();pl.position.set(x,0.3,z);pl.rotation.y=ry;pl.scale.setScalar(sc);g.add(pl);const fu=cyl(0.55,0.5,6.4,'#f4f1ea',0,0,0,pl,12);fu.rotation.z=Math.PI/2;fu.position.set(0,1,0);
+      add(new THREE.SphereGeometry(0.55,10,8),'#f4f1ea',3.2,1,0,pl);B(1.6,0.1,6.6,'#d9dde1',0.2,0.9,0,pl);B(0.9,0.08,2.4,'#d9dde1',-2.8,1.2,0,pl);B(1,1.4,0.1,'#2f6fd0',-2.9,1.5,0,pl);return pl};
+    plane(-4,2.4,Math.PI/2,1);plane(1,2.4,Math.PI/2,1);plane(4,-7.4,0,1.1);
+    sign(g,'FLUGHAFEN',6,0.8,1,2.1,8.42,'#2f6fd0','#ffffff');return 11}
   return 4}
 function special(code,id,r,c,g){seed=(r*17+c*5+id.length*11)|0||3;
-  const cv=window.K&&K.CIVIC&&K.CIVIC[code];if(cv){const h=civic(cv.k,g);g.userData.pid='civic:'+cv.k;anchors['civic:'+cv.k]={x:g.position.x,y:0.3,z:g.position.z,w:P*0.92,h,d:P*0.92,rot:g.rotation.y,pin:h,civic:cv};return}
+  const cv=window.K&&K.CIVIC&&K.CIVIC[code];if(cv){const h=civic(cv.k,g),big='SF'.includes(code)?2*P+S:P;g.userData.pid='civic:'+cv.k;anchors['civic:'+cv.k]={x:g.position.x,y:0.3,z:g.position.z,w:big*0.92,h,d:big*0.92,rot:g.rotation.y,pin:h,civic:cv};return}
   if(code==='P'){B(P,0.3,P,(MAP_CITY[id]||MAP_CITY.kiel).park,0,0,0,g);B(P,0.04,1.1,'#e2d6b8',0,0.3,0,g);B(1.1,0.04,P,'#e2d6b8',0,0.3,0,g);
     if((r+c)%2){const pond=add(new THREE.CylinderGeometry(2.1,2.1,0.1,18),new THREE.MeshStandardMaterial({color:'#6fa8c8',roughness:0.2}),2.6,0.32,-2.6,g)}else{cyl(0.9,1.1,0.5,'#d9d2c4',2.6,0.3,-2.6,g);cyl(0.15,0.2,1.2,'#d9d2c4',2.6,0.8,-2.6,g)}
     if(id==='berlin'&&r===0&&c===1){cyl(0.4,0.6,6.5,'#d9cfb0',0,0.3,0,g);add(new THREE.SphereGeometry(0.5,8,6),'#d4a72c',0,7.2,0,g);add(new THREE.ConeGeometry(0.6,1.2,4),'#d4a72c',0,7.8,0,g)}
@@ -228,7 +236,8 @@ function fillGaps(G){gaps.length=0;const map=K.CITY_MAP[cityId],bl=K.CITY_BLOCKS
 const inGap=(x,z,water)=>{for(const q of gaps)if(x>q.x0&&x<q.x1&&z>q.z0&&z<q.z1&&(!water||q.k==='A'))return true;return false};
 function buildSpecials(G){const map=window.K&&K.CITY_MAP&&K.CITY_MAP[cityId];if(!map)return;if(!G.plots.some(p=>p.city===cityId&&'PALKNSFZM'.includes(map[p.r][p.c])))fillGaps(G);else gaps.length=0;
   for(let r=0;r<map.length;r++)for(let c=0;c<map[r].length;c++){const code=map[r][c];if(!'PALKNSFZM'.includes(code))continue;if(G.plots.some(p=>p.city===cityId&&p.r===r&&p.c===c))continue;
-    const g=new THREE.Group();g.userData.cell='x'+r+'-'+c;placeCell(g,r,c);plotGroup.add(g);special(code,cityId,r,c,g);g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}})}}
+    if('SF'.includes(code)&&((r>0&&map[r-1][c]===code)||(c>0&&map[r][c-1]===code)))continue; // 2×2 nur einmal, mittig
+    const g=new THREE.Group();g.userData.cell='x'+r+'-'+c;if('SF'.includes(code)){const cx=(px(c)+px(c+1))/2,cz=(pz(r)+pz(r+1))/2,[x,z]=Wp(cx,cz);g.position.set(x,0,z);g.rotation.y=Wang(cx,cz)}else placeCell(g,r,c);plotGroup.add(g);special(code,cityId,r,c,g);g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}})}}
 function buildLand(id){if(topMat)topMat.color.set((MAP_CITY[id]||MAP_CITY.kiel).ground);if(!landGroup)return;while(landGroup.children.length){const c=landGroup.children.pop();c.traverse(o=>{if(o.geometry)o.geometry.dispose()})}landAnim.length=0;
   const L=LANDMARKS[id];if(!L)return;ground(landGroup,LZ-LD/2,LZ+LD/2,L.ground);L.build(landGroup);
   const sg=new THREE.Mesh(new THREE.PlaneGeometry(10,1.6),label(L.n.toUpperCase(),'#24272b','#ffffff'));sg.rotation.x=-Math.PI/2;sg.position.set(-BW/2+8,0.12,LZ+LD/2-2);landGroup.add(sg);
