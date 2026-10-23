@@ -272,7 +272,7 @@ function menuStats(G,f,s){let sumA=0,sumW=0,sumQW=0,pf=0;const items=[];const up
   const cq=1+0.05*ex(G,'cpo');return{items,score:Math.min(1.6,sumA/2.2*cq),quality:sumW?Math.min(1,sumQW/sumW*cq):0,price:sumW?pf/sumW:1}}
 function recipeFit(G,f,s){const r=f.recipe;if(!r)return 0;const p=s?plot(G,s.plot):null,T=TASTE[p?p.city:'kiel'];const d=(Math.abs(r.wuerze-T.wuerze)+Math.abs(r.frische-T.frische)+Math.abs(r.portion-T.portion))/3;return clamp(0.08-0.32*d,-0.06,0.08)}
 function unitCost(G,f,k,s){const P=PRODUCTS[k],m=f.menu[k];return(P.other*(P.main&&f.recipe?0.8+0.4*f.recipe.portion:1)+(P.beans?P.beans*GOODS.bohnen.ref*G.idx.rohkaffee:0)+(P.piece?P.mkt:0))*QMULT[m.q]}
-function compAttr(cp){return Math.pow(cp.q,0.8)*0.8*clamp(Math.exp(-1.8*(cp.price-1)),0.3,1.5)*(0.35+0.65*cp.rep)}
+function compAttr(cp){return Math.pow(cp.q,0.8)*0.8*clamp(Math.exp(-1.8*(cp.price*(cp.promo>0?0.85:1)-1)),0.3,1.5)*(0.35+0.65*cp.rep)}
 const ZCONV={city:0.062,wohn:0.085,buero:0.066,gewerbe:0.023}; // im Wohnviertel kommen mehr Passanten als Stammgäste
 const near=(a,b)=>a.city===b.city&&Math.abs(a.r-b.r)<=1&&Math.abs(a.c-b.c)<=1;
 // ---------- Zielgruppen: wer in einem Viertel unterwegs ist und was diese Gäste wollen ----------
@@ -348,12 +348,18 @@ function upcomingFests(G,n){const out=[];let m=G.month,w=G.week||0;for(let i=0;i
 const FR_STD={lax:{n:'Locker',q:[0.42,0.62],pull:1.4,d:'Viele Partner, schwankende Qualität.'},mid:{n:'Normal',q:[0.52,0.72],pull:1,d:'Ausgewogen.'},strict:{n:'Streng',q:[0.64,0.82],pull:0.55,d:'Wenige, aber gute Partner.'}};
 const frCheck=(G,f)=>[{ok:f.shops.length>=5,t:'Mindestens fünf eigene Restaurants'},{ok:stars(f.rep)>=3.5,t:'Ruf mindestens 3,5 Sterne'}];
 function frPartners(G,f){return G.comps.filter(c=>c.fr===f.id)}
+// Konkurrenz wird aktiv: Rabattwochen gegen deine Restaurants in der Nähe, Abwerbung guter Leute bei schwachen Gehältern
+function rivalWeek(G,rep){for(const cp of G.comps){if(cp.branch!=='cafe'||cp.fr)continue;if(cp.promo>0){cp.promo--;continue}
+    const mine=G.plots.filter(q=>q.city===cp.city&&q.use==='cafe'&&q.owner&&!q.owner.startsWith('c:')),theirs=G.plots.filter(q=>q.owner==='c:'+cp.id);
+    const close=mine.filter(m=>theirs.some(t=>near(m,t))).length;if(close&&rand(G)<0.015*close){cp.promo=3;rep.events.push({icon:'🏷️',bad:true,t:cp.name+' startet eine Rabattaktion in '+cityName(cp.city)+': drei Wochen 15 % günstiger.'})}}
+  for(const f of G.firms){if(f.branch!=='cafe'||!f.shops.length)continue;const pool=f.shops.flatMap(s=>(s.crew||[]).filter(c=>c.skill>=0.75).map(c=>[s,c]));if(!pool.length)continue;
+    if(rand(G)<0.012*clamp(1.25-f.wage,0.1,0.6)*Math.min(3,pool.length)){const [s,c]=pick(G,pool),cp=G.comps.find(x=>x.branch==='cafe'&&!x.fr&&x.city===plot(G,s.plot).city);if(cp&&s.crew.length>1){s.crew=s.crew.filter(x=>x!==c);s.staff=s.crew.length;cp.q=Math.min(0.95,cp.q+0.01);rep.events.push({icon:'🦈',bad:true,t:cp.name+' hat '+c.n+' abgeworben (Können '+Math.round(c.skill*100)+'). Höhere Gehälter schützen davor.'})}}}}
 function franchiseWeek(G,f,rep){if(!f.fr)return;const ps=frPartners(G,f),own=f.shops.filter(s=>s.stat&&!s.build),avg=own.length?own.reduce((a,s)=>a+s.stat.rev,0)/own.length:4000;let fee=0;
-  for(const cp of ps){const n=G.plots.filter(p=>p.owner==='c:'+cp.id).length,r=n*avg*0.75*(0.6+cp.q*0.6)*clamp(1.15-f.fr.fee*2,0.6,1.1);cp.lastRev=r;fee+=r*f.fr.fee}
+  for(const cp of ps){const n=G.plots.filter(p=>p.owner==='c:'+cp.id).length,r=n*avg*1.0*(0.6+cp.q*0.6)*clamp(1.15-f.fr.fee*2,0.6,1.1);cp.lastRev=r;fee+=r*f.fr.fee}
   if(fee){earn(G,f.id,'rev',fee);f.fr.last=fee}else f.fr.last=0;
-  if(!ME)return;const S=FR_STD[f.fr.std||'mid'],p0=0.25*S.pull*clamp(1.6-f.fr.fee*8,0.2,1.4)*(0.4+f.rep);
+  if(!ME)return;const S=FR_STD[f.fr.std||'mid'],p0=0.35*S.pull*clamp(1.6-f.fr.fee*8,0.2,1.4)*(0.4+f.rep);
   if(rand(G)<p0&&ps.length<12){const cities=CITIES.filter(c=>c.id!==undefined),city=pick(G,cities).id,cp=addComp(G,{branch:'cafe',fr:f.id,name:f.name+' '+cityName(city),color:f.color,q:rr(G,S.q[0],S.q[1]),price:1,city,rep:f.rep});
-    const pl=compOpen(G,cp);if(!pl){G.comps=G.comps.filter(x=>x!==cp)}else{const entry=15000;earn(G,f.id,'rev',entry);rep.events.push({icon:'🤝',t:'Neuer Franchise-Partner in '+cityName(city)+'. Einstiegsgebühr +'+fmtE(entry)+'.'});news(G,'Franchise: '+cp.name+' eröffnet.','good')}}
+    const pl=compOpen(G,cp);if(!pl){G.comps=G.comps.filter(x=>x!==cp)}else{const entry=25000;earn(G,f.id,'rev',entry);rep.events.push({icon:'🤝',t:'Neuer Franchise-Partner in '+cityName(city)+'. Einstiegsgebühr +'+fmtE(entry)+'.'});news(G,'Franchise: '+cp.name+' eröffnet.','good')}}
   for(const cp of ps){if(rand(G)<0.08&&G.plots.filter(p=>p.owner==='c:'+cp.id).length<4){if(compOpen(G,cp))rep.events.push({icon:'🏪',t:cp.name+' eröffnet ein weiteres Franchise-Restaurant.'})}
     if(cp.q<0.55&&rand(G)<0.12){f.rep=Math.max(0,f.rep-0.04);for(const s of f.shops)s.rep=Math.max(0,s.rep-0.02);rep.events.push({icon:'🧯',bad:true,t:'Ärger bei '+cp.name+': schlechte Hygienekontrolle. Das färbt auf deine Marke ab.'})}
     if(f.fr.fee>0.09&&rand(G)<(f.fr.fee-0.09)*1.5){rep.events.push({icon:'👋',bad:true,t:cp.name+' steigt wegen zu hoher Gebühren aus dem Franchise aus.'});cp.fr=null;cp.name=cp.name.replace(f.name,'Ex-'+f.name);cp.color='#8a8f96'}}}
@@ -588,7 +594,7 @@ function endTurn(G){
   delegateMonth(G,rep);mgrMonth(G,rep);
   for(const f of G.firms)f.exec=1+0.06*ex(G,'coo');
   for(const f of G.firms)if(f.branch==='prod'){f.internal=0;prodProduce(G,f)}
-  foodWeek(G);for(const f of G.firms)if(f.branch==='cafe'){cafeMonth(G,f,rep);foodFirmWeek(G,f,rep);dishWeek(G,f,rep);franchiseWeek(G,f,rep)}
+  foodWeek(G);rivalWeek(G,rep);for(const f of G.firms)if(f.branch==='cafe'){cafeMonth(G,f,rep);foodFirmWeek(G,f,rep);dishWeek(G,f,rep);franchiseWeek(G,f,rep)}
   {const nw=(G.week||0)+1>=WEEKS?0:(G.week||0)+1,nm=nw===0?G.month+1:G.month;for(const F of FESTS.filter(F=>F.m===nm%12&&F.w[0]===nw&&(!F.city||G.cities[F.city])))rep.events.push({icon:F.icon,t:'Nächste Woche: '+F.n+(F.city?' in '+cityName(F.city):'')+'. '+F.d})}
   for(const f of G.firms)if(f.branch==='soft')softMonth(G,f,rep);
   for(const f of G.firms)if(f.branch==='prod'){const s=prodSell(G,f);prodCosts(G,f,rep,s)}
@@ -1145,6 +1151,12 @@ A.dish=(G,fid,o)=>{const f=firm(G,fid);if(!f||f.branch!=='cafe')return{ok:false}
 A.franchise=(G,fid,o)=>{const f=firm(G,fid);if(!f||f.branch!=='cafe')return{ok:false};
   if(o.start){if(f.fr)return{ok:false};if(!frCheck(G,f).every(x=>x.ok))return{ok:false,msg:'Voraussetzungen fehlen noch.'};const c=50000;if(!can(G,c))return noMoney(c);pay(G,f.id,'other',c);f.fr={fee:0.06,std:'mid',last:0};news(G,f.name+' startet ein Franchise-System.','ms');return{ok:true,msg:'Franchise-Handbuch fertig. Partner können sich jetzt bewerben.'}}
   if(!f.fr)return{ok:false};if(o.fee!==undefined)f.fr.fee=clamp(Math.round(o.fee*100)/100,0.03,0.15);if(o.std&&FR_STD[o.std])f.fr.std=o.std;return{ok:true}};
+A.bulk=(G,fid,o)=>{const f=firm(G,fid);if(!f||f.branch!=='cafe')return{ok:false};const live=f.shops.filter(s=>!s.build);let n=0,cost=0;
+  if(o.hours&&HOURS[o.hours]){for(const s of live){if(s.hours!==o.hours){s.hours=o.hours;n++}}return{ok:true,msg:n+' Restaurants auf „'+HOURS[o.hours].n+'“ umgestellt.'}}
+  if(o.fit){for(const s of live){const fc=shopForecast(G,f,s),per=fc.cap/Math.max(1,s.staff),want=clamp(Math.ceil(fc.dem*1.08/Math.max(1,per)),1,Math.max(2,Math.floor(plot(G,s.plot).size/12)));if(want!==s.staff){const r=A.shop(G,s.id,{staff:want});if(r.ok)n++}}return{ok:true,msg:'Personal in '+n+' Restaurants an die Nachfrage angepasst.'}}
+  if(o.train){for(const s of live)for(const c of s.crew||[])if(c.skill<0.5&&!c.tr){if(!can(G,1200))break;pay(G,f.id,'other',1200);c.tr=6;n++;cost+=1200}return{ok:true,msg:n+' Kräfte mit wenig Erfahrung in die Schulung geschickt ('+fmtE(cost)+').'}}
+  if(o.up&&CAFE_UPS[o.up]){const U=CAFE_UPS[o.up];for(const s of live){if(s.ups[o.up])continue;const p=plot(G,s.plot);if(U.zones&&!U.zones.includes(p.zone))continue;if(U.minLevel&&s.level<U.minLevel)continue;const r=A.shop(G,s.id,{up:o.up});if(r.ok){n++;cost+=U.cost}else if(r.msg&&/Geld/.test(r.msg))break}
+    return{ok:n>0,msg:n?U.n+' in '+n+' Restaurants eingebaut ('+fmtE(cost)+').':'Kein passendes Restaurant ohne '+U.n+' gefunden.'}}return{ok:false}};
 A.chan=(G,fid,k)=>{const f=firm(G,fid);if(!f||!CHANNELS[k])return{ok:false};f.chan=f.chan||{};f.chan[k]=!f.chan[k];return{ok:true,msg:CHANNELS[k].n+(f.chan[k]?' gebucht.':' gekündigt.')}};
 A.stake=(G,cid,to)=>{const cp=G.comps.find(c=>c.id===cid);if(!cp)return{ok:false};to=Math.round(clamp(+to||0,0,STAKE_MAX)*100)/100;const a=cp.stake||0;if(to<=a+1e-9)return{ok:false,msg:'Wähle einen höheren Anteil.'};
   const c=stakeCost(G,cp,to);if(G.cash<c)return{ok:false,msg:'Die Anteile kosten '+fmtE(c)+'.'};G.cash-=c;G.led.cf.inv-=c;

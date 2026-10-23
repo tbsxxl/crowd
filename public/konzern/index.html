@@ -170,6 +170,8 @@ table.cf td{padding:5px 0;font-size:13.5px}table.cf td:last-child{text-align:rig
 .cands{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.cand{min-width:min(280px,82%);scroll-snap-align:center;display:flex;flex-direction:column;gap:6px}.cand .ava,.execCard .ava,.execHead .ava{flex:none;align-self:center}
 @media (max-width:440px){.execHead{flex-direction:column;align-items:center}.mast{font-size:26px}}
 /* Start, Wizard, Produktkarten */
+.badge{position:absolute;top:4px;right:14px;min-width:17px;height:17px;border-radius:9px;background:#cc3b33;color:#fff;font-size:10.5px;font-weight:800;display:grid;place-items:center;padding:0 4px}.badge[hidden]{display:none}
+.todo.sev3{border-color:rgba(204,59,51,.45);background:#fdf3f2}.todo.sev2{border-color:rgba(212,167,44,.5)}.todo .btn.sm{flex:none;padding:6px 10px;font-size:12px}
 .ei{width:1.15em;height:1.15em;display:inline-block;vertical-align:-.22em;flex:none}.ico .ei{width:22px;height:22px;vertical-align:middle}.picon .ei{width:64px;height:64px;stroke-width:1.3;color:var(--ink)}.ico{color:var(--ink)}
 .pal span .ei,.ach .e .ei,.pcard2 .e .ei,.modc .e .ei{width:26px;height:26px}.fcell .ei{width:26px;height:26px}.evt .e .ei{width:20px;height:20px}
 .irow{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}.irow>b{white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -311,9 +313,9 @@ window.addEventListener('error',function(e){var m=document.getElementById('bootM
   if(m&&!document.getElementById('menu').hidden)m.textContent=t;else{var d=document.getElementById('toast');if(d){d.textContent=t;d.hidden=false}}},true);
 </script>
 <script src="../vendor/three-r128-bloom.js"></script>
-<script src="icons.js?v=20261026a"></script>
-<script src="sim.js?v=20261026a"></script>
-<script src="world.js?v=20261026a"></script>
+<script src="icons.js?v=20261026b"></script>
+<script src="sim.js?v=20261026b"></script>
+<script src="world.js?v=20261026b"></script>
 <script>
 (function(){
 'use strict';
@@ -339,7 +341,7 @@ function afterLoad(){document.querySelectorAll('i[data-ic]').forEach(e=>{e.outer
 function save(){if(G)store.set(G)}
 
 // ---------- Kopf ----------
-function refresh(){if(!G)return;const last=(G.weeks||[])[(G.weeks||[]).length-1];
+function refresh(){if(!G)return;{const n=todos().filter(x=>x.sev>=2).length,bt=document.querySelector('.db[data-v="list"]');if(bt){let bd=bt.querySelector('.badge');if(!bd){bd=document.createElement('span');bd.className='badge';bt.appendChild(bd)}bd.textContent=n;bd.hidden=!n}}const last=(G.weeks||[])[(G.weeks||[]).length-1];
   $('hMonth').textContent=K.dateStr(G);const c=$('hCash');c.textContent=fe(G.cash);c.className=G.cash<0?'neg':'';
   const n=$('hNet');n.textContent=last?sgn(last.net):'–';n.className=last?(last.net>=0?'pos':'neg'):'';$('hStaff').textContent=fn(K.totalStaff(G));$('hWealth').textContent=fe(K.wealth(G).total);
   $('brandSub').innerHTML=logoSvg(G.firms[0].logo||0,G.firms[0].color,18)+' '+esc(cur().name)+' · '+K.stage(G).n;
@@ -446,13 +448,37 @@ function propCard(p){const v=K.propValue(G,p);
 // Liste der Geschäfte
 // Status eines Restaurants als kurzes Etikett
 function shopFlag(s){const st=s.stat;if(s.build)return['Im Bau','mute'];if(!st)return['Neu','mute'];if(st.dem>st.cap*1.15)return['Überlastet','bad'];if(st.cap>st.dem*1.8&&s.staff>2)return['Leerlauf','warn'];if(s.rep<0.5)return['Schwache Bewertungen','warn'];if(st.profit<0)return['Verlust','bad'];return['Läuft','good']}
-VIEWS.list=()=>{const t=T()||'own';let b='';const last=G.report;
-  if(t==='market')return{eyebrow:K.monthName(G.month),title:'Meine Geschäfte',tabs:[['own','Übersicht'],['market','Marktanteile']],body:marketHtml()};
+// Aufgaben: alles, was gerade Aufmerksamkeit braucht, mit Knopf zum Erledigen
+function todos(){const t=[],add=(sev,ic,txt,btn,attrs)=>t.push({sev,ic,txt,btn,attrs});
+  if(G.cash<0)add(3,'⚠️','Die Kasse ist im Minus ('+fe(G.cash)+').','Kredite ansehen','data-a="open" data-v="fin" data-tab="money" data-keep="1"');
+  if(G.pending.length)add(3,'❓',G.pending.length+(G.pending.length>1?' Entscheidungen warten.':' Entscheidung wartet.'),'Entscheiden','data-a="open" data-v="decide" data-keep="1"');
+  if(G.draft)add(3,'🎲','Kartenwahl für dieses Quartal steht aus.','Karte wählen','data-a="showDraft"');
+  for(const f of G.firms){if(f.branch!=='cafe')continue;
+    for(const s of f.shops){if(s.build||!s.stat||!s.staff)continue;const where=K.address(K.plot(G,s.plot)).split(',')[0],fc=K.shopForecast(G,f,s),st0={dem:fc.dem,cap:fc.cap,profit:s.stat.profit},per=st0.cap/s.staff;
+      if(st0.dem>st0.cap*1.15){const n=Math.ceil(st0.dem*1.08/per)-s.staff;add(2,'👥',where+': überlastet, '+fn(st0.dem-st0.cap)+' Gäste gehen wieder.','+'+n+' Personal',`data-a="tipStaff" data-id="${s.id}" data-v="${s.staff+n}"`)}
+      else if(st0.cap>st0.dem*1.8&&s.staff>2){const n=Math.max(2,Math.ceil(st0.dem*1.1/per));add(1,'💤',where+': viel Leerlauf.','Auf '+n+' reduzieren',`data-a="tipStaff" data-id="${s.id}" data-v="${n}"`)}
+      if(s.stat.profit<0&&G.month-(s.opened||0)>2)add(2,'📉',where+': macht Verlust ('+sgn(s.stat.profit)+'/Woche).','Ansehen',`data-a="open" data-v="shop" data-id="${s.id}" data-keep="1"`);
+      if(s.lay&&st0.dem>s.lay.seats*K.TURN*7.5*1.05&&s.layout&&s.layout.some(x=>!x))add(1,'🪑',where+': zu wenige Sitzplätze, es ist noch Platz frei.','Einrichten',`data-a="open" data-v="shop" data-id="${s.id}" data-tab="up" data-keep="1"`)}
+    if(f.shops.length>=3){const no=f.shops.filter(s=>!s.manager&&!s.build).length;if(no&&!(G.execs.coo&&G.execs.coo.deleg&&G.execs.coo.deleg.mgr))add(1,'🧑‍💼',no+' Restaurant'+(no>1?'s':'')+' ohne Filialleitung.','Leitung suchen',`data-a="open" data-v="mgrHire" data-id="${f.shops.find(s=>!s.manager&&!s.build).id}" data-keep="1"`)}
+    const weak=f.shops.reduce((a,s)=>a+(s.crew||[]).filter(c=>c.skill<0.4&&!c.tr).length,0);if(weak>=3)add(1,'📚',weak+' Kräfte mit wenig Erfahrung.','Alle schulen ('+fe(weak*1200)+')',`data-a="bulk" data-k="train"`);
+    if(f.foodMode==='stock'&&f.foodWeekNeed&&(f.food||0)<f.foodWeekNeed*0.7)add(2,'📦','Das Zutatenlager reicht nicht einmal eine Woche.','Einkauf',`data-a="open" data-v="firm" data-tab="food" data-keep="1"`);
+    if(!f.fr&&K.frCheck(G,f).every(x=>x.ok))add(0,'🤝','Du kannst jetzt ein Franchise-System starten.','Ansehen',`data-a="open" data-v="firm" data-tab="fr" data-keep="1"`);
+    if(!f.devDish&&!Object.keys(G.custom||{}).length&&f.shops.length>=2)add(0,'👨‍🍳','Noch kein eigenes Gericht entwickelt.','Zur Küche',`data-a="open" data-v="firm" data-tab="menu" data-keep="1"`)}
+  return t.sort((a,b)=>b.sev-a.sev)}
+function todoHtml(){const t=todos();if(!t.length)return'<div class="hint">Alles im grünen Bereich. Nichts zu tun.</div>';
+  return`<div class="list">${t.map(x=>`<div class="li todo sev${x.sev}" style="cursor:default"><span class="ico">${x.ic}</span><span class="t"><b>${esc(x.txt)}</b></span><button class="btn sm" ${x.attrs}>${esc(x.btn)}</button></div>`).join('')}</div>`}
+function bulkHtml(f){const ups=Object.entries(K.CAFE_UPS);return`<details class="fold"><summary>Für alle Restaurants auf einmal</summary>
+  <div class="eyebrow">Öffnungszeiten</div>${seg('bulkHours',Object.entries(K.HOURS).map(([k,h])=>[k,h.n]),'')}
+  <div class="btns" style="margin-top:8px"><button class="btn" data-a="bulk" data-k="fit">Personal überall an die Nachfrage anpassen</button><button class="btn" data-a="bulk" data-k="train">Unerfahrene schulen</button></div>
+  <div class="eyebrow" style="margin-top:8px">Ausbau überall nachrüsten</div><div class="btns">${ups.map(([k,U])=>{const miss=f.shops.filter(s=>!s.build&&!s.ups[k]).length;return miss?`<button class="btn" data-a="bulkUp" data-k="${k}">${U.icon} ${U.n} · ${miss}×</button>`:''}).join('')}</div></details>`}
+VIEWS.list=()=>{const t=T()||(todos().length?'todo':'own');let b='';const last=G.report;const TABS=[['todo','Aufgaben'+(todos().length?' ('+todos().length+')':'')],['own','Übersicht'],['market','Marktanteile']];
+  if(t==='todo')return{eyebrow:K.monthName(G.month),title:'Meine Geschäfte',tabs:TABS,body:todoHtml()};
+  if(t==='market')return{eyebrow:K.monthName(G.month),title:'Meine Geschäfte',tabs:TABS,body:marketHtml()};
   const sort=view.p.sort||'profit';
   for(const f of G.firms){b+=`<div class="sec"><h3>${esc(f.name)}</h3>`;
     if(f.branch==='cafe'&&f.shops.length){const op=f.shops.filter(s=>s.stat&&!s.build),g=op.reduce((a,s)=>a+s.stat.guests,0),pr=op.reduce((a,s)=>a+s.stat.profit,0),cap=op.reduce((a,s)=>a+s.stat.cap,0),dem=op.reduce((a,s)=>a+s.stat.dem,0);
       b+=kpis([[fn(f.shops.length),'Restaurants'],[fn(g),'Gäste/Woche'],[sgn(pr),'Gewinn/Woche',pr>=0?'pos':'neg']])+`<div class="sub">Auslastung ${cap?pct(Math.min(1,dem/cap)):'–'} · Ø ${(op.reduce((a,s)=>a+K.stars(s.rep),0)/Math.max(1,op.length)).toFixed(1).replace('.',',')} Sterne · ${op.filter(s=>shopFlag(s)[1]==='bad').length} mit Handlungsbedarf</div>`+
-        seg('listSort',[['profit','Gewinn'],['guests','Gäste'],['stars','Bewertung'],['need','Handlungsbedarf']],sort)}
+        seg('listSort',[['profit','Gewinn'],['guests','Gäste'],['stars','Bewertung'],['need','Handlungsbedarf']],sort)+(f.shops.length>=2?bulkHtml(f):'')}
     b+='<div class="list">';
     if(f.branch==='cafe'){const rank={bad:0,warn:1,mute:2,good:3},key=s=>sort==='guests'?-(s.stat?s.stat.guests:0):sort==='stars'?-s.rep:sort==='need'?rank[shopFlag(s)[1]]:-(s.stat?s.stat.profit:-1e9);
       for(const s of f.shops.slice().sort((a,c)=>key(a)-key(c))){const p=K.plot(G,s.plot),st=s.stat,[fl,fc]=shopFlag(s),load=st&&st.cap?Math.min(1.3,st.dem/st.cap):0;
@@ -465,7 +491,7 @@ VIEWS.list=()=>{const t=T()||'own';let b='';const last=G.report;
       for(const p of f.plants){const it=last&&last.items.find(x=>x.kind==='plant'&&x.id===p.id);b+=li(`data-a="open" data-v="plant" data-id="${p.id}" data-keep="1"`,'🏭','Werk '+K.cityName(K.plot(G,p.plot).city),p.lines.length?p.lines.map(l=>K.LINES[l.type].n).join(', '):'noch keine Linie',it?sgn(it.profit):'–','Gewinn',it?(it.profit>=0?'pos':'neg'):'')}
       if(!f.plants.length)b+=`<button class="li" data-a="place" data-k="factory" data-id="${f.id}"><span class="ico">➕</span><span class="t"><b>Erste Halle mieten</b><span>Halle im Gewerbegebiet wählen</span></span></button>`}
     b+='</div></div>'}
-  return{eyebrow:K.monthName(G.month),title:'Meine Geschäfte',tabs:[['own','Übersicht'],['market','Marktanteile']],body:b}};
+  return{eyebrow:K.monthName(G.month),title:'Meine Geschäfte',tabs:TABS,body:b}};
 // Marktanteile je Stadt: Standorte und Laufkundschaft der Restaurants, du gegen die Konkurrenz
 function marketHtml(){let b='<div class="sub">Wie viel der Laufkundschaft an Restaurant-Standorten auf dich entfällt. Zählt alle Ladenlokale, die als Restaurant betrieben werden.</div>';
   const cols=['#d4a72c','#2f6fd0','#9b6fb5','#e07a2a','#5a6270','#1fa9c4','#cc3b33'];
@@ -1353,6 +1379,8 @@ document.addEventListener('click',e=>{if(suppressClick&&e.isTrusted){suppressCli
   case'dishGo':{const d=view.p.dish,nm=$('dishName');if(nm)d.name=nm.value;const r=run(K.act.dish(G,cur().id,d));if(r&&r.ok)view.p.dish=null;renderSheet();break}
   case'frStart':run(K.act.franchise(G,cur().id,{start:true}));break;case'frFee':run(K.act.franchise(G,cur().id,{fee:cur().fr.fee+d*0.01}),1);break;case'frStd':run(K.act.franchise(G,cur().id,{std:v}),1);break;
   case'statMet':view.p.met=v;renderSheet();break;
+  case'bulk':run(K.act.bulk(G,cur().id,{[k]:true}));break;case'bulkUp':{const U=K.CAFE_UPS[k];if(confirm(U.n+' in allen passenden Restaurants einbauen? Je '+fe(U.cost)+'.'))run(K.act.bulk(G,cur().id,{up:k}));break}
+  case'bulkHours':run(K.act.bulk(G,cur().id,{hours:v}));break;case'showDraft':close();showDraft();break;
   case'tipStaff':{const r=K.act.shop(G,+id,{staff:+v});b.textContent=r.ok?'Erledigt':'Geht nicht';b.disabled=true;save();refresh();if(!r.ok&&r.msg)toast(r.msg,'bad');break}
   case'tradeSl':{const sl=document.querySelector(`input[data-in="stk"][data-k="${k}"]`);if(sl)run(K.act.trade(G,k,+sl.value));break}
   case'stake':{const sl=document.querySelector(`input[data-in="stake"][data-id="${id}"]`);if(sl)run(K.act.stake(G,+id,+sl.value/100));break}
