@@ -780,7 +780,7 @@ function campaignMonth(G){for(const f of G.firms){if(!f.camps)continue;f.cityAw=
 // ---------- Vorstand: Menschen mit Fähigkeiten, Gehalt, Loyalität und Aktienzuschüssen ----------
 const EXECS={
   coo:{n:'COO',long:'Chief Operating Officer',de:'Operative Geschäftsführung',icon:'⚙️',salary:180000,d:'Mehr Produktivität in allen Firmen',dept:'hr',
-    deleg:{shops:'Filialbetrieb delegieren',hrl:'Gehälter und Stimmung delegieren',dept:'Personalabteilung delegieren'}},
+    deleg:{shops:'Filialbetrieb delegieren',mgr:'Filialleitungen einstellen und ersetzen',hrl:'Gehälter und Stimmung delegieren',dept:'Personalabteilung delegieren'}},
   cfo:{n:'CFO',long:'Chief Financial Officer',de:'Leitung Finanzen',icon:'📈',salary:180000,d:'Weniger Zinsen und Steuern',dept:'ctrl',
     deleg:{bank:'Bankfinanzierung delegieren',re:'Immobilienverwaltung delegieren',dept:'Controlling delegieren'}},
   cmo:{n:'CMO',long:'Chief Marketing Officer',de:'Leitung Marketing',icon:'📣',salary:160000,d:'Alle Werbung wirkt stärker',dept:'mkt',
@@ -837,6 +837,9 @@ function execMonth(G,rep){
 function delegateMonth(G,rep){const done=[];const D=(k,d)=>G.execs[k]&&G.execs[k].deleg&&G.execs[k].deleg[d];
   if(D('coo','shops'))for(const f of G.firms)if(f.branch==='cafe')for(const s of f.shops){const fc=shopForecast(G,f,s),per=fc.cap/Math.max(1,s.staff);
     const want=clamp(Math.ceil(fc.dem*1.08/Math.max(1,per)),1,Math.max(2,Math.floor(plot(G,s.plot).size/12)));if(want!==s.staff){const r=A.shop(G,s.id,{staff:want});if(r.ok)done.push('Personal in '+shopName(G,s)+': '+want)}}
+  // COO stellt für Filialen ohne Leitung die beste Bewerbung zum Marktgehalt plus 5 % ein; die neue Leitung übernimmt alle Aufgaben
+  if(D('coo','mgr'))for(const f of G.firms)if(f.branch==='cafe')for(const s of f.shops){if(s.manager||s.build>0||G.month-(s.opened||0)<1)continue;const list=mgrCands(G,s.id);if(!list.length)continue;
+    const i=list.reduce((bi,c,j)=>mgrAvg(c)>mgrAvg(list[bi])?j:bi,0),c=list[i],r=A.hireMgr(G,s.id,i,Math.round(c.demand*1.05/500)*500+500);if(r.ok){s.manager.deleg=Object.fromEntries(Object.keys(MGR_DELEG).map(k=>[k,true]));done.push('Filialleitung '+shopName(G,s)+': '+c.name)}}
   if(D('coo','hrl'))for(const f of G.firms)if(f.morale<0.55&&f.wage<1.3){f.wage=Math.round((f.wage+0.03)*100)/100;done.push(f.name+': Gehälter +3 %')}
   if(D('cfo','bank')){if(G.cash<0){const o=loanOffer(G),need=Math.min(o.max,Math.ceil((-G.cash+20000)/10000)*10000);if(need>0){takeLoan(G,{amount:need,rate:o.rate,months:60,name:'Bankkredit (CFO)'});done.push('Kredit über '+fmtE(need))}}
     else{const l=G.loans.slice().sort((a,b)=>b.rate-a.rate)[0],ms=G.months.slice(-1)[0],burn=ms?Math.abs(sumF(ms,'staff'))+50000:50000;if(l&&G.cash-l.bal>burn*3){G.cash-=l.bal;G.led.cf.fin-=l.bal;l.bal=0;G.loans=G.loans.filter(x=>x.bal>0);done.push('Kredit „'+l.name+'“ getilgt')}}}

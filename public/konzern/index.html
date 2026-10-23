@@ -170,6 +170,8 @@ table.cf td{padding:5px 0;font-size:13.5px}table.cf td:last-child{text-align:rig
 .cands{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.cand{min-width:min(280px,82%);scroll-snap-align:center;display:flex;flex-direction:column;gap:6px}.cand .ava,.execCard .ava,.execHead .ava{flex:none;align-self:center}
 @media (max-width:440px){.execHead{flex-direction:column;align-items:center}.mast{font-size:26px}}
 /* Start, Wizard, Produktkarten */
+.irow{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}.irow>b{white-space:nowrap;font-variant-numeric:tabular-nums}
+.fold{border:1px solid var(--line);border-radius:12px;background:#fff;padding:0 12px}.fold>summary{cursor:pointer;padding:12px 0;font-weight:700;font-size:13.5px;list-style:none}.fold>summary::-webkit-details-marker{display:none}.fold>summary::before{content:'▸ ';color:var(--muted)}.fold[open]>summary::before{content:'▾ '}.fold[open]{padding-bottom:12px}
 .achs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}.ach{display:flex;flex-direction:column;gap:3px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;opacity:.55}.ach.on{opacity:1;border-color:rgba(212,167,44,.6);background:linear-gradient(#fffaf0,#fff)}.ach .e{font-size:26px}.ach b{font-size:13px}.ach span{font-size:11.5px;color:var(--muted)}.ach small{font-family:var(--f-mono);font-size:10.5px;color:#7a5c10}
 .ingr{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;margin:8px 0}
 .floor{display:grid;gap:5px;background:#e8d8bd;border-radius:12px;padding:8px;margin:8px 0}.fcell{all:unset;cursor:pointer;aspect-ratio:1;border-radius:7px;background:rgba(255,255,255,.45);border:1px dashed rgba(0,0,0,.12);display:grid;place-items:center;font-size:24px}.fcell.on{background:#fff;border-style:solid}
@@ -307,8 +309,8 @@ window.addEventListener('error',function(e){var m=document.getElementById('bootM
   if(m&&!document.getElementById('menu').hidden)m.textContent=t;else{var d=document.getElementById('toast');if(d){d.textContent=t;d.hidden=false}}},true);
 </script>
 <script src="../vendor/three-r128-bloom.js"></script>
-<script src="sim.js?v=20261025c"></script>
-<script src="world.js?v=20261025c"></script>
+<script src="sim.js?v=20261025d"></script>
+<script src="world.js?v=20261025d"></script>
 <script>
 (function(){
 'use strict';
@@ -1202,17 +1204,30 @@ function report(r){const m=$('modal');m.hidden=false;if(G.currency&&G.currency!=
   ${r.nextQuest?`<div class="questRes next"><span class="e">🎯</span><span><b>Neuer Auftrag: ${esc(r.nextQuest.t)}</b><br><span class="sub">Prämie ${fe(r.nextQuest.r)}, bis Ende der Woche</span></span></div>`:''}
   ${(r.ach||[]).map(a=>`<div class="goalWin"><span class="e">${a.icon}</span><span><b>Erfolg: ${esc(a.n)}</b><br><span class="sub">${esc(a.d)}</span></span></div>`).join('')}
   ${r.goals.map(g=>`<div class="goalWin"><span class="e">🏆</span><span><b>Ziel erreicht: ${esc(g.n)}</b><br><span class="sub">${g.reward?'+'+fe(g.reward)+' Förderprämie':'Großartig!'}</span></span></div>`).join('')}
-  ${items.length?`<div class="sec"><h3>Deine Geschäfte</h3><div class="list">${items.map(it=>`<div class="li" style="cursor:default"><span class="ico">${it.icon}</span><span class="t"><b>${esc(it.name)}</b><span>${esc(it.kpi)}${it.delta!=null&&it.delta!==0?` <b class="${it.delta>0?'pos':'neg'}">${it.delta>0?'▲':'▼'} ${fn(Math.abs(it.delta))}</b>`:''}${it.stars?'<i class="rs">'+starsH(it.stars)+'</i>':''}${it.broke?' · ⚠️ Ausfall':''}</span></span><span class="v ${it.profit>=0?'pos':'neg'}">${it.kind==='dev'?'':sgn(it.profit)}</span></div>`).join('')}</div></div>`:'<div class="hint">Noch keine Geschäfte. Öffne „Bauen“ und leg los!</div>'}
-  ${r.events.length?`<div class="sec"><h3>Was passiert ist</h3>${r.events.map(e=>`<div class="evt"><span class="e">${e.icon}</span><span class="${e.bad?'neg':''}">${esc(e.t)}</span></div>`).join('')}</div>`:''}
+  ${items.length?itemsHtml(items):'<div class="hint">Noch keine Geschäfte. Öffne „Bauen“ und leg los!</div>'}
+  ${eventsHtml(r.events)}
   ${(()=>{const t=tipsFor();return t.length?tipsHtml(t):''})()}
   ${quotes()}
-  ${paperHtml(r)}
+  ${(()=>{const ph=paperHtml(r);if(!ph)return'';const top=(r.paper||[]).find(a=>a.top)||(r.paper||[])[0];return`<details class="fold"><summary>📰 Wirtschaftskurier${top?': '+esc(top.title||''):''}</summary>${ph}</details>`})()}
   ${(r.incidents||[]).length?`<div class="warnbox">${r.incidents.length>1?r.incidents.length+' Vorfälle':'Ein Vorfall'} zum Durchsehen.</div>`:''}
   ${G.pending.length?`<div class="warnbox">${G.pending.length>1?G.pending.length+' Entscheidungen warten':'Eine Entscheidung wartet'} auf dich.</div>`:''}
   <button class="btn ink wide" data-a="closeReport" style="padding:14px">${G.over?'Ergebnis ansehen':G.pending.length||(r.incidents||[]).length?'Weiter':'Weiter planen'}</button></div>`;
   countUp($('bigNet'),r.net)}
 function stkLabel(s,n){return fn(n)+' Aktien · '+(n/s.shares*100).toLocaleString('de-DE',{maximumFractionDigits:n/s.shares<0.001?4:2})+' % der Firma · '+fe(n*s.price*1.002)}
 function stakeLabel(cp,to){return Math.round(to*100)+' % · kostet '+fe(K.stakeCost(G,cp,to))+' · Übernahme danach '+fe(Math.round(K.compValue(G,cp)*1.35*(1-to)/1000)*1000)}
+// Wochenbericht: bei vielen Geschäften erst die Summe, Beste und Sorgenkinder, der Rest aufklappbar nach Stadt
+const itemLi=it=>`<div class="li" style="cursor:default"><span class="ico">${it.icon}</span><span class="t"><b>${esc(it.name)}</b><span>${esc(it.kpi)}${it.delta!=null&&it.delta!==0?` <b class="${it.delta>0?'pos':'neg'}">${it.delta>0?'▲':'▼'} ${fn(Math.abs(it.delta))}</b>`:''}${it.stars?'<i class="rs">'+starsH(it.stars)+'</i>':''}${it.broke?' · ⚠️ Ausfall':''}</span></span><span class="v ${it.profit>=0?'pos':'neg'}">${it.kind==='dev'?'':sgn(it.profit)}</span></div>`;
+const itemRow=it=>`<div class="irow"><span>${it.icon} <b>${esc(String(it.name).split(',')[0])}</b> <span class="sub">${esc(it.kpi)}${it.delta?` <b class="${it.delta>0?'pos':'neg'}">${it.delta>0?'▲':'▼'}${fn(Math.abs(it.delta))}</b>`:''}${it.stars?' · '+String(it.stars).replace('.',',')+' ★':''}${it.broke?' · ⚠️':''}</span></span><b class="${it.profit>=0?'pos':'neg'}">${it.kind==='dev'?'':sgn(it.profit)}</b></div>`;
+function itemsHtml(items){if(items.length<=5)return`<div class="sec"><h3>Deine Geschäfte</h3><div class="list">${items.map(itemLi).join('')}</div></div>`;
+  const run=items.filter(i=>i.kind!=='dev'),tot=run.reduce((a,i)=>a+i.profit,0),loss=run.filter(i=>i.profit<0),best=run.slice().sort((a,b)=>b.profit-a.profit).slice(0,3),
+    worry=run.filter(i=>!best.includes(i)&&(i.profit<0||i.broke||(i.delta!=null&&i.delta<-20))).sort((a,b)=>a.profit-b.profit).slice(0,3);
+  const cityOf=it=>it.plot?K.cityName(K.plot(G,it.plot).city):it.kind==='app'||it.kind==='dev'?'Apps':it.kind==='re'?'Immobilien':'Sonstiges',groups={};for(const it of items)(groups[cityOf(it)]=groups[cityOf(it)]||[]).push(it);
+  return`<div class="sec"><h3>Deine Geschäfte</h3>${kpis([[fn(run.length),'Geschäfte'],[sgn(tot),'Gewinn gesamt',tot>=0?'pos':'neg'],[fn(loss.length),'im Minus',loss.length?'neg':'']])}
+    <div class="eyebrow" style="margin-top:6px">Die besten</div><div class="list">${best.map(itemLi).join('')}</div>
+    ${worry.length?`<div class="eyebrow" style="margin-top:6px">Sorgenkinder</div><div class="list">${worry.map(itemLi).join('')}</div>`:''}
+    <details class="fold"><summary>Alle ${items.length} Geschäfte nach Stadt</summary>${Object.entries(groups).map(([c,l])=>`<div class="row" style="margin-top:8px"><b>${esc(c)}</b><span class="sub">${l.length} · <b class="${l.reduce((a,i)=>a+i.profit,0)>=0?'pos':'neg'}">${sgn(l.reduce((a,i)=>a+i.profit,0))}</b></span></div>${l.sort((a,b)=>b.profit-a.profit).map(itemRow).join('')}`).join('')}</details></div>`}
+function eventsHtml(ev){if(!ev.length)return'';const row=e=>`<div class="evt"><span class="e">${e.icon}</span><span class="${e.bad?'neg':''}">${esc(e.t)}</span></div>`;
+  const sorted=ev.filter(e=>e.bad).concat(ev.filter(e=>!e.bad));return`<div class="sec"><h3>Was passiert ist</h3>${sorted.slice(0,4).map(row).join('')}${sorted.length>4?`<details class="fold"><summary>${sorted.length-4} weitere Meldungen</summary>${sorted.slice(4).map(row).join('')}</details>`:''}</div>`}
 function dl(v,p,lbl){if(p==null)return'';const d=v-p,q=p?d/Math.abs(p):0;return`<div class="sub"><b class="${d>=0?'pos':'neg'}">${d>=0?'▲':'▼'} ${sgn(d)}${p?` (${d>=0?'+':''}${Math.round(q*100)} %)`:''}</b> ${lbl||'zur Vorwoche'}</div>`}
 function cfTable(cf){if(!cf)return'';const c=cf,net=c.op+c.inv+c.fin;
   return`<table class="cf"><tr><td>Bargeld aus Geschäftstätigkeit</td><td>${sgn(c.op)}</td></tr><tr><td>Investition</td><td>${sgn(c.inv)}</td></tr><tr><td>Finanzierung</td><td>${sgn(c.fin)}</td></tr><tr class="sum"><td>Netto-Cashflow</td><td class="${net>=0?'pos':'neg'}">${sgn(net)}</td></tr></table>`}
