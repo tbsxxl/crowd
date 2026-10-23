@@ -250,7 +250,7 @@ function menuStats(G,f,s){let sumA=0,sumW=0,sumQW=0,pf=0;const items=[];const up
   for(const k in f.menu){const m=f.menu[k],P=PRODUCTS[k];if(!m.on||(P.res&&!has(f,P.res)))continue;
     const price=(s&&!f.uniform&&s.px&&s.px[k]!=null)?s.px[k]:m.price;
     let q=QUAL[m.q]+(s?0.05*mq(s,'prod'):0)+(P.main?recipeFit(G,f,s):0);if(P.main&&ups.espresso)q+=0.1;if(P.main&&ups.roaster)q+=0.06;q=Math.min(1,q);
-    const ct=CITY_TRAITS[s?plot(G,s.plot).city:'kiel']||CITY_TRAITS.kiel,pfac=clamp(Math.exp(-1.8*ct.price*(price/P.ref-1)),0.15,1.6);let w=P.w;if(P.cake&&ups.vitrine)w*=1.4;if(P.summer&&summer(G))w*=1.8;if(s&&s.special===k)w*=1.3;
+    const ct=CITY_TRAITS[s?plot(G,s.plot).city:'kiel']||CITY_TRAITS.kiel,rp=price/P.ref,pfac=clamp(Math.exp(-(rp>1?2.6+1.2*(rp-1):1.8)*ct.price*(rp-1)),0.002,1.6);let w=P.w;if(P.cake&&ups.vitrine)w*=1.4;if(P.summer&&summer(G))w*=1.8;if(s&&s.special===k)w*=1.3;
     const a=w*q*pfac;items.push({k,a,price,q:m.q,pf:pfac,qual:q});sumA+=a;sumW+=w;sumQW+=w*q;pf+=pfac*w}
   for(const it of items)it.share=sumA?it.a/sumA:0;
   const cq=1+0.05*ex(G,'cpo');return{items,score:Math.min(1.6,sumA/2.2*cq),quality:sumW?Math.min(1,sumQW/sumW*cq):0,price:sumW?pf/sumW:1}}
@@ -289,7 +289,7 @@ function cafeMonth(G,f,rep){
     let mk=0;for(const k in s.act)if(s.act[k])mk+=CAFE_ACTIONS[k].cost*W;if(s.act.stamp)mk+=rev*0.03;pay(G,f.id,'mkt',mk);
     s.la=(s.la||0)+((s.act.flyer?0.8:0)-(s.la||0))*kW(0.15);
     const served=fc.dem>0?Math.min(1,fc.cap/fc.dem):1,service=0.1*mq(s,'ppl')+(s.train||0)*0.05;
-    const sat=clamp(0.42*fc.ms.quality/0.93+0.2*fc.comfort+0.2*served+0.12*Math.min(1,fc.ms.price)+service+(s.act.music?0.03:0)+(s.ups.roaster?0.03:0),0,1);
+    const pv=fc.ms.price,sat=clamp(0.36*fc.ms.quality/0.93+0.18*fc.comfort+0.2*served+0.2*Math.min(1,pv)-(pv<0.6?0.5*(0.6-pv):0)+service+(s.act.music?0.03:0)+(s.ups.roaster?0.03:0),0,1);
     s.rep+=(sat-s.rep)*kW(s.ups.roaster?0.4:0.3);
     const profit=rev-cogs-cogsInt-wages-rentOf(p)*ctrl*W-other-mk;
     let hot=0,cold=0,food=0;for(const it of fc.ms.items){const P=PRODUCTS[it.k],v=guests*per*it.share*it.price*(s.act.happy?0.94:1)*(s.ups.delivery?1.15:1);if(P.main)hot+=v;else if(P.drink)cold+=v;else food+=v}
