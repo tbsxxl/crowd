@@ -339,9 +339,14 @@ const FESTS=[{k:'jan',n:'Januarloch',icon:'🥶',m:0,w:[0,1],dem:0.85,d:'Nach de
   {k:'semester',n:'Semesterstart',icon:'🎓',m:9,w:[0],dem:1,seg:{stud:1.5},d:'Die Studierenden sind zurück.'},
   {k:'ball',n:'Ballsaison',icon:'💃',m:1,w:[0,1],city:'wien',dem:1.25,seg:{sen:1.4,tour:1.3},d:'Wien tanzt, die Restaurants sind voll.'},
   {k:'koning',n:'Königstag',icon:'👑',m:3,w:[3],city:'amsterdam',dem:1.5,seg:{tour:1.6,stud:1.5},d:'Ganz Amsterdam feiert in Orange.'},
-  {k:'xmas',n:'Weihnachtsmarkt',icon:'🎄',m:11,w:[0,1,2],dem:1.22,seg:{fam:1.3,sen:1.3},d:'Alle sind in der Stadt, Glühwein und Gebäck gehen gut.'},
+  {k:'neujahr',n:'Neujahrsvorsätze',icon:'🏃',m:0,w:[0,1],dem:1,app:{fit:1.9,fin:1.3,prod:1.3},d:'Alle wollen fitter und organisierter werden: Fitness- und Produktivitäts-Apps boomen.'},
+  {k:'steuer',n:'Steuersaison',icon:'🧾',m:4,w:[0,1,2,3],dem:1,app:{fin:1.5},d:'Finanz-Apps sind gefragt.'},
+  {k:'schule',n:'Schulstart',icon:'🎓',m:8,w:[0,1],dem:1,app:{prod:1.4},goods:{tisch:1.4,stuhl:1.4},d:'Neue Möbel und Organisations-Apps sind gefragt.'},
+  {k:'black',n:'Rabattwoche im Handel',icon:'🏷️',m:10,w:[3],dem:1.05,app:{game:1.5},goods:{stuhl:1.5,tisch:1.5,bohnen:1.3},d:'Alle kaufen ein: Spiele und Waren gehen weg wie nichts.'},
+  {k:'xmas',n:'Weihnachtsmarkt',icon:'🎄',m:11,w:[0,1,2],dem:1.22,seg:{fam:1.3,sen:1.3},app:{game:1.6},goods:{gebaeck:1.6,bohnen:1.4},d:'Alle sind in der Stadt, Glühwein und Gebäck gehen gut.'},
   {k:'silvester',n:'Silvester',icon:'🎆',m:11,w:[3],dem:1.4,seg:{stud:1.4,tour:1.3},d:'Die Nacht der Nächte.'}];
 const festsAt=(G,city,m,w)=>FESTS.filter(F=>F.m===m%12&&F.w.includes(w)&&(!F.city||F.city===city));
+function festBoost(G,kind,k){let v=1;for(const F of FESTS)if(F.m===G.month%12&&F.w.includes(G.week||0)&&!F.city&&F[kind]&&F[kind][k])v*=F[kind][k];return v}
 function festFx(G,p){let dem=1;const seg={};for(const F of festsAt(G,p.city,G.month,G.week||0)){dem*=F.dem;for(const g in F.seg||{})seg[g]=(seg[g]||1)*F.seg[g]}return{dem,seg}}
 function upcomingFests(G,n){const out=[];let m=G.month,w=G.week||0;for(let i=0;i<52&&out.length<n;i++){for(const F of FESTS.filter(F=>F.m===m%12&&F.w.includes(w)&&(!F.city||G.cities[F.city])))if(!out.some(o=>o.F.n===F.n))out.push({F,m,w,in:i});w++;if(w>=WEEKS){w=0;m++}}return out}
 // ---------- Franchising: Partner eröffnen Restaurants unter deiner Marke und zahlen Gebühren ----------
@@ -349,7 +354,13 @@ const FR_STD={lax:{n:'Locker',q:[0.42,0.62],pull:1.4,d:'Viele Partner, schwanken
 const frCheck=(G,f)=>[{ok:f.shops.length>=5,t:'Mindestens fünf eigene Restaurants'},{ok:stars(f.rep)>=3.5,t:'Ruf mindestens 3,5 Sterne'}];
 function frPartners(G,f){return G.comps.filter(c=>c.fr===f.id)}
 // Konkurrenz wird aktiv: Rabattwochen gegen deine Restaurants in der Nähe, Abwerbung guter Leute bei schwachen Gehältern
-function rivalWeek(G,rep){for(const cp of G.comps){if(cp.branch!=='cafe'||cp.fr)continue;if(cp.promo>0){cp.promo--;continue}
+function rivalWeekSP(G,rep){for(const a of G.apps)if(a.rivalHit>0)a.rivalHit--;
+  for(const f of G.firms){if(f.branch==='soft'){const mine=G.apps.filter(a=>a.owner===f.id&&a.state==='live');for(const a of mine){if(rand(G)<0.02){const r=G.apps.find(b=>b.owner&&b.owner.startsWith('c:')&&b.genre===a.genre&&b.state==='live');if(r){r.quality=Math.min(0.95,r.quality+0.04);r.fresh=1;a.rivalHit=3;rep.events.push({icon:'🦈',bad:true,t:'„'+r.name+'“ bringt ein großes Update heraus. „'+a.name+'“ gewinnt drei Wochen lang weniger neue Nutzer.'})}}}
+      if(f.sr>1&&rand(G)<0.015*clamp(1.25-f.wage,0.1,0.6)){f.sr--;rep.events.push({icon:'🦈',bad:true,t:f.name+': Ein Senior-Entwickler wurde von der Konkurrenz abgeworben.'})}}
+    if(f.branch==='prod'&&f.plants.length){if(rand(G)<0.02){const g=pick(G,Object.keys(GOODS));G.dump=G.dump||{};G.dump[g]=4;rep.events.push({icon:'🏷️',bad:true,t:'Preiskampf: Ein Konkurrent verkauft '+GOODS[g].n+' vier Wochen lang billig. Der Großhandel zahlt 15 % weniger.'})}}
+    leadWeek(G,f,rep)}
+  for(const g in G.dump||{})if(G.dump[g]>0)G.dump[g]--}
+function rivalWeek(G,rep){rivalWeekSP(G,rep);for(const cp of G.comps){if(cp.branch!=='cafe'||cp.fr)continue;if(cp.promo>0){cp.promo--;continue}
     const mine=G.plots.filter(q=>q.city===cp.city&&q.use==='cafe'&&q.owner&&!q.owner.startsWith('c:')),theirs=G.plots.filter(q=>q.owner==='c:'+cp.id);
     const close=mine.filter(m=>theirs.some(t=>near(m,t))).length;if(close&&rand(G)<0.015*close){cp.promo=3;rep.events.push({icon:'🏷️',bad:true,t:cp.name+' startet eine Rabattaktion in '+cityName(cp.city)+': drei Wochen 15 % günstiger.'})}}
   for(const f of G.firms){if(f.branch!=='cafe'||!f.shops.length)continue;const pool=f.shops.flatMap(s=>(s.crew||[]).filter(c=>c.skill>=0.75).map(c=>[s,c]));if(!pool.length)continue;
@@ -377,6 +388,12 @@ const ACH=[{k:'s1',n:'Erste Gäste',d:'Eröffne dein erstes Restaurant.',icon:'�
   {k:'fr',n:'Franchisegeber',d:'Gewinne einen Franchise-Partner.',icon:'🤝',test:G=>G.comps.some(c=>c.fr)},{k:'take',n:'Übernahme',d:'Kaufe einen Konkurrenten.',icon:'🦈',test:G=>G.ms&&G.ms.takeover!==undefined},
   {k:'ipo',n:'Börsenglocke',d:'Bring den Konzern an die Börse.',icon:'🔔',test:G=>G.public},{k:'q10',n:'Auftragsprofi',d:'Erfülle zehn Wochenaufträge.',icon:'🎯',test:G=>(G.questsDone||0)>=10},
   {k:'mio',n:'Millionär',d:'Privatvermögen von einer Million.',icon:'💶',test:G=>wealth(G).total>=1e6},{k:'bn',n:'Milliardär',d:'Privatvermögen von einer Milliarde.',icon:'👑',test:G=>wealth(G).total>=1e9},
+  {k:'app1',n:'Erster Release',d:'Veröffentliche eine eigene App.',icon:'📱',test:G=>G.apps.some(a=>firm(G,a.owner)&&a.state==='live')},
+  {k:'u100k',n:'Hunderttausend',d:'100.000 Nutzer in einer App.',icon:'👥',test:G=>G.apps.some(a=>firm(G,a.owner)&&a.users>=1e5)},{k:'u1m',n:'Millionen-App',d:'Eine Million Nutzer in einer App.',icon:'🚀',test:G=>G.apps.some(a=>firm(G,a.owner)&&a.users>=1e6)},
+  {k:'app5',n:'Fünf-Sterne-App',d:'Eine App mit 4,5 Sternen oder mehr.',icon:'⭐',test:G=>G.apps.some(a=>firm(G,a.owner)&&a.state==='live'&&rating(a)>=0.9)},{k:'apps3',n:'App-Schmiede',d:'Drei Apps gleichzeitig live.',icon:'💻',test:G=>G.apps.filter(a=>firm(G,a.owner)&&a.state==='live').length>=3},
+  {k:'line1',n:'Band läuft',d:'Starte deine erste Produktionslinie.',icon:'🏭',test:G=>G.firms.some(f=>(f.plants||[]).some(p=>p.lines.length))},{k:'auto',n:'Vollautomatik',d:'Automatisiere eine Linie.',icon:'🦾',test:G=>G.firms.some(f=>(f.plants||[]).some(p=>p.lines.some(l=>l.auto)))},
+  {k:'u10k',n:'Massenware',d:'10.000 Einheiten in einer Woche.',icon:'📦',test:G=>G.firms.reduce((s,f)=>s+Object.values(f.made||{}).reduce((a,b)=>a+b,0),0)>=10000},{k:'brand',n:'Im Regal',d:'Führe eine eigene Marke ein.',icon:'🏷️',test:G=>G.firms.some(f=>f.brand)},
+  {k:'deliv',n:'Zuverlässig',d:'Liefere 50.000 Einheiten über Aufträge.',icon:'🚚',test:G=>G.firms.some(f=>(f.delivered||0)>=50000)},{k:'leads',n:'Starke Führung',d:'Besetze alle drei Teamleitungen einer Firma.',icon:'🧑‍💼',test:G=>G.firms.some(f=>f.leads&&Object.keys(f.leads).length>=3)},
   {k:'club',n:'Vereinsboss',d:'Kaufe einen Fußballverein.',icon:'⚽',test:G=>!!G.me.club},{k:'lead',n:'Marktführer',d:'Größter Restaurantanbieter einer Stadt.',icon:'🥇',test:G=>CITIES.some(c=>{const ps=G.plots.filter(p=>p.city===c.id&&p.use==='cafe'&&p.owner);if(ps.length<4)return false;const by={};for(const p of ps){const k=p.owner.startsWith('c:')?p.owner:'me';by[k]=(by[k]||0)+p.traffic}return Object.entries(by).sort((a,b)=>b[1]-a[1])[0][0]==='me'})}];
 function comfortOf(s){return clamp(LEVELS[s.level].comfort+(s.lay?s.lay.atmo:0)+(FACADES[s.facade||'klassik'].comfort||0)+(s.ups.lounge?0.12:0)-(s.ups.togo?0.03:0),0,1)}
 function shopForecast(G,f,s){ // Nachfrage und Kapazität im Monat (auch für die Vorschau)
@@ -450,9 +467,17 @@ function takeGoods(G,sup,good,qty){let got=0,cost=0;const gs=sup.goods[good];if(
   if(got>0){L(G,sup.id).revInt+=cost;L(G,sup.id).cogs+=cost;sup.internal=(sup.internal||0)+cost}return{qty:got,cost}}
 
 // ---------- Software ----------
+// ---------- Teamleitungen für Software und Produktion: Schlüsselpersonen mit Können, Gehalt und Abwerbe-Risiko ----------
+const LEADS={soft:{tech:{n:'Technische Leitung',icon:'🧠',d:'Mehr Entwicklungsleistung'},design:{n:'Design-Leitung',icon:'🖼️',d:'Höhere App-Qualität'},qa:{n:'Qualitätssicherung',icon:'🐞',d:'Weniger neue Bugs'}},
+  prod:{werk:{n:'Werkleitung',icon:'🏭',d:'Mehr Ausstoß in allen Linien'},quali:{n:'Qualitätsleitung',icon:'🎖️',d:'Weniger Ausfälle, bessere Preise bei Aufträgen'},einkauf:{n:'Einkaufsleitung',icon:'🧾',d:'Günstigere Rohstoffe'}}};
+const lead=(f,k)=>f.leads&&f.leads[k]?f.leads[k].skill:0;
+function leadPay(sk){return Math.round((55000+sk*90000)/1000)*1000}
+function leadCands(G,f,k){G.leadC=G.leadC||{};const key=f.id+k,c=G.leadC[key];if(c&&c.m===G.month)return c.list;const list=[0,1,2].map(()=>{const p=person(G),sk=Math.round(clamp(rr(G,0.45,0.95)+gauss(G)*0.05,0.4,0.98)*100)/100;return{n:p.name,g:p.g,look:p.look,skill:sk,salary:leadPay(sk)}});G.leadC[key]={m:G.month,list};return list}
+function leadWeek(G,f,rep){if(!f.leads)return;for(const k in f.leads){const l=f.leads[k];pay(G,f.id,'staff',l.salary/12*EMP*W);l.skill=Math.min(0.99,l.skill+0.0015*(1-l.skill));
+    if(rand(G)<pW(Math.max(0,0.55-f.morale)*0.05+(l.salary<leadPay(l.skill)*0.9?0.02:0))){delete f.leads[k];rep.events.push({icon:'👋',bad:true,t:f.name+': '+l.n+' ('+LEADS[f.branch][k].n+') wurde abgeworben.'})}}}
 function softTeam(G,f){const fd=G.founderDev&&f.id===G.firms[0].id?1.4:0,raw=fd+f.jr+f.sr*2.2;
-  return{fd,raw,P:raw*productivity(f)*(f.oups.hardware?1.1:1)*(1+0.12*ex(G,'cto'))*DAYS,qT:clamp(0.45+0.45*(f.sr*2.2)/Math.max(1,raw)+Math.min(0.12,f.des*0.04)+(has(f,'ki')?0.1:0)+0.04*dcov(G,'rd')+0.03*ex(G,'cpo'),0,0.97),
-    bugMult:(1/(1+4*f.qa/Math.max(1,f.jr+f.sr+(fd?1:0))))*(has(f,'ci')?0.6:1)*(f.oups.quiet?0.8:1)}}
+  return{fd,raw,P:raw*productivity(f)*(f.oups.hardware?1.1:1)*(1+0.12*ex(G,'cto'))*(1+0.22*lead(f,'tech'))*DAYS,qT:clamp(0.45+0.45*(f.sr*2.2)/Math.max(1,raw)+Math.min(0.12,f.des*0.04)+(has(f,'ki')?0.1:0)+0.04*dcov(G,'rd')+0.03*ex(G,'cpo')+0.09*lead(f,'design'),0,0.97),
+    bugMult:(1/(1+4*f.qa/Math.max(1,f.jr+f.sr+(fd?1:0))))*(has(f,'ci')?0.6:1)*(f.oups.quiet?0.8:1)*(1-0.35*lead(f,'qa'))}}
 function desks(G,f){if(!f.office||f.officeBuild>0)return 3;return Math.floor(plot(G,f.office).size/10)}
 function rating(a){const bd=a.bugs/(40+a.users/1500);return clamp(a.quality*1.1-Math.min(1,bd)*0.3,0,1)}
 function appAttr(a){const fr=a.fresh===undefined?1:a.fresh;return Math.pow(rating(a),1.6)*(0.4+0.6*fr)*(a.model==='freemium'?clamp(Math.exp(-(a.price-4.99)/10),0.3,1.4):a.model==='paid'?0.7:1.1)}
@@ -468,7 +493,7 @@ function softMonth(G,f,rep){
   let rev=0,server=0;
   for(const a of mine)if(a.state==='live'){const gen=GENRES[a.genre],rivals=G.apps.filter(b=>b!==a&&b.genre===a.genre&&b.state==='live');
     const A=appAttr(a),Ac=rivals.reduce((s,b)=>s+appAttr(b),0),total=rivals.reduce((s,b)=>s+b.users,0)+a.users,sat=clamp(total/(gen.pot*1.6),0,1);
-    const mult=(G.month-a.released<=1?2:1)*(a.focus==='growth'?1.3:1)*(a.camp.social?1.15:1)*(a.camp.influencer?1.5:1)*(a.model==='paid'?0.55:1)*(G.ev&&G.ev.feature===a.id?2.5:1);
+    const mult=festBoost(G,'app',a.genre)*(a.rivalHit>0?0.75:1)*(G.month-a.released<=1?2:1)*(a.focus==='growth'?1.3:1)*(a.camp.social?1.15:1)*(a.camp.influencer?1.5:1)*(a.model==='paid'?0.55:1)*(G.ev&&G.ev.feature===a.id?2.5:1);
     let nu=gen.pot*SCOPES[a.scope].pot*0.005*DAYS*(G.dm||1)*(0.25+f.aware*1.2)*A/(A+Ac*0.4+0.3)*(1-sat)*mult;
     if(a.camp.influencer)nu+=gen.pot*0.01*rating(a);if(a.ads>0)nu+=a.ads*W/gen.cpi*(0.5+rating(a));
     const bd=a.bugs/(40+a.users/1500),fr=a.fresh===undefined?1:a.fresh;
@@ -500,18 +525,18 @@ function release(G,f,a){a.state='live';a.released=G.month;a.quality*=Math.min(1,
 // ---------- Produktion ----------
 function goodsTotal(f,g){const gs=f.goods&&f.goods[g];if(!gs)return 0;let s=0;for(let k=1;k<=3;k++)s+=gs[k]?gs[k].q:0;return s}
 function lineNeed(l){const T=LINES[l.type];return l.auto?Math.max(1,T.workers-2):T.workers}
-function lineOut(G,f,l){const T=LINES[l.type];return T.cap[l.product]*DAYS*Math.min(1,l.workers/lineNeed(l))*SHIFTS[l.shifts]*productivity(f)*(l.auto?1.3:1)}
-function rawPrice(G,r,f){const sup=SUPPLIERS[f?f.supplier:'standard'];const idx=G.hedge&&G.hedge.left>0&&G.hedge.raw===r?G.hedge.idx:G.idx[r];return RAW[r].p*idx*sup.p}
+function lineOut(G,f,l){const T=LINES[l.type];return T.cap[l.product]*DAYS*Math.min(1,l.workers/lineNeed(l))*SHIFTS[l.shifts]*productivity(f)*(l.auto?1.3:1)*(1+0.18*lead(f,'werk'))}
+function rawPrice(G,r,f){const sup=SUPPLIERS[f?f.supplier:'standard'];const idx=G.hedge&&G.hedge.left>0&&G.hedge.raw===r?G.hedge.idx:G.idx[r];return RAW[r].p*idx*sup.p*(f?1-0.1*lead(f,'einkauf'):1)}
 function effGrade(f,l){return clamp(l.grade-(f.supplier==='cheap'?1:0)+(l.qc?1:0),1,3)}
 function storageCap(G,f){return f.plants.reduce((s,p)=>s+p.lines.reduce((a,l)=>a+lineOut(G,f,l),0)*(p.ups.lager?4:2),0)}
 function prodProduce(G,f){
   f.made={};
-  for(const p of f.plants)for(const l of p.lines){if(p.build>0){l.made=0;continue}let out=lineOut(G,f,l);l.broke=false;if(!l.maint&&rand(G)<pW(0.2)){out*=rr(G,0.65,0.9);l.broke=true}if(G.ev&&G.ev.machine===l.id)out*=0.6;
+  for(const p of f.plants)for(const l of p.lines){if(p.build>0){l.made=0;continue}let out=lineOut(G,f,l);l.broke=false;if(!l.maint&&rand(G)<pW(0.2*(1-0.6*lead(f,'quali')))){out*=rr(G,0.65,0.9);l.broke=true}if(G.ev&&G.ev.machine===l.id)out*=0.6;
     const m=GOODS[l.product].mat;let cost=0;for(const r in m)cost+=out*m[r]*GMULT[l.grade]*rawPrice(G,r,f);
     pay(G,f.id,null,cost); // Einkauf: Geld wird zu Lagerbestand, Aufwand erst beim Verkauf
     const g=effGrade(f,l),gs=f.goods[l.product]||(f.goods[l.product]={}),b=gs[g]||(gs[g]={q:0,cost:0});b.q+=out;b.cost+=cost;l.made=out;f.made[l.product]=(f.made[l.product]||0)+out}}
 function prodSell(G,f){
-  const r0=L(G,f.id).rev,c0=L(G,f.id).cogs,bio=f.supplier==='bio'?1.12:1;f.sales={contract:0,brand:0,whole:0};
+  const r0=L(G,f.id).rev,c0=L(G,f.id).cogs,bio=(f.supplier==='bio'?1.12:1)*(1+0.06*lead(f,'quali'));f.sales={contract:0,brand:0,whole:0};
   for(const c of f.contracts){let left=c.qty-c.done;const gs=f.goods[c.good];if(!gs||left<=0)continue;
     for(let g=c.grade;g<=3&&left>0;g++){const b=gs[g];if(!b||b.q<1)continue;const t=Math.min(Math.floor(b.q),left),uc=b.cost/b.q;b.q-=t;b.cost-=uc*t;c.done+=t;left-=t;
       earn(G,f.id,'rev',t*c.price*bio);f.sales.contract+=t*c.price*bio;L(G,f.id).cogs+=uc*t;pay(G,f.id,'other',t*GOODS[c.good].ship);f.delivered+=t}
@@ -519,7 +544,7 @@ function prodSell(G,f){
   f.contracts=f.contracts.filter(c=>{if(c.done>=c.qty)return false;if(ME&&G.month+1>=c.due){const pen=(c.qty-c.done)*c.price*0.15;pay(G,f.id,'other',pen);f.rep=Math.max(0,f.rep-0.08);
     news(G,f.name+': Auftrag von '+c.buyer+' nicht rechtzeitig geliefert. Strafe '+fmtE(pen)+'.','bad');return false}return true});
   if(f.brand){f.brand.aware+=(clamp(0.05+0.9*f.brand.mkt*(1+0.35*dcov(G,'mkt'))/(f.brand.mkt+15000),0,0.95)-f.brand.aware)*kW(0.25);pay(G,f.id,'mkt',f.brand.mkt*W);
-    for(const g in f.goods){const q=goodsTotal(f,g)-reserved(f,g);if(q<1)continue;const vol=Math.min(q,GOODS[g].brand*W*f.brand.aware*Object.keys(G.cities).length*(0.5+f.rep));if(vol<1)continue;
+    for(const g in f.goods){const q=goodsTotal(f,g)-reserved(f,g);if(q<1)continue;const vol=Math.min(q,festBoost(G,'goods',g)*GOODS[g].brand*W*f.brand.aware*Object.keys(G.cities).length*(0.5+f.rep));if(vol<1)continue;
       const price=GOODS[g].ref*1.3*bio,sold=takeOwn(f,g,vol);earn(G,f.id,'rev',sold.qty*price);f.sales.brand+=sold.qty*price;L(G,f.id).cogs+=sold.cost}}
   const capS=storageCap(G,f);
   for(const g in f.goods){const q=goodsTotal(f,g),res=reserved(f,g)+(g==='bohnen'||g==='gebaeck'?internalNeed(G,g):0);
@@ -530,7 +555,7 @@ function reserved(f,g){return f.contracts.filter(c=>c.good===g).reduce((s,c)=>s+
 function goodsTotalAll(f){let s=0;for(const g in f.goods)s+=goodsTotal(f,g);return s}
 function takeOwn(f,g,qty){const gs=f.goods[g];let got=0,cost=0;for(let k=3;k>=1&&got<qty;k--){const b=gs[k];if(!b||b.q<=0)continue;const t=Math.min(b.q,qty-got),uc=b.cost/b.q;b.q-=t;b.cost-=uc*t;got+=t;cost+=uc*t}return{qty:got,cost}}
 function internalNeed(G,g){let n=0;for(const f of G.firms)if(f.branch==='cafe')for(const s of f.shops){const g0=s.stat?s.stat.guests:0;const ms=menuStats(G,f,s);for(const it of ms.items){const P=PRODUCTS[it.k];n+=g0*PER*it.share*(g==='bohnen'?(P.beans||0):(P.piece||0))}}return n}
-function wholesalePrice(G,f,g,grade){return GOODS[g].ref*0.86*(1+0.15*(grade-1))*(g==='bohnen'?G.idx.rohkaffee:1)}
+function wholesalePrice(G,f,g,grade){return GOODS[g].ref*0.86*(1+0.15*(grade-1))*(g==='bohnen'?G.idx.rohkaffee:1)*((G.dump||{})[g]>0?0.85:1)*festBoost(G,'goods',g)**0.3}
 function sellWholesale(G,f,g,qty,quiet){const gs=f.goods[g];if(!gs)return{ok:false,msg:'Nichts auf Lager.'};let left=qty,sold=0,rev=0;
   for(let k=1;k<=3&&left>0;k++){const b=gs[k];if(!b||b.q<=0)continue;const t=Math.min(b.q,left),uc=b.cost/b.q;b.q-=t;b.cost-=uc*t;left-=t;sold+=t;rev+=t*wholesalePrice(G,f,g,k);L(G,f.id).cogs+=uc*t}
   earn(G,f.id,'rev',rev);if(!quiet)news(G,f.name+' verkauft '+fn(sold)+' '+GOODS[g].n+' an den Großhandel.','info');return{ok:true,rev,msg:'Verkauft: '+fn(sold)+' '+GOODS[g].n+' für '+fmtE(rev)}}
@@ -579,6 +604,8 @@ const QUESTS={
   rev:{make:(G,w)=>w.rev>0&&{n:Math.ceil(w.rev*1.04/100)*100,get t(){return'Steigere den Wochenumsatz auf '+fmtE(this.n)}},test:(G,q,rep)=>rep.rev>=q.n,val:q=>q.n*0.04},
   net:{make:(G,w)=>({n:w.net>0?Math.ceil(w.net*1.1/100)*100:0,get t(){return this.n?'Erziele mindestens '+fmtE(this.n)+' Gewinn in der Woche':'Schreibe in dieser Woche schwarze Zahlen'}}),test:(G,q,rep)=>rep.net>=q.n,val:q=>Math.max(2500,q.n*0.25)},
   guests:{make:(G,w)=>w.guests>0&&{n:Math.ceil(w.guests*1.04/10)*10,get t(){return'Bewirte '+fn(this.n)+' Gäste in einer Woche'}},test:(G,q)=>cafeGuests(G)>=q.n,val:q=>q.n*2},
+  users:{make:(G,w)=>{const u=G.apps.filter(a=>firm(G,a.owner)&&a.state==='live').reduce((s,a)=>s+a.users,0);return u>500&&{n:Math.ceil(u*1.05/100)*100,get t(){return'Erreiche '+fn(this.n)+' Nutzer über alle Apps'}}},test:(G,q)=>G.apps.filter(a=>firm(G,a.owner)&&a.state==='live').reduce((s,a)=>s+a.users,0)>=q.n,val:q=>q.n*0.05},
+  units:{make:G=>{const u=G.firms.reduce((s,f)=>s+Object.values(f.made||{}).reduce((a,b)=>a+b,0),0);return u>50&&{n:Math.ceil(u*1.06/10)*10,get t(){return'Produziere '+fn(this.n)+' Einheiten in einer Woche'}}},test:(G,q)=>G.firms.reduce((s,f)=>s+Object.values(f.made||{}).reduce((a,b)=>a+b,0),0)>=q.n,val:q=>q.n*1.5},
   calm:{make:G=>overloaded(G).length>0&&{n:0,t:'Keine überlasteten Restaurants am Ende der Woche'},test:G=>!overloaded(G).length,val:()=>3000}};
 function questWeek(G,rep){const q=G.quest;
   if(q&&QUESTS[q.k]){const ok=QUESTS[q.k].test(G,q,rep);rep.quest={t:q.t,r:q.r,ok};if(ok){G.cash+=q.r;G.paidIn+=q.r;G.led.cf.fin+=q.r;G.questsDone=(G.questsDone||0)+1;news(G,'Wochenauftrag erfüllt: +'+fmtE(q.r),'good')}}
@@ -633,7 +660,7 @@ function endTurn(G){
   if(ME){const net=pre-G.led.H.tax;G.retained+=net;
     rec={m:G.month,f:G.led.f,H:G.led.H,cf:G.led.cf,cash:G.cash,pre,net,staff:totalStaff(G)};rec.bal=balance(G);rec.value=valuation(G,rec).total;
     G.months.push(rec);if(G.months.length>60)G.months.shift();
-    {const v=valuation(G).total;G.kpi=(G.kpi||[]).concat([{m:G.month,rev:pl(rec).rev,net:rec.net,cash:G.cash,staff:totalStaff(G),shops:G.firms.reduce((a,f)=>a+(f.shops||[]).length,0),guests:cafeGuests(G)*WEEKS,value:v,aware:G.firms[0].aware}]).slice(-240)}
+    {const v=valuation(G).total;G.kpi=(G.kpi||[]).concat([{m:G.month,rev:pl(rec).rev,net:rec.net,cash:G.cash,staff:totalStaff(G),shops:G.firms.reduce((a,f)=>a+(f.shops||[]).length,0),guests:cafeGuests(G)*WEEKS,users:G.apps.filter(a=>firm(G,a.owner)&&a.state==='live').reduce((s,a)=>s+a.users,0),output:G.firms.reduce((s,f)=>s+Object.values(f.made||{}).reduce((a,b)=>a+b,0),0)*WEEKS,value:v,aware:G.firms[0].aware}]).slice(-240)}
     if(G.month%12===11){if(ytd<0)G.tax.carry+=-ytd;else G.tax.carry=Math.max(0,G.tax.carry-ytd);G.tax.paidYTD=0;rep.events.push({icon:'📘',t:'Jahresabschluss '+yearOf(G.month)+': '+fmtE(G.months.filter(x=>Math.floor(x.m/12)===yr).reduce((s,x)=>s+x.net,0))+' Jahresergebnis.'})}
     G.led=emptyLedger();
     if(G.cash<-dispo(G)){G.insolvT=(G.insolvT||0)+1;rep.events.push({icon:'⚠️',bad:true,t:'Der Dispo ist überzogen ('+G.insolvT+' von 3). Nach drei Monaten im Minus droht die Insolvenz.'});if(G.insolvT>=3)G.over='insolvent'}else G.insolvT=0;
@@ -1157,6 +1184,13 @@ A.bulk=(G,fid,o)=>{const f=firm(G,fid);if(!f||f.branch!=='cafe')return{ok:false}
   if(o.train){for(const s of live)for(const c of s.crew||[])if(c.skill<0.5&&!c.tr){if(!can(G,1200))break;pay(G,f.id,'other',1200);c.tr=6;n++;cost+=1200}return{ok:true,msg:n+' Kräfte mit wenig Erfahrung in die Schulung geschickt ('+fmtE(cost)+').'}}
   if(o.up&&CAFE_UPS[o.up]){const U=CAFE_UPS[o.up];for(const s of live){if(s.ups[o.up])continue;const p=plot(G,s.plot);if(U.zones&&!U.zones.includes(p.zone))continue;if(U.minLevel&&s.level<U.minLevel)continue;const r=A.shop(G,s.id,{up:o.up});if(r.ok){n++;cost+=U.cost}else if(r.msg&&/Geld/.test(r.msg))break}
     return{ok:n>0,msg:n?U.n+' in '+n+' Restaurants eingebaut ('+fmtE(cost)+').':'Kein passendes Restaurant ohne '+U.n+' gefunden.'}}return{ok:false}};
+A.lead=(G,fid,k,i)=>{const f=firm(G,fid);if(!f||!LEADS[f.branch]||!LEADS[f.branch][k])return{ok:false};f.leads=f.leads||{};if(i==='fire'){const l=f.leads[k];if(!l)return{ok:false};pay(G,f.id,'staff',l.salary/4);delete f.leads[k];return{ok:true,msg:l.n+' verabschiedet (Abfindung '+fmtE(l.salary/4)+').'}}
+  if(i==='raise'){const l=f.leads[k];if(!l)return{ok:false};l.salary=Math.round(l.salary*1.1/1000)*1000;return{ok:true,msg:'Gehalt von '+l.n+' auf '+fmtE(l.salary)+' erhöht.'}}
+  if(f.leads[k])return{ok:false,msg:'Die Stelle ist besetzt.'};const c=leadCands(G,f,k)[i];if(!c)return{ok:false};const fee=Math.round(c.salary*0.15);if(!can(G,fee))return noMoney(fee);pay(G,f.id,'other',fee);
+  f.leads[k]=Object.assign({},c,{since:G.month});G.leadC[f.id+k].list.splice(i,1);return{ok:true,msg:c.n+' übernimmt die '+LEADS[f.branch][k].n+'. Vermittlung '+fmtE(fee)+'.'}};
+A.bulkSP=(G,fid,o)=>{const f=firm(G,fid);if(!f)return{ok:false};let n=0;
+  if(f.branch==='soft'&&o.focus&&FOCUS[o.focus]){for(const a of G.apps)if(a.owner===f.id&&a.state==='live'&&a.focus!==o.focus){a.focus=o.focus;n++}return{ok:true,msg:n+' Apps auf „'+FOCUS[o.focus].n+'“ gestellt.'}}
+  if(f.branch==='prod'){for(const p of f.plants)for(const l of p.lines){if(o.maint&&!l.maint){l.maint=true;n++}if(o.shifts&&l.shifts!==o.shifts){l.shifts=o.shifts;n++}if(o.staff&&l.workers!==lineNeed(l)){l.workers=lineNeed(l);n++}}return{ok:true,msg:n+' Änderungen an den Linien.'}}return{ok:false}};
 A.chan=(G,fid,k)=>{const f=firm(G,fid);if(!f||!CHANNELS[k])return{ok:false};f.chan=f.chan||{};f.chan[k]=!f.chan[k];return{ok:true,msg:CHANNELS[k].n+(f.chan[k]?' gebucht.':' gekündigt.')}};
 A.stake=(G,cid,to)=>{const cp=G.comps.find(c=>c.id===cid);if(!cp)return{ok:false};to=Math.round(clamp(+to||0,0,STAKE_MAX)*100)/100;const a=cp.stake||0;if(to<=a+1e-9)return{ok:false,msg:'Wähle einen höheren Anteil.'};
   const c=stakeCost(G,cp,to);if(G.cash<c)return{ok:false,msg:'Die Anteile kosten '+fmtE(c)+'.'};G.cash-=c;G.led.cf.inv-=c;
@@ -1229,6 +1263,6 @@ function curLedger(G){return{m:G.month,f:G.led.f,H:G.led.H,cf:G.led.cf}}
 
 const K={MONTHS,BRANCHES,WAGE,PRODUCTS,QMULT,QUAL,QN,LEVELS,CAFE_UPS,CAFE_ACTIONS,HOURS,GENRES,SCOPES,FOCUS,MODELS,CAMPAIGNS,OFFICE_UPS,RAW,GOODS,LINES,SHIFTS,GMULT,GQUAL,SUPPLIERS,PLANT_UPS,RESEARCH,CITIES,ZONES,COLS,ROWS,STAGES,DEPTS,GOALS,
   newGame,endTurn,act:A,plot,firm,staffOf,adminOf,totalStaff,hqStaff,stage,menuStats,shopForecast,forecastShop,shopCost,officeCost,softTeam,desks,rating,goodsTotal,lineOut,lineNeed,rawPrice,wholesalePrice,storageCap,reserved,effGrade,
-  balance,valuation,CIVIC,ACH,FR_STD,frCheck,frPartners,INGR,DISH_BASE,dishSpec,FESTS,upcomingFests,festFx,FURN,TURN,layoutStats,fitLayout,bulkDisc,crewSkill,crewPay,SEGS,CHANNELS,segMix,stakeCost,MODS,PERKS,fx,scoreMult,runScore,pickMods,STAKE_MAX,firmValue,compValue,takeoverPrice,loanOffer,ipoCheck,pl,curLedger,dateStr,dayOf,W,WEEKS,BUILD,underBuild,monthName,yearOf,cityName,dispo,fmtE,fmtN:fn,freePlots,stars,eventOpts,productivity,summer,shopOf,lineOf,sumF,wageOf,propValue,propIncome,leaseOcc,rentOf,CITY_CAMPS,EXECS,SECTORS,LUX,CLUBS,wealth,genMarket,CITY_MAP,CITY_BLOCKS,CITY_TRAITS,DIFF,CURS,TASTE,FACADES,unitCost,recipeFit,setCur:c=>{CUR=CURS[c]||'€'},MGR_DELEG,mgrCands,mgrPay,flights,dist,AIRPORTS,address,compShop,squadStr,TEAMS,CLUB_STAD,pSal,ex,dcov,dneed,deptN,marketPay,cands,grantValue,migrate,econ,BOARD_Q,UNITS,KINDS,usesOf,unitName,YIELD};
+  balance,valuation,CIVIC,LEADS,leadCands,leadPay,ACH,FR_STD,frCheck,frPartners,INGR,DISH_BASE,dishSpec,FESTS,upcomingFests,festFx,FURN,TURN,layoutStats,fitLayout,bulkDisc,crewSkill,crewPay,SEGS,CHANNELS,segMix,stakeCost,MODS,PERKS,fx,scoreMult,runScore,pickMods,STAKE_MAX,firmValue,compValue,takeoverPrice,loanOffer,ipoCheck,pl,curLedger,dateStr,dayOf,W,WEEKS,BUILD,underBuild,monthName,yearOf,cityName,dispo,fmtE,fmtN:fn,freePlots,stars,eventOpts,productivity,summer,shopOf,lineOf,sumF,wageOf,propValue,propIncome,leaseOcc,rentOf,CITY_CAMPS,EXECS,SECTORS,LUX,CLUBS,wealth,genMarket,CITY_MAP,CITY_BLOCKS,CITY_TRAITS,DIFF,CURS,TASTE,FACADES,unitCost,recipeFit,setCur:c=>{CUR=CURS[c]||'€'},MGR_DELEG,mgrCands,mgrPay,flights,dist,AIRPORTS,address,compShop,squadStr,TEAMS,CLUB_STAD,pSal,ex,dcov,dneed,deptN,marketPay,cands,grantValue,migrate,econ,BOARD_Q,UNITS,KINDS,usesOf,unitName,YIELD};
 if(typeof module!=='undefined'&&module.exports)module.exports=K;else root.K=K;
 })(typeof window!=='undefined'?window:globalThis);

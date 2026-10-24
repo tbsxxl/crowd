@@ -313,9 +313,9 @@ window.addEventListener('error',function(e){var m=document.getElementById('bootM
   if(m&&!document.getElementById('menu').hidden)m.textContent=t;else{var d=document.getElementById('toast');if(d){d.textContent=t;d.hidden=false}}},true);
 </script>
 <script src="../vendor/three-r128-bloom.js"></script>
-<script src="icons.js?v=20261026b"></script>
-<script src="sim.js?v=20261026b"></script>
-<script src="world.js?v=20261026b"></script>
+<script src="icons.js?v=20261027a"></script>
+<script src="sim.js?v=20261027a"></script>
+<script src="world.js?v=20261027a"></script>
 <script>
 (function(){
 'use strict';
@@ -464,6 +464,17 @@ function todos(){const t=[],add=(sev,ic,txt,btn,attrs)=>t.push({sev,ic,txt,btn,a
     if(f.foodMode==='stock'&&f.foodWeekNeed&&(f.food||0)<f.foodWeekNeed*0.7)add(2,'📦','Das Zutatenlager reicht nicht einmal eine Woche.','Einkauf',`data-a="open" data-v="firm" data-tab="food" data-keep="1"`);
     if(!f.fr&&K.frCheck(G,f).every(x=>x.ok))add(0,'🤝','Du kannst jetzt ein Franchise-System starten.','Ansehen',`data-a="open" data-v="firm" data-tab="fr" data-keep="1"`);
     if(!f.devDish&&!Object.keys(G.custom||{}).length&&f.shops.length>=2)add(0,'👨‍🍳','Noch kein eigenes Gericht entwickelt.','Zur Küche',`data-a="open" data-v="firm" data-tab="menu" data-keep="1"`)}
+  for(const f of G.firms){if(f.branch==='soft'){const apps=G.apps.filter(a=>a.owner===f.id),t2=K.softTeam(G,f),used=f.jr+f.sr+f.des+f.qa;
+      for(const a of apps.filter(a=>a.state==='live')){if(a.bugs>a.users/2000+40&&a.focus!=='bugs')add(2,'🐞','„'+a.name+'“: viele Bugs, die Bewertung leidet.','Bugs beheben',`data-a="appFocus" data-id="${a.id}" data-k="bugs"`);
+        if((a.fresh===undefined?1:a.fresh)<0.35&&a.focus!=='features')add(1,'✨','„'+a.name+'“: seit Langem kein Update.','Neue Funktionen',`data-a="appFocus" data-id="${a.id}" data-k="features"`)}
+      if(!apps.some(a=>a.state==='dev'))add(1,'🛠️',f.name+': Kein Projekt in Entwicklung.','Neues Projekt',`data-a="open" data-v="office" data-id="${f.id}" data-keep="1"`);
+      if(used>K.desks(G,f))add(2,'🪑',f.name+': Zu wenig Arbeitsplätze, die Stimmung leidet.','Größeres Büro','data-a="open" data-v="build" data-keep="1"');
+      if(!t2.raw)add(2,'👥',f.name+': Niemand entwickelt.','Team einstellen',`data-a="open" data-v="office" data-id="${f.id}" data-keep="1"`)}
+    if(f.branch==='prod'){for(const p of f.plants)for(const l of p.lines){if(l.broke&&!l.maint)add(1,'🔧',K.LINES[l.type].n+': Ausfall letzte Woche.','Wartungsvertrag',`data-a="lineMaint" data-id="${l.id}"`);if(l.workers<K.lineNeed(l))add(2,'👥',K.LINES[l.type].n+': unterbesetzt ('+l.workers+' von '+K.lineNeed(l)+').','Auffüllen',`data-a="bulkSP" data-k="staff" data-v="1"`)}
+      for(const c of f.contracts){const have=K.goodsTotal(f,c.good),left=c.qty-c.done;if(c.due-G.month<=1&&have<left)add(3,'⏰','Auftrag '+c.buyer+': '+fn(left-have)+' '+K.GOODS[c.good].n+' fehlen, Frist läuft ab.','Werk ansehen',`data-a="open" data-v="plant" data-id="${f.plants[0]?f.plants[0].id:''}" data-keep="1"`)}
+      const offers=G.offers.contracts.filter(c=>c.fid===f.id).length;if(offers)add(1,'📄',offers+' neue Auftragsangebote.','Ansehen',`data-a="open" data-v="sales" data-id="${f.id}" data-keep="1"`);
+      if(!f.plants.length)add(2,'🏭',f.name+': Noch keine Halle.','Halle mieten',`data-a="place" data-k="factory" data-id="${f.id}"`)}
+    if(f.branch!=='cafe'&&K.LEADS[f.branch]&&!Object.keys(f.leads||{}).length&&K.totalStaff(G)>=8)add(0,'🧑‍💼',f.name+': Keine Teamleitung besetzt.','Ansehen',`data-a="open" data-v="${f.branch==='soft'?'office':'sales'}" data-id="${f.id}" data-keep="1"`)}
   return t.sort((a,b)=>b.sev-a.sev)}
 function todoHtml(){const t=todos();if(!t.length)return'<div class="hint">Alles im grünen Bereich. Nichts zu tun.</div>';
   return`<div class="list">${t.map(x=>`<div class="li todo sev${x.sev}" style="cursor:default"><span class="ico">${x.ic}</span><span class="t"><b>${esc(x.txt)}</b></span><button class="btn sm" ${x.attrs}>${esc(x.btn)}</button></div>`).join('')}</div>`}
@@ -484,6 +495,8 @@ VIEWS.list=()=>{const t=T()||(todos().length?'todo':'own');let b='';const last=G
       for(const s of f.shops.slice().sort((a,c)=>key(a)-key(c))){const p=K.plot(G,s.plot),st=s.stat,[fl,fc]=shopFlag(s),load=st&&st.cap?Math.min(1.3,st.dem/st.cap):0;
         b+=li(`data-a="open" data-v="shop" data-id="${s.id}" data-keep="1"`,'🍽️',esc(K.address(p))+` <em class="flag ${fc}">${fl}</em>`,(st?fn(st.guests)+' Gäste · ':'')+starsH(K.stars(s.rep))+(st?`<i class="load"><i style="width:${Math.min(100,load/1.3*100)}%;background:${load>1.15?'#cc3b33':load<0.55?'#d4a72c':'#2f8a55'}"></i></i>`:''),st?sgn(st.profit):'–','Gewinn',st?(st.profit>=0?'pos':'neg'):'')}
       if(!f.shops.length)b+=`<button class="li" data-a="place" data-k="cafe" data-id="${f.id}"><span class="ico">➕</span><span class="t"><b>Erstes Restaurant eröffnen</b><span>Ladenlokal in der Stadt wählen</span></span></button>`}
+    if(f.branch==='soft'&&G.apps.filter(a=>a.owner===f.id&&a.state==='live').length>=2)b+=`<details class="fold"><summary>Alle Apps auf einmal</summary>${seg('bulkSP',Object.entries(K.FOCUS).map(([k,F])=>[k,F.n]),'','data-k="focus"')}</details>`;
+    if(f.branch==='prod'&&f.plants.reduce((a,p)=>a+p.lines.length,0)>=2)b+=`<details class="fold"><summary>Alle Linien auf einmal</summary><div class="btns"><button class="btn" data-a="bulkSP" data-k="maint" data-v="1">Wartung überall</button><button class="btn" data-a="bulkSP" data-k="staff" data-v="1">Personal auffüllen</button></div>${seg('bulkSP',[[1,'1 Schicht'],[2,'2 Schichten'],[3,'Rund um die Uhr']],'','data-k="shifts"')}</details>`;
     if(f.branch==='soft'){b+=li(`data-a="open" data-v="office" data-id="${f.id}" data-keep="1"`,'🏢',f.office?'Studio '+K.cityName(K.plot(G,f.office).city):'Homeoffice',fn(f.jr+f.sr+f.des+f.qa)+' im Team · '+fn(K.desks(G,f))+' Plätze','→','');
       for(const a of G.apps.filter(a=>a.owner===f.id&&a.state!=='off'))b+=a.state==='dev'?li(`data-a="open" data-v="app" data-id="${a.id}" data-keep="1"`,'🛠️',esc(a.name),K.GENRES[a.genre].n+' · in Entwicklung',pct(a.progress/a.work),'fertig'):
         li(`data-a="open" data-v="app" data-id="${a.id}" data-keep="1"`,K.GENRES[a.genre].icon,esc(a.name),fn(a.users)+' Nutzer · '+starsH(Math.round(K.rating(a)*10)/2),a.stat?sgn(a.stat.rev-a.stat.server-a.stat.mk):'–','Gewinn',a.stat?(a.stat.rev-a.stat.server-a.stat.mk>=0?'pos':'neg'):'')}
@@ -493,7 +506,11 @@ VIEWS.list=()=>{const t=T()||(todos().length?'todo':'own');let b='';const last=G
     b+='</div></div>'}
   return{eyebrow:K.monthName(G.month),title:'Meine Geschäfte',tabs:TABS,body:b}};
 // Marktanteile je Stadt: Standorte und Laufkundschaft der Restaurants, du gegen die Konkurrenz
-function marketHtml(){let b='<div class="sub">Wie viel der Laufkundschaft an Restaurant-Standorten auf dich entfällt. Zählt alle Ladenlokale, die als Restaurant betrieben werden.</div>';
+function marketApps(){if(!G.firms.some(f=>f.branch==='soft'))return'';let b='<div class="sec"><h3>App-Märkte</h3>';
+  for(const [g,Gn] of Object.entries(K.GENRES)){const apps=G.apps.filter(a=>a.genre===g&&a.state==='live');const tot=apps.reduce((s,a)=>s+a.users,0);if(!tot)continue;const mine=apps.filter(a=>K.firm(G,a.owner)).reduce((s,a)=>s+a.users,0);
+    b+=`<div class="card"><div class="row"><b>${Gn.icon} ${Gn.n}</b><b class="serif" style="font-size:20px">${pct(mine/tot)}</b></div><div class="mbar"><i style="width:${mine/tot*100}%;background:${G.firms[0].color}"></i><i style="width:${100-mine/tot*100}%;background:#c9c2b2"></i></div>${apps.sort((a,c)=>c.users-a.users).slice(0,4).map(a=>`<div class="row"><span>${K.firm(G,a.owner)?'<b>'+esc(a.name)+'</b>':esc(a.name)}</span><span class="sub">${fn(a.users)} Nutzer</span></div>`).join('')}</div>`}
+  return b+'</div>'}
+function marketHtml(){if(!G.firms.some(f=>f.branch==='cafe'))return marketApps()||'<div class="sub">Für die Produktion gibt es keine Marktanteile, du verkaufst über Aufträge, Großhandel und deine Marke.</div>';let b='<div class="sub">Wie viel der Laufkundschaft an Restaurant-Standorten auf dich entfällt. Zählt alle Ladenlokale, die als Restaurant betrieben werden.</div>';
   const cols=['#d4a72c','#2f6fd0','#9b6fb5','#e07a2a','#5a6270','#1fa9c4','#cc3b33'];
   for(const c of K.CITIES){if(!G.cities[c.id])continue;const ps=G.plots.filter(p=>p.city===c.id&&p.use==='cafe'&&p.owner);if(!ps.length){b+=`<div class="card"><b>${c.n}</b><div class="sub">Noch keine Restaurants.</div></div>`;continue}
     const by={};for(const p of ps){const k=p.owner.startsWith('c:')?p.owner:'me';(by[k]=by[k]||{n:0,t:0});by[k].n++;by[k].t+=p.traffic}
@@ -503,7 +520,7 @@ function marketHtml(){let b='<div class="sub">Wie viel der Laufkundschaft an Res
       <div class="mbar">${rows.map(r=>`<i style="width:${r.x.t/tot*100}%;background:${r.c}" title="${esc(r.n)}"></i>`).join('')}</div>
       ${rows.map(r=>`<div class="row"><span><i class="dot" style="background:${r.c}"></i> ${esc(r.n)}</span><span class="sub">${r.x.n} Standort${r.x.n>1?'e':''} · ${pct(r.x.t/tot)}</span></div>`).join('')}
       <div class="sub">${lead.k==='me'?'Du bist Marktführer in '+c.n+'.':esc(lead.n)+' führt hier. '+(by.me?'Dir fehlen '+pct(lead.x.t/tot-me)+' Anteil.':'Du bist hier noch nicht vertreten.')}</div></div>`}
-  return b}
+  return b+marketApps()}
 // Café-Filiale
 const MGRLOOK=m=>Object.assign({},m,{suit:'#9b6fb5',shirt:'#24272b'});
 // Team einzeln: Können, Lohn, Schulung, Entlassung
@@ -528,6 +545,12 @@ function dishLab(f){const d=view.p.dish||(view.p.dish={type:'main',ingr:[],name:
     <div class="ingr">${ok.map(([k,I])=>{const tr=(G.trend||{})[k]||1;return`<button class="pal" data-a="dishIngr" data-k="${k}" aria-pressed="${d.ingr.includes(k)}"><span>${I.icon}</span><b>${I.n}</b><small>${I.cost.toFixed(2).replace('.',',')} ${K.CURS[G.currency]} · ${tr>1.15?'📈 Trend':tr<0.85?'📉 out':'normal'}</small></button>`}).join('')}</div>
     ${sp?`<div class="card">${kpis([[fe(sp.other),'Zutaten je Portion'],[fe(sp.ref),'Richtpreis'],['+'+Math.round(sp.flair*100)+' %','Qualität']])}<div class="chips">${Object.entries(sp.like).sort((a,b)=>b[1]-a[1]).map(([g,v])=>`<span class="chip" style="${v>1.15?'background:rgba(47,138,85,.15)':v<0.9?'background:rgba(204,59,51,.12)':''}">${K.SEGS[g].icon} ${v>1.15?'mögen es':v<0.9?'eher nicht':'neutral'}</span>`).join('')}</div></div>`:''}
     <input type="text" id="dishName" maxlength="24" placeholder="Name des Gerichts" value="${esc(d.name)}"><button class="btn ink" data-a="dishGo" ${d.ingr.length?'':'aria-disabled="true"'}>Entwickeln · 5.000 €</button></div>`}
+// Teamleitungen (Software und Produktion)
+function leadsHtml(f){const L=K.LEADS[f.branch];if(!L)return'';f.leads=f.leads||{};
+  return`<div class="sec"><h3>Teamleitungen</h3><div class="sub">Schlüsselpersonen mit eigenem Können. Gute Leute verlangen mehr und werden abgeworben, wenn Stimmung oder Gehalt nicht stimmen. Vermittlung 15 % eines Jahresgehalts.</div>
+    ${Object.entries(L).map(([k,R])=>{const l=f.leads[k];if(l)return`<div class="card"><div class="execHead" style="grid-template-columns:64px 1fr"><div>${avatar(l,60)}</div><div><span class="eyebrow">${R.icon} ${R.n}</span><br><b>${esc(l.n)}</b> <span class="sub">seit ${K.monthName(l.since)}</span>${bar(l.skill,'good')}<div class="sub">Können ${Math.round(l.skill*100)} · ${R.d} · ${fe(l.salary)}/Jahr${l.salary<K.leadPay(l.skill)*0.9?' · <b class="neg">unterbezahlt</b>':''}</div>
+        <div class="btns"><button class="btn sm" data-a="leadAct" data-id="${f.id}" data-k="${k}" data-v="raise">Gehalt +10 %</button><button class="btn sm bad" data-a="leadAct" data-id="${f.id}" data-k="${k}" data-v="fire">Trennen</button></div></div></div></div>`;
+      return`<details class="fold"><summary>${R.icon} ${R.n} besetzen <span class="sub">· ${R.d}</span></summary><div class="list">${K.leadCands(G,f,k).map((c,i)=>`<div class="li" style="cursor:default"><span class="ico">${avatar(c,40)}</span><span class="t"><b>${esc(c.n)}</b><span>Können ${Math.round(c.skill*100)} · ${fe(c.salary)}/Jahr</span></span><button class="btn sm" data-a="leadAct" data-id="${f.id}" data-k="${k}" data-v="${i}">Einstellen</button></div>`).join('')}</div></details>`}).join('')}</div>`}
 function mgrCard(s){const m=s.manager;
   if(!m)return`<div class="card"><div class="row"><span><span class="lbl">Filialleitung</span><br><span class="sub">Mehr Kapazität, besserer Service, Stammgäste. Sie kann Personal, Angebot, Marketing und Zwischenfälle selbst übernehmen.</span></span></div><button class="btn ink" data-a="open" data-v="mgrHire" data-id="${s.id}" data-keep="1">Filialleitung einstellen</button></div>`;
   const mp=K.mgrPay(m);return`<div class="sec"><h3>Filialleitung</h3><div class="card"><div class="execHead"><div style="text-align:center">${avatar(MGRLOOK(m),110)}<div class="eyebrow" style="margin-top:6px">Leitung seit</div><b>${K.monthName(m.since)}</b></div>
@@ -644,7 +667,7 @@ VIEWS.office=(o)=>{const f=K.firm(G,o.id)||cur();if(f.branch!=='soft')return nul
   for(const [r,n,dsc] of [['jr','Junior-Entwickler','1 Punkt am Tag'],['sr','Senior-Entwickler','2,2 Punkte, hebt die Qualität'],['des','Designer','Bessere Bewertungen'],['qa','Tester','Weniger Bugs']])
     b+=`<div class="card"><div class="row"><span><span class="lbl">${n}</span><br><span class="sub">${dsc} · ${fe(K.wageOf(G,r,f))}/Monat</span></span>${step('hire',f[r],`data-r="${r}"`)}</div></div>`;
   if(f.id===G.firms[0].id)b+=`<div class="card"><div class="row"><span><span class="lbl">Gründer programmiert mit</span><br><span class="sub">1,4 Punkte am Tag, kostet nichts</span></span>${tog('founderDev',G.founderDev)}</div></div>`;
-  b+='</div><div class="sec"><h3>Studio-Ausstattung</h3>'+(f.office?'<div class="grid2">'+Object.entries(K.OFFICE_UPS).map(([k,U])=>upCard('officeUp',`data-k="${k}" data-id="${f.id}"`,U.icon,U.n,U.d,fe(U.cost)+(U.mon?' + '+fe(U.mon)+'/M':''),f.oups[k])).join('')+'</div>':'<div class="sub">Erst mit eigenem Büro möglich.</div>')+'</div>';
+  b+='</div>'+leadsHtml(f)+'<div class="sec"><h3>Studio-Ausstattung</h3>'+(f.office?'<div class="grid2">'+Object.entries(K.OFFICE_UPS).map(([k,U])=>upCard('officeUp',`data-k="${k}" data-id="${f.id}"`,U.icon,U.n,U.d,fe(U.cost)+(U.mon?' + '+fe(U.mon)+'/M':''),f.oups[k])).join('')+'</div>':'<div class="sub">Erst mit eigenem Büro möglich.</div>')+'</div>';
   b+=`<div class="sec"><h3>Neues App-Projekt</h3><div class="card"><div class="lbl">Genre</div>${seg('newGenre',Object.entries(K.GENRES).map(([k,g])=>[k,g.icon+' '+g.n,fn(g.pot/1000)+' Tsd.',g.res&&!f.res[g.res]]),f._g||'prod')}
     <div class="lbl">Umfang</div>${seg('newScope',Object.entries(K.SCOPES).map(([k,s])=>[k,s.n,fn(s.work)+' Punkte']),f._s||'S')}
     <div class="sub">Dauer bei deinem Team: etwa ${t.P>0?Math.ceil(K.SCOPES[f._s||'S'].work/t.P)+' Woche(n)':'– (erst Entwickler einstellen)'}. Größere Apps erreichen mehr Nutzer.</div>
@@ -690,6 +713,7 @@ VIEWS.plant=({id})=>{let f=null,p=null;for(const x of G.firms)if(x.plants){const
 // Produktion: Vertrieb
 VIEWS.sales=(o)=>{const f=K.firm(G,o.id)||cur();if(f.branch!=='prod')return null;let b=o.embed?o.b:'';
   if(f.sales)b+=kpis([[fe(f.sales.contract),'Aufträge'],[fe(f.sales.brand),'Eigene Marke'],[fe(f.sales.whole),'Großhandel']]);
+  b+=leadsHtml(f);
   b+=`<div class="sec"><h3>Aufträge</h3>`;
   for(const c of f.contracts)b+=`<div class="card"><div class="row"><span><span class="lbl">${esc(c.buyer)}</span><br><span class="sub">${fn(c.qty)} ${K.GOODS[c.good].n} · Güte ${'I'.repeat(c.grade)} · ${c.price.toFixed(2).replace('.',',')} €</span></span><span class="sub">bis ${K.MONTHS[c.due%12]}</span></div>${bar(c.done/c.qty,'good')}</div>`;
   const offers=G.offers.contracts.filter(c=>c.fid===f.id);
@@ -1043,7 +1067,7 @@ VIEWS.paper=()=>{const r=G.report||lastRep;let b=r?paperHtml(r):'<div class="sub
   b+=`<div class="sec"><h3>Meldungen</h3><div class="list">${G.news.slice(0,25).map(n=>`<div class="li" style="cursor:default"><span class="ico">${{good:'✅',bad:'⚠️',ms:'🏆',fin:'💶'}[n.k]||'🗞️'}</span><span class="t"><b>${esc(n.t)}</b><span>${K.monthName(n.m)}</span></span></div>`).join('')}</div></div>`;
   return{eyebrow:'Verlag',title:'Wirtschaftskurier',sub:'Zeitung und Meldungen',body:b}};
 VIEWS.stats=()=>{const t=T()||'stat';let b='';
-  if(t==='stat'){const k=G.kpi||[],met=view.p.met||'rev',M={rev:['Umsatz/Monat',fe],net:['Gewinn/Monat',sgn],value:['Firmenwert',fe],cash:['Kasse',fe],staff:['Mitarbeitende',fn],shops:['Restaurants',fn],guests:['Gäste/Monat',fn]};
+  if(t==='stat'){const k=G.kpi||[],met=view.p.met||'rev',M={rev:['Umsatz/Monat',fe],net:['Gewinn/Monat',sgn],value:['Firmenwert',fe],cash:['Kasse',fe],staff:['Mitarbeitende',fn]};if(G.firms.some(f=>f.branch==='cafe'))Object.assign(M,{shops:['Restaurants',fn],guests:['Gäste/Monat',fn]});if(G.firms.some(f=>f.branch==='soft'))M.users=['App-Nutzer',fn];if(G.firms.some(f=>f.branch==='prod'))M.output=['Ausstoß/Monat',fn];
     b+=seg('statMet',Object.entries(M).map(([k2,x])=>[k2,x[0]]),met);
     if(k.length<2)b+='<div class="sub">Die Kurven erscheinen nach zwei Monaten.</div>';else{const step2=Math.max(1,Math.ceil(k.length/12)),pts=k.filter((_,i)=>i%step2===0||i===k.length-1);
       b+=`<div class="card">${lineChart([{v:pts.map(x=>Math.max(0,x[met]||0)),c:'#2f6fd0'}],pts.map(x=>K.MONTHS[x.m%12].slice(0,3)+(x.m%12===0?' '+String(K.yearOf?K.yearOf(x.m):'').slice(2):'')))}</div>`}
@@ -1381,6 +1405,8 @@ document.addEventListener('click',e=>{if(suppressClick&&e.isTrusted){suppressCli
   case'statMet':view.p.met=v;renderSheet();break;
   case'bulk':run(K.act.bulk(G,cur().id,{[k]:true}));break;case'bulkUp':{const U=K.CAFE_UPS[k];if(confirm(U.n+' in allen passenden Restaurants einbauen? Je '+fe(U.cost)+'.'))run(K.act.bulk(G,cur().id,{up:k}));break}
   case'bulkHours':run(K.act.bulk(G,cur().id,{hours:v}));break;case'showDraft':close();showDraft();break;
+  case'leadAct':run(K.act.lead(G,id,k,v==='fire'||v==='raise'?v:+v));break;
+  case'bulkSP':{const f2=G.firms.find(x=>x.branch===(k==='focus'?'soft':'prod'))||cur();run(K.act.bulkSP(G,f2.id,{[k]:k==='shifts'?+v:k==='focus'?v:true}));break}
   case'tipStaff':{const r=K.act.shop(G,+id,{staff:+v});b.textContent=r.ok?'Erledigt':'Geht nicht';b.disabled=true;save();refresh();if(!r.ok&&r.msg)toast(r.msg,'bad');break}
   case'tradeSl':{const sl=document.querySelector(`input[data-in="stk"][data-k="${k}"]`);if(sl)run(K.act.trade(G,k,+sl.value));break}
   case'stake':{const sl=document.querySelector(`input[data-in="stake"][data-id="${id}"]`);if(sl)run(K.act.stake(G,+id,+sl.value/100));break}
