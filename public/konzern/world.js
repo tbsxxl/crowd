@@ -347,7 +347,7 @@ function buildCell(G,list,g){const p0=list[0];seed=(p0.r*31+p0.c*7+(p0.city||'')
   const zone=p0.zone,slots=SLOTS[zone],used=new Set(),units=slots.map((k,i)=>{let p=list.find(q=>q.u===i);
     if(!p)p=list.find(q=>q.u===undefined&&!used.has(q)&&dispKind(q)===k);if(p)used.add(p);return p||null});
   const def=(units.find(Boolean)||p0).id,parts={};
-  const bg=(MAP_CITY[cityId]||MAP_CITY.kiel),base=B(P,0.25,P,zone==='gewerbe'?shade3(bg.ground,0.84):zone==='wohn'?shade3(mixCol(bg.ground,bg.park,0.6),0.9):shade3(bg.ground,0.86),0,0,0,unitGroup(g,def));base.userData.base=true;
+  const bg=(MAP_CITY[cityId]||MAP_CITY.kiel),base=B(P,0.25,P,zone==='gewerbe'?shade3(bg.ground,0.84):zone==='wohn'?shade3(mixCol(bg.ground,bg.park,0.6),0.9):mixCol(shade3(bg.ground,0.78),PLAZA[cityId]||'#cdb8a4',0.5),0,0,0,unitGroup(g,def));base.userData.base=true;
   if(zone==='wohn'){const gw=3+rnd()*4,gd=1.6+rnd()*1.4;B(gw,0.04,gd,bg.park,(rnd()-0.5)*(P-gw),0.25,-P/2+gd/2+0.3,g);if(rnd()<0.7){const tx=(rnd()-0.5)*6;cyl(0.1,0.14,0.8,'#6b4a2f',tx,0.25,-P/2+1,g,5);add(new THREE.IcosahedronGeometry(0.7,0),'#6fae5a',tx,1.5,-P/2+1,g)}}
   const info=p=>{if(!p||!p.owner)return{};const own=!p.owner.startsWith('c:')&&p.owner!=='H',f=own?G.firms.find(x=>x.id===p.owner):null,cp=p.owner.startsWith('c:')?G.comps.find(c=>'c:'+c.id===p.owner):null;
     return{build:window.K&&K.underBuild?K.underBuild(G,p):0,f,cp,hq:p.owner==='H',color:p.owner==='H'?'#24272b':f?f.color:cp?cp.color:'#8a8f96',name:f?f.name:cp?cp.name:''}};
@@ -420,7 +420,9 @@ function etage(G,p,ug,d,I,y0,hh,w,dp,col,top){const g=ug.parent;
   B(w,hh,dp,col,0,y0,-0.6,ug);const floors=Math.max(1,Math.round(hh/1.3));
   const occ=p&&p.owner,win=I.hq?'#24272b':occ?I.color:'#9aa4ae';
   for(let k=0;k<floors;k++){const y=y0+k*(hh/floors)+0.35;B(w*0.86,0.42,0.05,occ?win:'#c8ccd2',0,y,-0.6+dp/2+0.01,ug);B(0.05,0.42,dp*0.86,occ?win:'#c8ccd2',-w/2-0.01,y,-0.6,ug)}
-  if(top){B(w+0.2,0.25,dp+0.2,'#cfc8bb',0,y0+hh,-0.6,ug);g.userData.top=y0+hh}
+  if(top){const ry=y0+hh;B(w+0.2,0.25,dp+0.2,shade3(col,0.82),0,ry,-0.6,ug);B(w-0.5,0.08,dp-0.5,'#8c8780',0,ry+0.25,-0.6,ug); // Dachrand und Kiesdach
+    const n=1+Math.floor(rnd()*3);for(let k=0;k<n;k++){const ax=(rnd()-0.5)*(w-2.4),az=-0.6+(rnd()-0.5)*(dp-2.4);B(1+rnd()*0.6,0.6,0.9,'#b9bdc2',ax,ry+0.33,az,ug)}
+    if(rnd()<0.5)B(1.4,0.9,1.4,'#6b6f75',(rnd()-0.5)*(w-3),ry+0.33,-0.6+(rnd()-0.5)*(dp-3),ug);if(rnd()<0.35)for(let k=0;k<3;k++)B(1.2,0.06,0.7,'#3d5a78',-1.6+k*1.6,ry+0.4,1.2,ug);g.userData.top=ry}
   const i=p?p.u:undefined;if(i!==undefined){g.userData['y'+i]=y0;g.userData['h'+i]=hh}
   if(!occ){if(p){const sg=new THREE.Mesh(new THREE.PlaneGeometry(2.6,0.5),label(p.prop==='H'?'ZU VERMIETEN':'ZU MIETEN','#f2c14e','#24272b'));sg.position.set(-w/2-0.03,y0+hh/2,-0.6);sg.rotation.y=-Math.PI/2;d.add(sg)}return}
   if(I.build){scaffold(d,0,y0,-0.6+dp/2,w,hh,0.12);const bs=new THREE.Mesh(new THREE.PlaneGeometry(3.6,0.6),label('UMBAU · '+I.build+' WO.','#f2c14e','#24272b'));bs.position.set(0,y0+hh/2,-0.6+dp/2+0.25);d.add(bs);if(top)crane(d,w/2-0.6,-2.6,y0+hh+4);return}
