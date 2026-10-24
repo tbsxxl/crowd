@@ -15,7 +15,8 @@ const WARPS={
   berlin:(x,z)=>{const u=(x+WW/2)/WW,v=(z+DD/2)/DD,e=Math.sin(Math.PI*u)*Math.sin(Math.PI*v);return[x+7*(v-0.5)*e*1.4+3*Math.sin(2*Math.PI*v)*Math.sin(Math.PI*u),z-4*(u-0.5)*e*1.4]}};
 const Wp=(x,z)=>{[x,z]=rPush(x,z);if(!WARP)return[x,z];const [a,b]=WARP(x,z);return[x+(a-x)*WA,z+(b-z)*WA]};
 const Wang=(x,z)=>{const a=Wp(x-0.5,z),b=Wp(x+0.5,z);return-Math.atan2(b[1]-a[1],b[0]-a[0])};
-function placeCell(g,r,c){const j=(RIVERS[cityId]||[]).some(q=>q.h?(r===q.i||r===q.i-1):(c===q.i||c===q.i-1))?0:1,h=((r*73+c*151+(cityId||'').length*37)%97)/97,h2=((r*41+c*29+7)%89)/89,[x,z]=Wp(px(c)+(h-0.5)*1.6*j,pz(r)+(h2-0.5)*1.2*j);g.position.set(x,0,z);g.rotation.y=Wang(px(c),pz(r))+(h2-0.5)*0.22*j}
+function placeCell(g,r,c){const j=(RIVERS[cityId]||[]).some(q=>q.h?(r===q.i||r===q.i-1):(c===q.i||c===q.i-1))?0:1,h=((r*73+c*151+(cityId||'').length*37)%97)/97,h2=((r*41+c*29+7)%89)/89,[x,z]=Wp(px(c)+(h-0.5)*0.5*j,pz(r)+(h2-0.5)*0.4*j);g.position.set(x,0,z);g.rotation.y=Wang(px(c),pz(r))+(h2-0.5)*0.04*j}
+function mixCol(a,b,t){const A=parseInt(a.slice(1),16),Bc=parseInt(b.slice(1),16),m=(s)=>Math.round(((A>>s)&255)*(1-t)+((Bc>>s)&255)*t);return'#'+[m(16),m(8),m(0)].map(v=>v.toString(16).padStart(2,'0')).join('')}
 function shade3(hex,k){const n=parseInt(hex.slice(1),16),f=v=>Math.max(0,Math.min(255,Math.round(v*k)));return'#'+[f(n>>16),f(n>>8&255),f(n&255)].map(v=>v.toString(16).padStart(2,'0')).join('')}
 const toW=(g,lx,lz)=>{const c=Math.cos(g.rotation.y),s=Math.sin(g.rotation.y);return[g.position.x+lx*c+lz*s,g.position.z-lx*s+lz*c]};
 let renderer,scene,camera,root,plotGroup,canvas,walkers,cars,ray=new THREE.Raycaster(),sel=null,selRing,hoverRing,cityId=null,sig={},bases=[],G0=null;
@@ -134,7 +135,7 @@ function buildRoads(){if(!roadGroup)return;while(roadGroup.children.length){cons
 // Schild als Fläche mit Schrift
 function sign(g,text,w,h,x,y,z,bg,fg,ry){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),label(text,bg||'#24272b',fg||'#ffffff'));m.position.set(x,y,z);if(ry)m.rotation.y=ry;g.add(m);return m}
 // Öffentliche Gebäude: Börse, Bank, Stadion, Flughafen, Zeitung, Makler. Höhe für Auswahl und Schild wird zurückgegeben.
-function civic(k,g){const st='#e9e2d0',dk='#3d4651',L=k==='stadion'||k==='flughafen'?2*P+S:P;B(L,0.3,L,k==='flughafen'?'#a9c78f':'#d9d2c4',0,0,0,g);
+function civic(k,g){const st='#e9e2d0',dk='#3d4651',L=k==='stadion'||k==='flughafen'?2*P+S:P;B(L,0.3,L,k==='flughafen'?'#a9c78f':k==='stadion'?'#9cc97f':(MAP_CITY[cityId]||MAP_CITY.kiel).ground,0,0,0,g);
   if(k==='boerse'){B(8.6,0.4,6.4,'#cfc6b2',0,0.3,-0.6,g);B(8,0.4,5.8,'#d8cfbb',0,0.7,-0.6,g);B(7.4,4.4,5,st,0,1.1,-0.9,g);
     for(let i=0;i<6;i++)cyl(0.32,0.36,4.2,'#f4f1ea',-3.1+i*1.24,1.1,1.85,g,10);B(7.8,0.6,0.8,'#f4f1ea',0,5.3,1.85,g);add(prism(7.8,1.6,1),'#ece6d6',0,5.9,1.85,g);
     sign(g,'BÖRSE',4.2,0.55,0,5.6,2.27,'#24272b','#f2c14e');B(1.4,0.5,0.8,'#6b5a2a',-3.2,0.3,3.6,g);B(1,0.8,0.6,'#b07a1c',-3.2,0.8,3.6,g);add(new THREE.ConeGeometry(0.12,0.6,6),'#b07a1c',-2.75,1.75,3.6,g).rotation.z=-0.9;return 7.5}
@@ -249,7 +250,7 @@ const gaps=[];
 const PLAZA={kiel:'#cdb8a4',hamburg:'#c9cdd0',berlin:'#d3cdbf',wien:'#d8cdb6',amsterdam:'#c9bba8'};
 function fillGaps(G){gaps.length=0;const map=K.CITY_MAP[cityId],bl=K.CITY_BLOCKS&&K.CITY_BLOCKS[cityId];if(!map||!bl)return;
   const g=new THREE.Group();g.userData.cell='gaps';plotGroup.add(g);
-  const kind=(a,b)=>a==='A'&&b==='A'?'A':a==='P'&&b==='P'?'P':'Z';
+  const kind=(a,b)=>a==='A'&&b==='A'?'A':(a==='P'&&b==='P')||(a===b&&'SF'.includes(a))?'P':'Z';
   const col=k=>k==='A'?'#5c9cbf':k==='P'?(MAP_CITY[cityId]||MAP_CITY.kiel).park:PLAZA[cityId]||'#d0c8bc';
   const put=(x0,z0,w,d,k)=>{gaps.push({x0:x0-w/2,x1:x0+w/2,z0:z0-d/2,z1:z0+d/2,k});const [x,z]=Wp(x0,z0);w+=0.8;d+=0.8;const m=B(w,k==='A'?0.1:0.16,d,col(k),x,k==='A'?-0.02:0,z,g);m.rotation.y=Wang(x0,z0);
     if(k==='Z'&&w*d>14){for(let i=0;i<2;i++){const tx=x+(i?1:-1)*w*0.25,tz=z+(i?-1:1)*d*0.25;cyl(0.1,0.14,0.9,'#6b4a2f',tx,0.16,tz,g,5);add(new THREE.IcosahedronGeometry(0.7,0),'#6fae5a',tx,1.6,tz,g)}B(1.2,0.35,0.4,'#7a5a3a',x,0.16,z,g)}
@@ -265,7 +266,7 @@ function buildSpecials(G){const map=window.K&&K.CITY_MAP&&K.CITY_MAP[cityId];if(
   for(let r=0;r<map.length;r++)for(let c=0;c<map[r].length;c++){const code=map[r][c];if(!'PALKNSFZM'.includes(code))continue;if(G.plots.some(p=>p.city===cityId&&p.r===r&&p.c===c))continue;
     if('SF'.includes(code)&&((r>0&&map[r-1][c]===code)||(c>0&&map[r][c-1]===code)))continue; // 2×2 nur einmal, mittig
     const g=new THREE.Group();g.userData.cell='x'+r+'-'+c;if('SF'.includes(code)){const cx=(px(c)+px(c+1))/2,cz=(pz(r)+pz(r+1))/2,[x,z]=Wp(cx,cz);g.position.set(x,0,z);g.rotation.y=Wang(cx,cz)}else placeCell(g,r,c);plotGroup.add(g);special(code,cityId,r,c,g);g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}})}}
-function buildLand(id){if(topMat)topMat.color.set((MAP_CITY[id]||MAP_CITY.kiel).ground);if(!landGroup)return;while(landGroup.children.length){const c=landGroup.children.pop();c.traverse(o=>{if(o.geometry)o.geometry.dispose()})}landAnim.length=0;
+function buildLand(id){if(topMat)topMat.color.set(shade3((MAP_CITY[id]||MAP_CITY.kiel).ground,0.9));if(!landGroup)return;while(landGroup.children.length){const c=landGroup.children.pop();c.traverse(o=>{if(o.geometry)o.geometry.dispose()})}landAnim.length=0;
   const L=LANDMARKS[id];if(!L)return;ground(landGroup,LZ-LD/2,LZ+LD/2,L.ground);L.build(landGroup);
   const sg=new THREE.Mesh(new THREE.PlaneGeometry(10,1.6),label(L.n.toUpperCase(),'#24272b','#ffffff'));sg.rotation.x=-Math.PI/2;sg.position.set(-BW/2+8,0.12,LZ+LD/2-2);landGroup.add(sg);
   landGroup.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}})}
@@ -346,18 +347,22 @@ function buildCell(G,list,g){const p0=list[0];seed=(p0.r*31+p0.c*7+(p0.city||'')
   const zone=p0.zone,slots=SLOTS[zone],used=new Set(),units=slots.map((k,i)=>{let p=list.find(q=>q.u===i);
     if(!p)p=list.find(q=>q.u===undefined&&!used.has(q)&&dispKind(q)===k);if(p)used.add(p);return p||null});
   const def=(units.find(Boolean)||p0).id,parts={};
-  const bg=(MAP_CITY[cityId]||MAP_CITY.kiel),base=B(P,0.25,P,zone==='gewerbe'?'#d8d2c4':shade3(bg.ground,0.95),0,0,0,unitGroup(g,def));base.userData.base=true;
+  const bg=(MAP_CITY[cityId]||MAP_CITY.kiel),base=B(P,0.25,P,zone==='gewerbe'?shade3(bg.ground,0.84):zone==='wohn'?shade3(mixCol(bg.ground,bg.park,0.6),0.9):shade3(bg.ground,0.86),0,0,0,unitGroup(g,def));base.userData.base=true;
   if(zone==='wohn'){const gw=3+rnd()*4,gd=1.6+rnd()*1.4;B(gw,0.04,gd,bg.park,(rnd()-0.5)*(P-gw),0.25,-P/2+gd/2+0.3,g);if(rnd()<0.7){const tx=(rnd()-0.5)*6;cyl(0.1,0.14,0.8,'#6b4a2f',tx,0.25,-P/2+1,g,5);add(new THREE.IcosahedronGeometry(0.7,0),'#6fae5a',tx,1.5,-P/2+1,g)}}
   const info=p=>{if(!p||!p.owner)return{};const own=!p.owner.startsWith('c:')&&p.owner!=='H',f=own?G.firms.find(x=>x.id===p.owner):null,cp=p.owner.startsWith('c:')?G.comps.find(c=>'c:'+c.id===p.owner):null;
     return{build:window.K&&K.underBuild?K.underBuild(G,p):0,f,cp,hq:p.owner==='H',color:p.owner==='H'?'#24272b':f?f.color:cp?cp.color:'#8a8f96',name:f?f.name:cp?cp.name:''}};
   const deco=(p,ug)=>{const d=new THREE.Group();ug.add(d);if(p)(parts[p.id]=parts[p.id]||[]).push(d);return d};
   const pins=[];
   if(zone==='gewerbe'){const p=units[0],ug=unitGroup(g,p?p.id:def),I=info(p);hall(G,p,ug,deco(p,ug),I);if(p&&p.owner)pins.push([p,I,0,6.2,-1.4]);if(p&&p.prop==='H')flag(ug,-4.2,0.25,4.2)}
-  else if(zone==='wohn'){ // zwei schmale Wohnhäuser, unten je ein Ladenlokal
+  else if(zone==='wohn'){ // Wohnhäuser in drei Varianten, unten je ein Ladenlokal
+    const v=rnd(),CS=CITY_STYLE[cityId]||CITY_STYLE.kiel,blk=v>=0.4&&v<0.68;
+    if(blk){const ug0=unitGroup(g,units[0]?units[0].id:def),h=6.2+rnd()*3,col=CS.house[Math.floor(rnd()*CS.house.length)];B(8.8,h,6,col,0,0.25,-0.6,ug0);B(9.0,0.35,6.2,shade3(col,0.8),0,0.25+h,-0.6,ug0); // Mehrfamilienhaus mit Flachdach und Balkonen
+      for(let k=0;k<Math.floor((h-GF)/1.4);k++){for(const wx of [-3,-1.5,0,1.5,3])B(0.75,0.75,0.05,'#3d4651',wx,0.25+GF+0.4+k*1.4,FZ+0.01,ug0);for(const wx of [-2.25,2.25])B(1.6,0.08,0.6,'#e9e4d8',wx,0.25+GF+0.15+k*1.4,FZ+0.3,ug0)}
+      if(rnd()<0.6){B(1.6,0.9,1.6,'#9da3a8',2.4,0.6+h,-1.6,ug0);for(let t=0;t<3;t++)add(new THREE.IcosahedronGeometry(0.4,0),'#6fae5a',-3+t*1.1,0.85+h,-2.2,ug0)}}
     for(let i=0;i<2;i++){const p=units[i],sx=i?2.2:-2.2,ug=unitGroup(g,p?p.id:def),I=info(p),h=4.4+rnd()*2.6;
-      const CS=CITY_STYLE[cityId]||CITY_STYLE.kiel,col=CS.house[Math.floor(rnd()*CS.house.length)];
-      B(4.3,h,6,col,sx,0.25,-0.6,ug);add(prism(4.5,1.2,6.2),CS.roof[Math.floor(rnd()*CS.roof.length)],sx,0.25+h,-0.6,ug).rotation.y=0;
-      for(let k=0;k<Math.floor((h-GF)/1.3);k++)for(const wx of [-1,0,1])B(0.7,0.7,0.05,'#3d4651',sx+wx*1.25,0.25+GF+0.35+k*1.3,FZ+0.01,ug);
+      const col=CS.house[Math.floor(rnd()*CS.house.length)],roof=CS.roof[Math.floor(rnd()*CS.roof.length)];
+      if(!blk){B(4.3,h,6,col,sx,0.25,-0.6,ug);if(v<0.4)add(prism(4.5,1.2,6.2),roof,sx,0.25+h,-0.6,ug).rotation.y=0;else{const hp=add(new THREE.ConeGeometry(3.2,1.5,4),roof,sx,0.25+h+0.75,-0.6,ug);hp.rotation.y=Math.PI/4;hp.scale.set(1,1,1.38);if(rnd()<0.5)B(0.4,1.2,0.4,'#8a5a3a',sx+1,0.25+h+0.3,-1.6,ug)}
+        for(let k=0;k<Math.floor((h-GF)/1.3);k++)for(const wx of [-1,0,1])B(0.7,0.7,0.05,'#3d4651',sx+wx*1.25,0.25+GF+0.35+k*1.3,FZ+0.01,ug)}
       shopfront(G,p,ug,deco(p,ug),I,sx,4.1);if(p&&p.owner)pins.push([p,I,sx,h+2.9,0]);if(p&&p.prop==='H')flag(ug,sx+1.8,0.25,FZ+0.6)}}
   else if(zone==='city'){ // Geschäftshaus: zwei Läden unten, Büroetagen darüber
     const h=6.6+rnd()*2.6,ep=units[2],eg=unitGroup(g,ep?ep.id:def),EI=info(ep),col=(cityId==='kiel'?['#c46a4a','#b8553a','#efe6d6','#a6472f']:cityId==='hamburg'?['#efe6d6','#9a4a35','#e4d2bd','#d9dee4']:['#efe6d6','#e4d2bd','#d9dee4','#f1dcc8'])[Math.floor(rnd()*4)];
@@ -426,6 +431,7 @@ function etage(G,p,ug,d,I,y0,hh,w,dp,col,top){const g=ug.parent;
 function hall(G,p,ug,d,I){const f=I.f,color=p&&p.owner?I.color:'#b9bdc2';
   B(8.6,3.2,6,'#d8d6d0',0,0.25,-1.4,ug);for(let i=0;i<4;i++)add(prism(2.15,1.1,6),'#9da3a8',-3.22+i*2.15,3.45,-1.4,ug);
   B(8.62,0.5,6.02,color,0,2.3,-1.4,ug);B(2.6,2,0.06,'#8a8f96',-2.4,0.25,1.62,ug);
+  {const r0=Math.floor(rnd()*10);if(r0<4){cyl(0.9,0.9,4.6,'#c9ccd0',3.6,0.25,-3.6,ug);add(new THREE.ConeGeometry(0.95,0.8,12),'#9da3a8',3.6,5.25,-3.6,ug);if(r0<2){cyl(0.9,0.9,4.6,'#c9ccd0',3.6,0.25,-1.6,ug);add(new THREE.ConeGeometry(0.95,0.8,12),'#9da3a8',3.6,5.25,-1.6,ug)}}else if(r0<7){cyl(0.3,0.42,6.5,'#8a5a3a',-3.4,3.45,-3.6,ug);B(0.7,0.25,0.7,'#5a3b30',-3.4,9.9,-3.6,ug)}}
   if(!p||!p.owner){for(let i=-4;i<=4;i+=1)B(0.06,0.9,0.06,'#9a9da2',i,0.25,4.4,ug);
     const sg=new THREE.Mesh(new THREE.PlaneGeometry(3.4,0.7),label(p&&p.prop==='H'?'ZU VERMIETEN':'ZU MIETEN','#f2c14e','#24272b'));sg.position.set(2,1.5,1.66);ug.add(sg);return}
   if(I.build){crane(d,3.2,3.2,7);for(let i=0;i<3;i++)B(1.2,0.6,0.8,['#b08a5a','#8a8f96','#f2c14e'][i],-3+i*1.5,0.25,3.4,d);const bs=new THREE.Mesh(new THREE.PlaneGeometry(3.4,0.6),label('AUFBAU · '+I.build+' WO.','#f2c14e','#24272b'));bs.position.set(-1,1.6,1.68);d.add(bs);return}
@@ -457,13 +463,13 @@ function pin(I,p){const icon=I.build?'bau':I.hq?'hq':p.use||'x',own=!!I.f||I.hq,
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:pinTex[key],depthTest:false,transparent:true}));const sc=own?1:0.66;sp.scale.set(3.6*sc,4.5*sc,1);sp.userData.sc=sc;sp.center.set(0.5,0.05);sp.renderOrder=own?9:8;sp.userData.pid=p.id;sp.userData.pinBase=0;return sp}
 // ---------- Passanten und Autos ----------
 const WMAX=420;let wInst,wData=[],wCount=0,cInst,cData=[];
-function initWalkers(){const geo=new THREE.CylinderGeometry(0.18,0.22,0.9,6);geo.translate(0,0.45,0);
+function initWalkers(){const geo=new THREE.CylinderGeometry(0.14,0.17,0.75,6);geo.translate(0,0.45,0);
   wInst=new THREE.InstancedMesh(geo,new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.9}),WMAX);wInst.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(WMAX*3),3);
-  wInst.castShadow=true;root.add(wInst);const cols=['#e8604c','#f0b23a','#4fb0c6','#24272b','#e57fb0','#7cc56b','#9b6fb5','#f4f1ea','#3d78d8'].map(c=>new THREE.Color(c));
+  wInst.castShadow=true;root.add(wInst);const cols=['#5a6270','#8a5a3a','#3d4651','#24272b','#a6472f','#6b7a8f','#7a8a5a','#c9c2b2','#3d78d8'].map(c=>new THREE.Color(c));
   for(let i=0;i<WMAX;i++){wInst.setColorAt(i,cols[i%cols.length]);wData.push(newWalker())}}
 function newWalker(){const horiz=rnd()<0.5,line=horiz?Math.floor(rnd()*(ROWS+1)):Math.floor(rnd()*(COLS+1)),side=rnd()<0.5?-1.55:1.55;
   return{horiz,line,side,t:rnd(),dir:rnd()<0.5?1:-1,v:0.012+rnd()*0.01}}
-function updateWalkerDensity(G){const t=G.plots.filter(p=>p.city===cityId).reduce((s,p)=>s+p.traffic,0);wCount=Math.min(WMAX,Math.round(t/260))}
+function updateWalkerDensity(G){const t=G.plots.filter(p=>p.city===cityId).reduce((s,p)=>s+p.traffic,0);wCount=Math.min(WMAX,Math.round(t/480))}
 function initCars(){const geo=new THREE.BoxGeometry(1.6,0.7,0.8);geo.translate(0,0.45,0);cInst=new THREE.InstancedMesh(geo,new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.6}),48);
   cInst.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(48*3),3);cInst.castShadow=true;root.add(cInst);
   const cols=['#f4f1ea','#d63c3c','#3d78d8','#24272b','#f2c14e','#9da3a8'].map(c=>new THREE.Color(c));
