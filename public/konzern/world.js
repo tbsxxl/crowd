@@ -16,12 +16,17 @@ const WARPS={
 const Wp=(x,z)=>{[x,z]=rPush(x,z);if(!WARP)return[x,z];const [a,b]=WARP(x,z);return[x+(a-x)*WA,z+(b-z)*WA]};
 const Wang=(x,z)=>{const a=Wp(x-0.5,z),b=Wp(x+0.5,z);return-Math.atan2(b[1]-a[1],b[0]-a[0])};
 // Der gebogene Stadtplan staucht manche Felder. Gebäude werden dann in der Fläche verkleinert, damit sie nicht auf der Straße stehen.
-function fitCell(g,cx,cz,L){const h=L/2,d=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),sx=Math.min(d(Wp(cx-h,cz-h),Wp(cx+h,cz-h)),d(Wp(cx-h,cz+h),Wp(cx+h,cz+h)))/L,sz=Math.min(d(Wp(cx-h,cz-h),Wp(cx-h,cz+h)),d(Wp(cx+h,cz-h),Wp(cx+h,cz+h)))/L;
-  const k=Math.min(1,sx,sz)*0.96;g.scale.set(k,1,k);g.userData.fit=k}
-function placeCell(g,r,c){const j=(RIVERS[cityId]||[]).some(q=>q.h?(r===q.i||r===q.i-1):(c===q.i||c===q.i-1))?0:1,h=((r*73+c*151+(cityId||'').length*37)%97)/97,h2=((r*41+c*29+7)%89)/89,[x,z]=Wp(px(c)+(h-0.5)*0.5*j,pz(r)+(h2-0.5)*0.4*j);g.position.set(x,0,z);g.rotation.y=Wang(px(c),pz(r))+(h2-0.5)*0.04*j;fitCell(g,px(c),pz(r),P)}
+// Jedes Feld folgt der Verformung des Stadtplans: eine affine Abbildung aus den gebogenen Feldkanten (Drehung, Stauchung, Scherung).
+// Die Fläche wird so weit verkleinert, dass zur Straßenmitte immer eine halbe Straßenbreite frei bleibt.
+function fitCell(g,cx,cz,L){const h=L/2,a=Wp(cx-h,cz),b=Wp(cx+h,cz),c=Wp(cx,cz-h),d=Wp(cx,cz+h),[tx,tz]=Wp(cx,cz);
+  let ex=[(b[0]-a[0])/L,(b[1]-a[1])/L],ez=[(d[0]-c[0])/L,(d[1]-c[1])/L];const jx=Math.hypot(...ex),jz=Math.hypot(...ez);
+  const kx=Math.min(1,1+S/L*(1-1/jx))*0.97,kz=Math.min(1,1+S/L*(1-1/jz))*0.97;ex=[ex[0]*kx,ex[1]*kx];ez=[ez[0]*kz,ez[1]*kz];
+  g.position.set(tx,0,tz);g.rotation.y=-Math.atan2(ex[1],ex[0]);g.updateMatrix();g.matrixAutoUpdate=false;
+  g.matrix.set(ex[0],0,ez[0],tx, 0,1,0,0, ex[1],0,ez[1],tz, 0,0,0,1);g.userData.aff=[ex[0],ex[1],ez[0],ez[1],tx,tz];g.userData.fx=Math.hypot(...ex);g.userData.fz=Math.hypot(...ez)}
+function placeCell(g,r,c){fitCell(g,px(c),pz(r),P)}
 function mixCol(a,b,t){const A=parseInt(a.slice(1),16),Bc=parseInt(b.slice(1),16),m=(s)=>Math.round(((A>>s)&255)*(1-t)+((Bc>>s)&255)*t);return'#'+[m(16),m(8),m(0)].map(v=>v.toString(16).padStart(2,'0')).join('')}
 function shade3(hex,k){const n=parseInt(hex.slice(1),16),f=v=>Math.max(0,Math.min(255,Math.round(v*k)));return'#'+[f(n>>16),f(n>>8&255),f(n&255)].map(v=>v.toString(16).padStart(2,'0')).join('')}
-const toW=(g,lx,lz)=>{const c=Math.cos(g.rotation.y),s=Math.sin(g.rotation.y),k=g.scale.x||1;lx*=k;lz*=k;return[g.position.x+lx*c+lz*s,g.position.z-lx*s+lz*c]};
+const toW=(g,lx,lz)=>{const m=g.userData.aff;if(m)return[m[4]+m[0]*lx+m[2]*lz,m[5]+m[1]*lx+m[3]*lz];const c=Math.cos(g.rotation.y),s=Math.sin(g.rotation.y);return[g.position.x+lx*c+lz*s,g.position.z-lx*s+lz*c]};
 let renderer,scene,camera,root,plotGroup,canvas,walkers,cars,ray=new THREE.Raycaster(),sel=null,selRing,hoverRing,cityId=null,sig={},bases=[],G0=null;
 const view={yaw:-0.62,tilt:0.98,zoom:1,tx:0,tz:-7};
 const mats={};
@@ -166,7 +171,7 @@ function civic(k,g){const st='#e9e2d0',dk='#3d4651',L=k==='stadion'||k==='flugha
     sign(g,'FLUGHAFEN',6,0.8,1,2.1,8.42,'#2f6fd0','#ffffff');return 11}
   return 4}
 function special(code,id,r,c,g){seed=(r*17+c*5+id.length*11)|0||3;
-  const cv=window.K&&K.CIVIC&&K.CIVIC[code];if(cv){const h=civic(cv.k,g),big='SF'.includes(code)?2*P+S:P;g.userData.pid='civic:'+cv.k;anchors['civic:'+cv.k]={x:g.position.x,y:0.3,z:g.position.z,w:big*0.92,h,d:big*0.92,rot:g.rotation.y,pin:h,civic:cv};return}
+  const cv=window.K&&K.CIVIC&&K.CIVIC[code];if(cv){const h=civic(cv.k,g),big='SF'.includes(code)?2*P+S:P;g.userData.pid='civic:'+cv.k;anchors['civic:'+cv.k]={x:g.position.x,y:0.3,z:g.position.z,w:big*0.92*(g.userData.fx||1),h,d:big*0.92*(g.userData.fz||1),rot:g.rotation.y,pin:h,civic:cv};return}
   if(code==='P'){B(P,0.3,P,(MAP_CITY[id]||MAP_CITY.kiel).park,0,0,0,g);B(P,0.04,1.1,'#e2d6b8',0,0.3,0,g);B(1.1,0.04,P,'#e2d6b8',0,0.3,0,g);
     if((r+c)%2){const pond=add(new THREE.CylinderGeometry(2.1,2.1,0.1,18),new THREE.MeshStandardMaterial({color:'#6fa8c8',roughness:0.2}),2.6,0.32,-2.6,g)}else{cyl(0.9,1.1,0.5,'#d9d2c4',2.6,0.3,-2.6,g);cyl(0.15,0.2,1.2,'#d9d2c4',2.6,0.8,-2.6,g)}
     if(id==='berlin'&&r===0&&c===1){cyl(0.4,0.6,6.5,'#d9cfb0',0,0.3,0,g);add(new THREE.SphereGeometry(0.5,8,6),'#d4a72c',0,7.2,0,g);add(new THREE.ConeGeometry(0.6,1.2,4),'#d4a72c',0,7.8,0,g)}
@@ -268,7 +273,7 @@ const inGap=(x,z,water)=>{for(const q of gaps)if(x>q.x0&&x<q.x1&&z>q.z0&&z<q.z1&
 function buildSpecials(G){const map=window.K&&K.CITY_MAP&&K.CITY_MAP[cityId];if(!map)return;if(!G.plots.some(p=>p.city===cityId&&'PALKNSFZM'.includes(map[p.r][p.c])))fillGaps(G);else gaps.length=0;
   for(let r=0;r<map.length;r++)for(let c=0;c<map[r].length;c++){const code=map[r][c];if(!'PALKNSFZM'.includes(code))continue;if(G.plots.some(p=>p.city===cityId&&p.r===r&&p.c===c))continue;
     if('SF'.includes(code)&&((r>0&&map[r-1][c]===code)||(c>0&&map[r][c-1]===code)))continue; // 2×2 nur einmal, mittig
-    const g=new THREE.Group();g.userData.cell='x'+r+'-'+c;if('SF'.includes(code)){const cx=(px(c)+px(c+1))/2,cz=(pz(r)+pz(r+1))/2,[x,z]=Wp(cx,cz);g.position.set(x,0,z);g.rotation.y=Wang(cx,cz);fitCell(g,cx,cz,2*P+S)}else placeCell(g,r,c);plotGroup.add(g);special(code,cityId,r,c,g);g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}})}}
+    const g=new THREE.Group();g.userData.cell='x'+r+'-'+c;if('SF'.includes(code)){const cx=(px(c)+px(c+1))/2,cz=(pz(r)+pz(r+1))/2,[x,z]=Wp(cx,cz);fitCell(g,cx,cz,2*P+S)}else placeCell(g,r,c);plotGroup.add(g);special(code,cityId,r,c,g);g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}})}}
 function buildLand(id){if(topMat)topMat.color.set(shade3((MAP_CITY[id]||MAP_CITY.kiel).ground,0.9));if(!landGroup)return;while(landGroup.children.length){const c=landGroup.children.pop();c.traverse(o=>{if(o.geometry)o.geometry.dispose()})}landAnim.length=0;
   const L=LANDMARKS[id];if(!L)return;ground(landGroup,LZ-LD/2,LZ+LD/2,L.ground);L.build(landGroup);
   const sg=new THREE.Mesh(new THREE.PlaneGeometry(10,1.6),label(L.n.toUpperCase(),'#24272b','#ffffff'));sg.rotation.x=-Math.PI/2;sg.position.set(-BW/2+8,0.12,LZ+LD/2-2);landGroup.add(sg);
@@ -384,7 +389,7 @@ function buildCell(G,list,g){const p0=list[0];seed=(p0.r*31+p0.c*7+(p0.city||'')
     if(k==='halle')a={x:0,y:0.25,z:0,w:9.2,h:4.8,d:9.2};
     else if(k==='laden'){const sx=zone==='buero'?-2.1:i?2.2:-2.2;a={x:sx,y:0.25,z:1.2,w:4.4,h:GF+0.3,d:7.2,fz:FZ-0.3}}
     else{const top=g.userData.top||8,y0=g.userData['y'+i]||0.25+GF,hh=g.userData['h'+i]||top-y0;a={x:0,y:y0,z:-0.6,w:9.2,h:hh,d:7.2}}
-    const [wx,wz]=toW(g,a.x,a.z);if(a.fz!==undefined){const f=toW(g,a.x,a.fz);a.fx=f[0];a.fz=f[1]}a.x=wx;a.z=wz;a.rot=g.rotation.y;if(g.scale.x<1){a.w*=g.scale.x;a.d*=g.scale.x}anchors[p.id]=a});
+    const [wx,wz]=toW(g,a.x,a.z);if(a.fz!==undefined){const f=toW(g,a.x,a.fz);a.fx=f[0];a.fz=f[1]}a.x=wx;a.z=wz;a.rot=g.rotation.y;if(g.userData.fx){a.w*=g.userData.fx;a.d*=g.userData.fz}anchors[p.id]=a});
   for(const [p,I,x,y,z] of pins){const sp=pin(I,p);sp.position.set(x,y,z);g.add(sp);(parts[p.id]=parts[p.id]||[]).push(sp);anchors[p.id].pin=y;const pw=toW(g,x,z);anchors[p.id].pinX=pw[0];anchors[p.id].pinZ=pw[1]}
   return parts}
 function flag(g,x,y,z){B(0.08,2.4,0.08,'#24272b',x,y,z,g);B(1.1,0.65,0.04,'#d4a72c',x+0.6,y+1.7,z,g)}
